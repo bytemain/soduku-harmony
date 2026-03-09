@@ -267,6 +267,62 @@
     {
       "name": "stats_no_history",
       "value": "暂无历史记录"
+    },
+    {
+      "name": "pause_title",
+      "value": "游戏暂停"
+    },
+    {
+      "name": "pause_resume",
+      "value": "▶  继续"
+    },
+    {
+      "name": "pause_restart",
+      "value": "↻  重新开始"
+    },
+    {
+      "name": "pause_quit",
+      "value": "✕  退出"
+    },
+    {
+      "name": "restart_confirm_title",
+      "value": "重新开始"
+    },
+    {
+      "name": "restart_confirm_msg",
+      "value": "当前进度将清除，确定重新开始吗？"
+    },
+    {
+      "name": "restart_confirm_yes",
+      "value": "确定"
+    },
+    {
+      "name": "restart_confirm_no",
+      "value": "取消"
+    },
+    {
+      "name": "guide_title",
+      "value": "手势操作指南"
+    },
+    {
+      "name": "guide_tap",
+      "value": "点击 → 填入数字"
+    },
+    {
+      "name": "guide_up",
+      "value": "上滑 → 添加笔记"
+    },
+    {
+      "name": "guide_right",
+      "value": "右滑 → 删除线标记"
+    },
+    {
+      "name": "guide_left",
+      "value": "左滑 → 擦除笔记"
+    },
+    {
+      "name": "guide_got_it",
+      "value": "知道了"
     }
   ]
 }

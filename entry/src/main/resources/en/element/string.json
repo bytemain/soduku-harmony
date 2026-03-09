@@ -267,6 +267,62 @@
     {
       "name": "stats_no_history",
       "value": "No history yet"
+    },
+    {
+      "name": "pause_title",
+      "value": "Game Paused"
+    },
+    {
+      "name": "pause_resume",
+      "value": "▶  Resume"
+    },
+    {
+      "name": "pause_restart",
+      "value": "↻  Restart"
+    },
+    {
+      "name": "pause_quit",
+      "value": "✕  Quit"
+    },
+    {
+      "name": "restart_confirm_title",
+      "value": "Restart"
+    },
+    {
+      "name": "restart_confirm_msg",
+      "value": "Current progress will be lost. Are you sure?"
+    },
+    {
+      "name": "restart_confirm_yes",
+      "value": "Confirm"
+    },
+    {
+      "name": "restart_confirm_no",
+      "value": "Cancel"
+    },
+    {
+      "name": "guide_title",
+      "value": "Gesture Guide"
+    },
+    {
+      "name": "guide_tap",
+      "value": "Tap → Fill number"
+    },
+    {
+      "name": "guide_up",
+      "value": "Swipe Up → Add note"
+    },
+    {
+      "name": "guide_right",
+      "value": "Swipe Right → Strikethrough"
+    },
+    {
+      "name": "guide_left",
+      "value": "Swipe Left → Erase note"
+    },
+    {
+      "name": "guide_got_it",
+      "value": "Got it"
     }
   ]
 }

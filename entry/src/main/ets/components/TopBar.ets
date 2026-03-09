@@ -13,6 +13,8 @@ export struct TopBar {
   @Prop formattedTime: string = '00:00'
   @Prop errorCount: number = 0
   @Prop maxErrors: number = 3
+  @Prop isPaused: boolean = false
+  onPause: () => void = () => {}
 
   private getDifficultyColor(): ResourceColor {
     return getDifficultyConfig(this.difficulty).color
@@ -33,11 +35,20 @@ export struct TopBar {
         .fontColor(this.getDifficultyColor())
         .fontWeight(FontWeight.Medium)
 
-      // 中：计时器
-      Text(this.formattedTime)
-        .fontSize(18)
-        .fontColor(Colors.titleText)
-        .fontWeight(FontWeight.Medium)
+      // 中：计时器（可点击暂停/恢复）
+      Row({ space: 6 }) {
+        Text(this.isPaused ? '▶' : '⏸')
+          .fontSize(14)
+          .fontColor(Colors.primaryBtn)
+        Text(this.formattedTime)
+          .fontSize(18)
+          .fontColor(this.isPaused ? Colors.subtitleText : Colors.titleText)
+          .fontWeight(FontWeight.Medium)
+      }
+      .onClick(() => this.onPause())
+      .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+      .borderRadius(8)
+      .backgroundColor(this.isPaused ? '#F0F0F0' : Color.Transparent)
 
       // 右：错误计数
       Text(`✕ ${this.errorCount}/${this.maxErrors}`)

@@ -14,6 +14,7 @@ const TAG = 'SettingsStorage'
 const STORE_NAME = 'sudoku_settings'
 const KEY_IS_LEFT_HAND = 'isLeftHand'
 const KEY_HAND_MODE_MANUAL = 'handModeManual'
+const KEY_GESTURE_GUIDE_SHOWN = 'gestureGuideShown'
 
 /**
  * 获取 preferences 实例
@@ -32,16 +33,20 @@ export function loadSettings(context: Context): void {
     const isLeftHand = store.getSync(KEY_IS_LEFT_HAND, false) as boolean
     const handModeManual = store.getSync(KEY_HAND_MODE_MANUAL, false) as boolean
 
+    const gestureGuideShown = store.getSync(KEY_GESTURE_GUIDE_SHOWN, false) as boolean
+
     AppStorage.setOrCreate(KEY_IS_LEFT_HAND, isLeftHand)
     AppStorage.setOrCreate(KEY_HAND_MODE_MANUAL, handModeManual)
+    AppStorage.setOrCreate(KEY_GESTURE_GUIDE_SHOWN, gestureGuideShown)
 
-    hilog.info(DOMAIN, TAG, 'Loaded settings: isLeftHand=%{public}s, handModeManual=%{public}s',
-      isLeftHand.toString(), handModeManual.toString())
+    hilog.info(DOMAIN, TAG, 'Loaded settings: isLeftHand=%{public}s, handModeManual=%{public}s, gestureGuideShown=%{public}s',
+      isLeftHand.toString(), handModeManual.toString(), gestureGuideShown.toString())
   } catch (e) {
     hilog.warn(DOMAIN, TAG, 'Failed to load settings: %{public}s', JSON.stringify(e))
     // fallback: 使用默认值
     AppStorage.setOrCreate(KEY_IS_LEFT_HAND, false)
     AppStorage.setOrCreate(KEY_HAND_MODE_MANUAL, false)
+    AppStorage.setOrCreate(KEY_GESTURE_GUIDE_SHOWN, false)
   }
 }
 
@@ -55,12 +60,15 @@ export async function saveSettings(context: Context): Promise<void> {
     const isLeftHand = AppStorage.get<boolean>(KEY_IS_LEFT_HAND) ?? false
     const handModeManual = AppStorage.get<boolean>(KEY_HAND_MODE_MANUAL) ?? false
 
+    const gestureGuideShown = AppStorage.get<boolean>(KEY_GESTURE_GUIDE_SHOWN) ?? false
+
     store.putSync(KEY_IS_LEFT_HAND, isLeftHand)
     store.putSync(KEY_HAND_MODE_MANUAL, handModeManual)
+    store.putSync(KEY_GESTURE_GUIDE_SHOWN, gestureGuideShown)
     await store.flush()
 
-    hilog.info(DOMAIN, TAG, 'Saved settings: isLeftHand=%{public}s, handModeManual=%{public}s',
-      isLeftHand.toString(), handModeManual.toString())
+    hilog.info(DOMAIN, TAG, 'Saved settings: isLeftHand=%{public}s, handModeManual=%{public}s, gestureGuideShown=%{public}s',
+      isLeftHand.toString(), handModeManual.toString(), gestureGuideShown.toString())
   } catch (e) {
     hilog.error(DOMAIN, TAG, 'Failed to save settings: %{public}s', JSON.stringify(e))
   }

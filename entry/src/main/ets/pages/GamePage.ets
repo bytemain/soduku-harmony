@@ -23,6 +23,7 @@ import { GestureModeIndicator } from '../components/GestureModeIndicator'
 import { AuxButtonGrid } from '../components/AuxButtonGrid'
 import { SettingsPanel } from '../components/SettingsPanel'
 import { CoachSheet } from '../components/CoachSheet'
+import { GestureGuideOverlay } from '../components/GestureGuideOverlay'
 import { getNextHint, getTechniqueName, SolveStep } from '../utils/LogicSolver'
 import { saveGame, loadGame, clearSave, GameSaveData, CellSerialized } from '../utils/GameStorage'
 import { recordGameStarted, recordGameWon } from '../utils/StatsStorage'
@@ -51,6 +52,9 @@ struct GamePage {
   @State private canRedo: boolean = false
   @State private showSettings: boolean = false
   @State private showCoach: boolean = false
+  @State private showPauseOverlay: boolean = false
+  @State private showGestureGuide: boolean = false
+  @StorageProp('gestureGuideShown') gestureGuideShown: boolean = false
   @State private boardScale: number = 0.92
   @State private boardOpacity: number = 0
   @State private completionScale: number = 1.0
@@ -115,6 +119,13 @@ struct GamePage {
         this.boardOpacity = 1.0
       })
     }, 100)
+
+    // 首次使用手势引导
+    if (!this.gestureGuideShown) {
+      setTimeout(() => {
+        this.showGestureGuide = true
+      }, 600)
+    }
   }
 
   aboutToDisappear(): void {
@@ -195,6 +206,77 @@ struct GamePage {
   }
 
   // ================================================================
+  // 暂停 / 恢复 / 重新开始
+  // ================================================================
+
+  /**
+   * 切换暂停/恢复
+   */
+  private togglePause(): void {
+    if (this.gameState.isCompleted) return
+    if (this.gameState.isPaused) {
+      // 恢复
+      this.gameState.isPaused = false
+      this.showPauseOverlay = false
+    } else {
+      // 暂停
+      this.gameState.isPaused = true
+      this.showPauseOverlay = true
+    }
+  }
+
+  /**
+   * 重新开始当前局（保留同一题目，清除玩家输入）
+   */
+  private restartGame(): void {
+    const ctx = getContext(this)
+    const title = ctx.resourceManager.getStringByNameSync('restart_confirm_title')
+    const msg = ctx.resourceManager.getStringByNameSync('restart_confirm_msg')
+    const yes = ctx.resourceManager.getStringByNameSync('restart_confirm_yes')
+    const no = ctx.resourceManager.getStringByNameSync('restart_confirm_no')
+    AlertDialog.show({
+      title: title,
+      message: msg,
+      primaryButton: {
+        value: no,
+        action: () => {
+          // 取消 — 不做任何事
+        },
+      },
+      secondaryButton: {
+        value: yes,
+        action: () => {
+          this.gameState.resetGame()
+          this.history = new GameHistory()
+          this.cellsWrapper = new ArrayWrapper(this.gameState.cells)
+          validateAllCells(this.gameState.cells)
+          this.updateRemainingCounts()
+          this.syncDisplayState()
+          this.gameState.isPaused = false
+          this.showPauseOverlay = false
+          // 重启计时器
+          if (this.timerId !== -1) {
+            clearInterval(this.timerId)
+          }
+          this.timerId = setInterval(() => {
+            this.gameState.tick()
+            this.displayTime = this.gameState.formattedTime
+          }, 1000)
+        },
+      },
+    })
+  }
+
+  /**
+   * 退出游戏（保存并返回主页）
+   */
+  private quitGame(): void {
+    this.gameState.isPaused = false
+    this.showPauseOverlay = false
+    router.back()
+  }
+
+  // ================================================================
   // 核心交互逻辑
   // ================================================================
 
@@ -202,6 +284,7 @@ struct GamePage {
    * 点击棋盘格子
    */
   private onCellClick(index: number): void {
+    if (this.gameState.isPaused) return
     this.gameState.selectCell(index)
     updateHighlights(this.gameState.cells, this.gameState.selectedIndex)
   }
@@ -214,6 +297,7 @@ struct GamePage {
     if (cell === null) return
     if (cell.isGiven) return
     if (this.gameState.isCompleted) return
+    if (this.gameState.isPaused) return
 
     // 记录操作前状态
     const snapshot = new CellSnapshot(
@@ -642,95 +726,168 @@ struct GamePage {
   }
 
   build() {
-    Column() {
-      // ① 顶部信息栏
-      TopBar({
-        difficulty: this.gameState.difficulty,
-        formattedTime: this.displayTime,
-        errorCount: this.displayErrors,
-      })
+    Stack() {
+      // === 主游戏内容 ===
+      Column() {
+        // ① 顶部信息栏
+        TopBar({
+          difficulty: this.gameState.difficulty,
+          formattedTime: this.displayTime,
+          errorCount: this.displayErrors,
+          isPaused: this.gameState.isPaused,
+          onPause: () => this.togglePause(),
+        })
 
-      // ② 棋盘
-      SudokuBoard({
-        cells: this.cellsWrapper,
-        selectedValue: this.gameState.selectedCell?.value ?? 0,
-        onCellClick: (index: number) => {
-          this.onCellClick(index)
-        },
-      })
-        .margin({ top: 12 })
-        .padding({ left: Sizes.gamePagePadding, right: Sizes.gamePagePadding })
-        .scale({ x: this.boardScale * this.completionScale, y: this.boardScale * this.completionScale })
-        .opacity(this.boardOpacity)
+        // ② 棋盘
+        SudokuBoard({
+          cells: this.cellsWrapper,
+          selectedValue: this.gameState.selectedCell?.value ?? 0,
+          onCellClick: (index: number) => {
+            this.onCellClick(index)
+          },
+        })
+          .margin({ top: 12 })
+          .padding({ left: Sizes.gamePagePadding, right: Sizes.gamePagePadding })
+          .scale({ x: this.boardScale * this.completionScale, y: this.boardScale * this.completionScale })
+          .opacity(this.boardOpacity)
 
-      // 手势提示条
-      GestureModeIndicator({
-        currentDirection: this.gestureDirection,
-      })
-        .margin({ top: 8 })
+        // 手势提示条
+        GestureModeIndicator({
+          currentDirection: this.gestureDirection,
+        })
+          .margin({ top: 8 })
 
-      // ③ 操作区（左右手模式镜像）
-      Row({ space: 8 }) {
-        if (!this.isLeftHand) {
-          // 右手模式：辅助按钮在左，键盘在右
-          AuxButtonGrid({
-            onUndo: () => { this.onUndo() },
-            onRedo: () => { this.onRedo() },
-            onErase: () => { this.onErase() },
-            onHint: () => { this.onHint() },
-            onSettings: () => { this.showSettings = true },
-            undoDisabled: !this.canUndo,
-            redoDisabled: !this.canRedo,
-            eraseDisabled: this.gameState.selectedCell === null ||
-              this.gameState.selectedCell!.isGiven ||
-              (this.gameState.selectedCell!.isEmpty && this.gameState.selectedCell!.notes === 0),
-            hintDisabled: this.gameState.isCompleted,
-            gridHeight: this.numPadHeight,
-          })
+        // ③ 操作区（左右手模式镜像）
+        Row({ space: 8 }) {
+          if (!this.isLeftHand) {
+            // 右手模式：辅助按钮在左，键盘在右
+            AuxButtonGrid({
+              onUndo: () => { this.onUndo() },
+              onRedo: () => { this.onRedo() },
+              onErase: () => { this.onErase() },
+              onHint: () => { this.onHint() },
+              onSettings: () => { this.showSettings = true },
+              undoDisabled: !this.canUndo,
+              redoDisabled: !this.canRedo,
+              eraseDisabled: this.gameState.selectedCell === null ||
+                this.gameState.selectedCell!.isGiven ||
+                (this.gameState.selectedCell!.isEmpty && this.gameState.selectedCell!.notes === 0),
+              hintDisabled: this.gameState.isCompleted,
+              gridHeight: this.numPadHeight,
+            })
 
-          GestureNumberPad({
-            remainingCounts: this.remainingCounts,
-            onGesture: (digit: number, direction: GestureDirection) => {
-              this.onGesture(digit, direction)
-            },
-            onGestureDirectionChange: (direction: GestureDirection | null) => {
-              this.gestureDirection = direction
-            },
-            onHeightChange: (h: number) => { this.numPadHeight = h },
-          })
-        } else {
-          // 左手模式：键盘在左，辅助按钮在右
-          GestureNumberPad({
-            remainingCounts: this.remainingCounts,
-            onGesture: (digit: number, direction: GestureDirection) => {
-              this.onGesture(digit, direction)
-            },
-            onGestureDirectionChange: (direction: GestureDirection | null) => {
-              this.gestureDirection = direction
-            },
-            onHeightChange: (h: number) => { this.numPadHeight = h },
-          })
+            GestureNumberPad({
+              remainingCounts: this.remainingCounts,
+              onGesture: (digit: number, direction: GestureDirection) => {
+                this.onGesture(digit, direction)
+              },
+              onGestureDirectionChange: (direction: GestureDirection | null) => {
+                this.gestureDirection = direction
+              },
+              onHeightChange: (h: number) => { this.numPadHeight = h },
+            })
+          } else {
+            // 左手模式：键盘在左，辅助按钮在右
+            GestureNumberPad({
+              remainingCounts: this.remainingCounts,
+              onGesture: (digit: number, direction: GestureDirection) => {
+                this.onGesture(digit, direction)
+              },
+              onGestureDirectionChange: (direction: GestureDirection | null) => {
+                this.gestureDirection = direction
+              },
+              onHeightChange: (h: number) => { this.numPadHeight = h },
+            })
 
-          AuxButtonGrid({
-            onUndo: () => { this.onUndo() },
-            onRedo: () => { this.onRedo() },
-            onErase: () => { this.onErase() },
-            onHint: () => { this.onHint() },
-            onSettings: () => { this.showSettings = true },
-            undoDisabled: !this.canUndo,
-            redoDisabled: !this.canRedo,
-            eraseDisabled: this.gameState.selectedCell === null ||
-              this.gameState.selectedCell!.isGiven ||
-              (this.gameState.selectedCell!.isEmpty && this.gameState.selectedCell!.notes === 0),
-            hintDisabled: this.gameState.isCompleted,
-            gridHeight: this.numPadHeight,
-          })
+            AuxButtonGrid({
+              onUndo: () => { this.onUndo() },
+              onRedo: () => { this.onRedo() },
+              onErase: () => { this.onErase() },
+              onHint: () => { this.onHint() },
+              onSettings: () => { this.showSettings = true },
+              undoDisabled: !this.canUndo,
+              redoDisabled: !this.canRedo,
+              eraseDisabled: this.gameState.selectedCell === null ||
+                this.gameState.selectedCell!.isGiven ||
+                (this.gameState.selectedCell!.isEmpty && this.gameState.selectedCell!.notes === 0),
+              hintDisabled: this.gameState.isCompleted,
+              gridHeight: this.numPadHeight,
+            })
+          }
         }
+        .width('100%')
+        .layoutWeight(1)
+        .margin({ top: 8 })
+        .padding({ left: Sizes.gamePagePadding, right: Sizes.gamePagePadding })
       }
       .width('100%')
-      .layoutWeight(1)
-      .margin({ top: 8 })
-      .padding({ left: Sizes.gamePagePadding, right: Sizes.gamePagePadding })
+      .height('100%')
+
+      // === 暂停遮罩 ===
+      if (this.showPauseOverlay) {
+        Column() {
+          // 半透明背景
+          Column()
+            .width('100%')
+            .height('100%')
+            .backgroundColor('#000000')
+            .opacity(0.6)
+        }
+        .width('100%')
+        .height('100%')
+        .justifyContent(FlexAlign.Center)
+
+        Column({ space: 16 }) {
+          Text($r('app.string.pause_title'))
+            .fontSize(24)
+            .fontColor('#FFFFFF')
+            .fontWeight(FontWeight.Bold)
+            .margin({ bottom: 16 })
+
+          // 继续
+          Button($r('app.string.pause_resume'))
+            .type(ButtonType.Capsule)
+            .width(220)
+            .height(48)
+            .fontSize(16)
+            .fontWeight(FontWeight.Medium)
+            .backgroundColor(Colors.primaryBtn)
+            .fontColor(Colors.primaryText)
+            .onClick(() => this.togglePause())
+
+          // 重新开始
+          Button($r('app.string.pause_restart'))
+            .type(ButtonType.Capsule)
+            .width(220)
+            .height(48)
+            .fontSize(16)
+            .fontWeight(FontWeight.Medium)
+            .backgroundColor('#FF9800')
+            .fontColor('#FFFFFF')
+            .onClick(() => this.restartGame())
+
+          // 退出
+          Button($r('app.string.pause_quit'))
+            .type(ButtonType.Capsule)
+            .width(220)
+            .height(48)
+            .fontSize(16)
+            .fontWeight(FontWeight.Medium)
+            .backgroundColor('#424242')
+            .fontColor('#FFFFFF')
+            .onClick(() => this.quitGame())
+        }
+        .justifyContent(FlexAlign.Center)
+      }
+
+      // === 首次手势引导遮罩 ===
+      if (this.showGestureGuide) {
+        GestureGuideOverlay({
+          onDismiss: () => {
+            this.showGestureGuide = false
+          },
+        })
+      }
     }
     .width('100%')
     .height('100%')
