@@ -43,19 +43,46 @@ export struct GestureKey {
     return Colors.keyBg
   }
 
-  build() {
-    Column() {
-      // 数字
-      Text(this.digit.toString())
-        .fontSize(Sizes.keyFont)
-        .fontColor(this.isComplete ? Colors.keyDisabledText : Colors.keyText)
-        .fontWeight(FontWeight.Medium)
+  /**
+   * 获取滑动方向的文字提示
+   */
+  private getDirectionLabel(): string {
+    switch (this.currentDirection) {
+      case GestureDirection.UP: return '笔记'
+      case GestureDirection.RIGHT: return '删除线'
+      case GestureDirection.LEFT: return '擦除'
+      case GestureDirection.DOWN: return '↓'
+      default: return ''
+    }
+  }
 
-      // 剩余计数
-      Text(this.remaining.toString())
-        .fontSize(Sizes.keyCountFont)
-        .fontColor(Colors.subtitleText)
-        .margin({ top: 2 })
+  build() {
+    Stack({ alignContent: Alignment.Top }) {
+      Column() {
+        // 数字
+        Text(this.digit.toString())
+          .fontSize(Sizes.keyFont)
+          .fontColor(this.isComplete ? Colors.keyDisabledText : Colors.keyText)
+          .fontWeight(FontWeight.Medium)
+
+        // 剩余计数
+        Text(this.remaining.toString())
+          .fontSize(Sizes.keyCountFont)
+          .fontColor(Colors.subtitleText)
+          .margin({ top: 2 })
+      }
+      .width('100%')
+      .height('100%')
+      .justifyContent(FlexAlign.Center)
+      .alignItems(HorizontalAlign.Center)
+
+      // 滑动方向文字提示
+      if (this.currentDirection !== null && this.currentDirection !== GestureDirection.TAP) {
+        Text(this.getDirectionLabel())
+          .fontSize(10)
+          .fontColor(Colors.indicatorText)
+          .fontWeight(FontWeight.Bold)
+      }
     }
     .width('100%')
     .height('100%')

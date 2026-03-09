@@ -9,10 +9,10 @@ import { Colors, Sizes, Difficulty, getDifficultyConfig } from '../constants/Gam
 
 @Component
 export struct TopBar {
-  difficulty: Difficulty = Difficulty.EASY
-  formattedTime: string = '00:00'
-  errorCount: number = 0
-  maxErrors: number = 3
+  @Prop difficulty: Difficulty = Difficulty.EASY
+  @Prop formattedTime: string = '00:00'
+  @Prop errorCount: number = 0
+  @Prop maxErrors: number = 3
 
   private getDifficultyColor(): ResourceColor {
     return getDifficultyConfig(this.difficulty).color

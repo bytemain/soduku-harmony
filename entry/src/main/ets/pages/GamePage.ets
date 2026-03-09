@@ -7,11 +7,11 @@
  * 参考：Doc 05 §二, Doc 03 任务 1.17/1.19
  */
 import { router } from '@kit.ArkUI'
-import { CellData, CellFlags, setFlag, clearFlag, hasFlag,
-  getNoteState, setNoteState, NoteState, createBoardFromArray } from '../models/CellData'
+import { CellData,
+  getNoteState, setNoteState, NoteState } from '../models/CellData'
 import { GameState } from '../models/GameState'
-import { Colors, Sizes, Difficulty, GestureDirection,
-  getDifficultyConfig, GRID_SIZE, TOTAL_CELLS, DIGITS } from '../constants/GameConstants'
+import { GameHistory, CellSnapshot } from '../models/GameHistory'
+import { Colors, Sizes, Difficulty, GestureDirection } from '../constants/GameConstants'
 import { generatePuzzle, GeneratedPuzzle } from '../utils/SudokuGenerator'
 import { validateAllCells, updateHighlights, isGameCompleted } from '../utils/SudokuValidator'
 import { SudokuBoard, ArrayWrapper } from '../components/SudokuBoard'
@@ -31,7 +31,12 @@ struct GamePage {
   @State private cellsWrapper: ArrayWrapper = new ArrayWrapper([])
   @State private gestureDirection: GestureDirection | null = null
   @State private remainingCounts: number[] = [0, 9, 9, 9, 9, 9, 9, 9, 9, 9]
+  @State private displayTime: string = '00:00'
+  @State private displayErrors: number = 0
+  @State private canUndo: boolean = false
+  @State private canRedo: boolean = false
   private timerId: number = -1
+  private history: GameHistory = new GameHistory()
 
   aboutToAppear(): void {
     // 从路由参数获取难度
@@ -46,10 +51,12 @@ struct GamePage {
     // 初始验证 + 高亮
     validateAllCells(this.gameState.cells)
     this.updateRemainingCounts()
+    this.syncDisplayState()
 
     // 启动计时器
     this.timerId = setInterval(() => {
       this.gameState.tick()
+      this.displayTime = this.gameState.formattedTime
     }, 1000)
   }
 
@@ -58,6 +65,16 @@ struct GamePage {
       clearInterval(this.timerId)
       this.timerId = -1
     }
+  }
+
+  /**
+   * 同步显示状态（从 gameState 到 @State 变量）
+   */
+  private syncDisplayState(): void {
+    this.displayTime = this.gameState.formattedTime
+    this.displayErrors = this.gameState.errorCount
+    this.canUndo = this.history.canUndo
+    this.canRedo = this.history.canRedo
   }
 
   // ================================================================
@@ -81,6 +98,17 @@ struct GamePage {
     if (cell.isGiven) return
     if (this.gameState.isCompleted) return
 
+    // 记录操作前状态
+    const snapshot: CellSnapshot = {
+      index: cell.index,
+      oldValue: cell.value,
+      newValue: cell.value,
+      oldNotes: cell.notes,
+      newNotes: cell.notes,
+      oldFlags: cell.flags,
+      newFlags: cell.flags,
+    }
+
     switch (direction) {
       case GestureDirection.TAP:
         this.handleFillDigit(cell, digit)
@@ -98,10 +126,30 @@ struct GamePage {
         break
     }
 
+    // 记录操作后状态
+    snapshot.newValue = cell.value
+    snapshot.newNotes = cell.notes
+    snapshot.newFlags = cell.flags
+
+    // 只有真正发生变化时才入栈
+    if (snapshot.oldValue !== snapshot.newValue ||
+        snapshot.oldNotes !== snapshot.newNotes) {
+      this.history.push(snapshot)
+    }
+
+    this.afterAction()
+  }
+
+  /**
+   * 每次操作后的统一处理
+   */
+  private afterAction(): void {
+
     // 操作后更新冲突 + 高亮 + 剩余计数
     validateAllCells(this.gameState.cells)
     updateHighlights(this.gameState.cells, this.gameState.selectedIndex)
     this.updateRemainingCounts()
+    this.syncDisplayState()
 
     // 检查是否完成
     if (isGameCompleted(this.gameState.cells)) {
@@ -183,10 +231,97 @@ struct GamePage {
   private onErase(): void {
     const cell = this.gameState.selectedCell
     if (cell === null || cell.isGiven) return
+
+    // 记录到历史
+    const snapshot: CellSnapshot = {
+      index: cell.index,
+      oldValue: cell.value,
+      newValue: 0,
+      oldNotes: cell.notes,
+      newNotes: 0,
+      oldFlags: cell.flags,
+      newFlags: cell.flags,
+    }
+
     cell.clear()
-    validateAllCells(this.gameState.cells)
-    updateHighlights(this.gameState.cells, this.gameState.selectedIndex)
-    this.updateRemainingCounts()
+
+    snapshot.newFlags = cell.flags
+    if (snapshot.oldValue !== 0 || snapshot.oldNotes !== 0) {
+      this.history.push(snapshot)
+    }
+
+    this.afterAction()
+  }
+
+  /**
+   * 撤销
+   */
+  private onUndo(): void {
+    const snap = this.history.popUndo()
+    if (snap === null) return
+
+    const cell = this.gameState.cells[snap.index]
+    cell.value = snap.oldValue
+    cell.notes = snap.oldNotes
+
+    this.gameState.selectCell(snap.index)
+    if (this.gameState.selectedIndex !== snap.index) {
+      this.gameState.selectCell(snap.index)
+    }
+
+    this.afterAction()
+  }
+
+  /**
+   * 前进（重做）
+   */
+  private onRedo(): void {
+    const snap = this.history.popRedo()
+    if (snap === null) return
+
+    const cell = this.gameState.cells[snap.index]
+    cell.value = snap.newValue
+    cell.notes = snap.newNotes
+
+    this.gameState.selectCell(snap.index)
+    if (this.gameState.selectedIndex !== snap.index) {
+      this.gameState.selectCell(snap.index)
+    }
+
+    this.afterAction()
+  }
+
+  /**
+   * 提示 — 填入选中格的正确答案
+   */
+  private onHint(): void {
+    const cell = this.gameState.selectedCell
+    if (cell === null || cell.isGiven || this.gameState.isCompleted) return
+    if (this.gameState.solution.length === 0) return
+
+    const correctValue = this.gameState.solution[cell.index]
+    if (correctValue === 0) return
+
+    // 已经填对了，无需提示
+    if (cell.value === correctValue) return
+
+    // 记录到历史
+    const snapshot: CellSnapshot = {
+      index: cell.index,
+      oldValue: cell.value,
+      newValue: correctValue,
+      oldNotes: cell.notes,
+      newNotes: 0,
+      oldFlags: cell.flags,
+      newFlags: cell.flags,
+    }
+
+    cell.fillValue(correctValue)
+
+    snapshot.newFlags = cell.flags
+    this.history.push(snapshot)
+
+    this.afterAction()
   }
 
   /**
@@ -231,8 +366,8 @@ struct GamePage {
       // ① 顶部信息栏
       TopBar({
         difficulty: this.gameState.difficulty,
-        formattedTime: this.gameState.formattedTime,
-        errorCount: this.gameState.errorCount,
+        formattedTime: this.displayTime,
+        errorCount: this.displayErrors,
       })
 
       // ② 棋盘
@@ -251,20 +386,23 @@ struct GamePage {
       })
         .margin({ top: 8 })
 
-      // ③ 操作区
+      // ③ 操作区 — 占满剩余空间
       Row() {
         // 左：辅助按钮
         AuxButtonGrid({
-          onUndo: () => {}, // TODO: Phase 2
-          onRedo: () => {}, // TODO: Phase 2
+          onUndo: () => { this.onUndo() },
+          onRedo: () => { this.onRedo() },
           onErase: () => { this.onErase() },
-          onHint: () => {}, // TODO: Phase 2
+          onHint: () => { this.onHint() },
           onSettings: () => {},
-          undoDisabled: true,
-          redoDisabled: true,
+          undoDisabled: !this.canUndo,
+          redoDisabled: !this.canRedo,
           eraseDisabled: this.gameState.selectedCell === null ||
             this.gameState.selectedCell!.isGiven ||
             (this.gameState.selectedCell!.isEmpty && this.gameState.selectedCell!.notes === 0),
+          hintDisabled: this.gameState.selectedCell === null ||
+            this.gameState.selectedCell!.isGiven ||
+            this.gameState.isCompleted,
         })
 
         // 右：手势键盘
@@ -278,16 +416,15 @@ struct GamePage {
           },
         })
           .layoutWeight(1)
-          .height(180)
       }
       .width('100%')
-      .height(180)
+      .layoutWeight(1)
       .margin({ top: 12 })
       .padding({ left: Sizes.gamePagePadding, right: Sizes.gamePagePadding })
     }
     .width('100%')
     .height('100%')
     .backgroundColor(Colors.pageBg)
-    .padding({ top: 12 })
+    .padding({ top: 12, bottom: 12 })
   }
 }
