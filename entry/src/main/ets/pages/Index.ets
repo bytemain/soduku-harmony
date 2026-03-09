@@ -1,14 +1,14 @@
 /**
  * Index.ets — 主页（HomePage）
  *
- * 纵向居中布局：标题区 → 开始按钮 → 难度选择 → 底部入口。
+ * 纵向居中布局：标题区 → 继续按钮 → 难度选择 → 开始按钮 → 底部入口。
  *
  * 参考：Doc 05 §一
  */
 import { router } from '@kit.ArkUI'
-import { Colors, Sizes, Difficulty } from '../constants/GameConstants'
+import { Colors, Sizes, Difficulty, getDifficultyConfig } from '../constants/GameConstants'
 import { DifficultySegment } from '../components/DifficultySegment'
-import { hasSavedGame, clearSave } from '../utils/GameStorage'
+import { hasSavedGame, clearSave, loadGame, GameSaveData } from '../utils/GameStorage'
 
 @Entry
 @Component
@@ -18,9 +18,35 @@ struct Index {
   @State selectedDifficulty: Difficulty = Difficulty.MEDIUM
   @State isStartPressed: boolean = false
   @State hasSave: boolean = false
+  @State savedDifficulty: Difficulty = Difficulty.MEDIUM
+  @State savedProgress: number = 0
+  @State savedTime: string = '00:00'
 
   onPageShow(): void {
     this.hasSave = hasSavedGame(getContext(this))
+    if (this.hasSave) {
+      const saved = loadGame(getContext(this))
+      if (saved) {
+        this.savedDifficulty = saved.difficulty as Difficulty
+        // Calculate progress: count filled cells / total non-given cells
+        let filledCount = 0
+        let totalEditable = 0
+        for (const c of saved.cells) {
+          const isGiven = (c.flags & 1) !== 0  // CellFlags.GIVEN = 1 << 0
+          if (!isGiven) {
+            totalEditable++
+            if (c.value !== 0) {
+              filledCount++
+            }
+          }
+        }
+        this.savedProgress = totalEditable > 0 ? Math.round((filledCount / totalEditable) * 100) : 0
+        // Format time
+        const m = Math.floor(saved.elapsedSeconds / 60)
+        const s = saved.elapsedSeconds % 60
+        this.savedTime = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+      }
+    }
   }
 
   build() {
@@ -46,35 +72,85 @@ struct Index {
 
       Blank()
 
-      // ==================== ② 继续游戏按钮 ====================
+      // ==================== ② 继续游戏卡片（有存档时显示） ====================
       if (this.hasSave) {
-        Button($r('app.string.btn_continue'))
-          .type(ButtonType.Capsule)
-          .width('100%')
-          .height(Sizes.btnHeight)
-          .fontSize(18)
-          .fontWeight(FontWeight.Medium)
-          .fontColor(Colors.primaryText)
-          .backgroundColor(Colors.primaryBtn)
-          .onClick(() => {
-            router.pushUrl({
-              url: 'pages/GamePage',
-              params: {
-                difficulty: this.selectedDifficulty,
-              },
-            })
+        Row() {
+          // 左侧难度色条
+          Column()
+            .width(4)
+            .height(36)
+            .borderRadius(2)
+            .backgroundColor(getDifficultyConfig(this.savedDifficulty).color)
+            .margin({ right: 12 })
+
+          // 中部信息
+          Column() {
+            Text($r('app.string.btn_continue'))
+              .fontSize(16)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(Colors.titleText)
+
+            Row({ space: 8 }) {
+              Text(getContext(this).resourceManager.getStringByNameSync(
+                getDifficultyConfig(this.savedDifficulty).name
+              ))
+                .fontSize(12)
+                .fontColor(getDifficultyConfig(this.savedDifficulty).color)
+
+              Text('·')
+                .fontSize(12)
+                .fontColor(Colors.subtitleText)
+
+              Text(`${this.savedProgress}%`)
+                .fontSize(12)
+                .fontColor(Colors.subtitleText)
+            }
+            .margin({ top: 2 })
+          }
+          .alignItems(HorizontalAlign.Start)
+
+          Blank()
+
+          // 右侧时间
+          Text(this.savedTime)
+            .fontSize(18)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(Colors.subtitleText)
+        }
+        .width('100%')
+        .height(Sizes.btnHeight + 8)
+        .padding({ left: 16, right: 16 })
+        .alignItems(VerticalAlign.Center)
+        .backgroundColor(Colors.secondaryBtn)
+        .borderRadius(Sizes.btnRadius)
+        .borderWidth(1.5)
+        .borderColor(Colors.secondaryBorder)
+        .onClick(() => {
+          router.pushUrl({
+            url: 'pages/GamePage',
+            params: {
+              difficulty: this.savedDifficulty,
+            },
           })
+        })
       }
 
-      // ==================== ③ 开始游戏按钮 ====================
+      // ==================== ③ 难度选择器 ====================
+      DifficultySegment({
+        selectedDifficulty: $selectedDifficulty,
+      })
+        .margin({ top: Sizes.btnGap })
+
+      // ==================== ④ 开始游戏按钮 ====================
       Button(this.hasSave ? $r('app.string.btn_new_game') : $r('app.string.btn_start'))
         .type(ButtonType.Capsule)
         .width('100%')
         .height(Sizes.btnHeight)
         .fontSize(18)
         .fontWeight(FontWeight.Medium)
-        .fontColor(this.hasSave ? Colors.toolbarIcon : Colors.primaryText)
-        .backgroundColor(this.hasSave ? Colors.keyBg : (this.isStartPressed ? Colors.primaryPressed : Colors.primaryBtn))
+        .fontColor(Colors.primaryText)
+        .backgroundColor(this.isStartPressed ? Colors.primaryPressed : Colors.primaryBtn)
+        .margin({ top: Sizes.btnGap })
         .onTouch((event: TouchEvent) => {
           if (event.type === TouchType.Down) {
             this.isStartPressed = true
@@ -83,7 +159,6 @@ struct Index {
           }
         })
         .onClick(() => {
-          // 新游戏时清除存档
           if (this.hasSave) {
             clearSave(getContext(this))
           }
@@ -94,12 +169,6 @@ struct Index {
             },
           })
         })
-
-      // ==================== ④ 难度选择器 ====================
-      DifficultySegment({
-        selectedDifficulty: $selectedDifficulty,
-      })
-        .margin({ top: Sizes.btnGap })
 
       Blank()
 
@@ -135,7 +204,6 @@ struct Index {
     .height('100%')
     .padding({ left: Sizes.pagePadding, right: Sizes.pagePadding })
     .backgroundColor(Colors.pageBg)
-    // 沉浸式：背景色延伸到状态栏和导航栏区域
     .expandSafeArea([SafeAreaType.SYSTEM, SafeAreaType.CUTOUT], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
   }
 }

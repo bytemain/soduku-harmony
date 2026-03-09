@@ -1,43 +1,58 @@
 /**
- * DifficultySegment.ets — 5 段难度选择器
+ * DifficultySegment.ets — 难度选择器
  *
- * 胶囊形分段按钮。选中项白底+阴影，未选中灰底。
+ * 竖向难度卡片列表，每个难度一行，左侧色条 + 名称 + 右侧难度指示点。
+ * 选中项突出显示，未选中项灰色。
  *
  * 参考：Doc 05 §④ 难度选择器
  */
-import { Colors, Sizes, Difficulty, DIFFICULTY_CONFIGS, DifficultyConfig } from '../constants/GameConstants'
+import { Colors, Difficulty, DIFFICULTY_CONFIGS, DifficultyConfig } from '../constants/GameConstants'
 
 @Component
 export struct DifficultySegment {
   @Link selectedDifficulty: Difficulty
 
   build() {
-    Row() {
+    Column({ space: 0 }) {
       ForEach(DIFFICULTY_CONFIGS, (config: DifficultyConfig) => {
-        Column() {
-          Text(getContext(this).resourceManager.getStringByNameSync(config.name))
-            .fontSize(14)
-            .fontColor(this.selectedDifficulty === config.level ? Colors.segmentActive : Colors.segmentText)
-            .fontWeight(this.selectedDifficulty === config.level ? FontWeight.Medium : FontWeight.Normal)
+        Row() {
+          // 左侧色条
+          Column()
+            .width(4)
+            .height(24)
+            .borderRadius(2)
+            .backgroundColor(config.color)
 
-          // 难度色标小点
-          Circle()
-            .width(6)
-            .height(6)
-            .fill(config.color)
-            .margin({ top: 4 })
+          // 难度名称
+          Text(getContext(this).resourceManager.getStringByNameSync(config.name))
+            .fontSize(15)
+            .fontColor(this.selectedDifficulty === config.level ? Colors.titleText : Colors.subtitleText)
+            .fontWeight(this.selectedDifficulty === config.level ? FontWeight.Medium : FontWeight.Normal)
+            .margin({ left: 12 })
+
+          Blank()
+
+          // 右侧难度指示点（根据难度级别显示 1-5 个点）
+          Row({ space: 3 }) {
+            ForEach(Array.from({ length: 5 }), (_: undefined, i: number) => {
+              Circle()
+                .width(6)
+                .height(6)
+                .fill((i as number) < config.level ? config.color : '#E0E0E0')
+            })
+          }
         }
-        .layoutWeight(1)
-        .height('100%')
-        .justifyContent(FlexAlign.Center)
-        .alignItems(HorizontalAlign.Center)
+        .width('100%')
+        .height(44)
+        .padding({ left: 12, right: 16 })
+        .alignItems(VerticalAlign.Center)
         .backgroundColor(this.selectedDifficulty === config.level ? Colors.segmentSelected : 'transparent')
-        .borderRadius(Sizes.segmentRadius)
+        .borderRadius(12)
         .shadow(this.selectedDifficulty === config.level ? {
           radius: 4,
           color: '#1A000000',
           offsetX: 0,
-          offsetY: 2,
+          offsetY: 1,
         } : {
           radius: 0,
           color: 'transparent',
@@ -51,9 +66,8 @@ export struct DifficultySegment {
       })
     }
     .width('100%')
-    .height(Sizes.segmentHeight)
     .backgroundColor(Colors.segmentBg)
-    .borderRadius(Sizes.segmentRadius)
-    .padding(3)
+    .borderRadius(16)
+    .padding(4)
   }
 }
