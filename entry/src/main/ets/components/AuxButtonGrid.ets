@@ -22,10 +22,10 @@ export struct AuxButtonGrid {
   onHint: () => void = () => {}
   onSettings: () => void = () => {}
 
-  undoDisabled: boolean = true
-  redoDisabled: boolean = true
-  eraseDisabled: boolean = true
-  hintDisabled: boolean = false
+  @Prop undoDisabled: boolean = true
+  @Prop redoDisabled: boolean = true
+  @Prop eraseDisabled: boolean = true
+  @Prop hintDisabled: boolean = false
 
   @Builder
   AuxButton(icon: string, label: string, disabled: boolean, onTap: () => void) {

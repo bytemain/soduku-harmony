@@ -244,8 +244,8 @@ export const Sizes: SizesConfig = {
 
   // === 辅助按钮 ===
   auxColWidth: 60,
-  auxIcon: 20,
-  auxText: 10,
+  auxIcon: 28,
+  auxText: 13,
   auxRadius: 8,
 
   // === 手势键 ===

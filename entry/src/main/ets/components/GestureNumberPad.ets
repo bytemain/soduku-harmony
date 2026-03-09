@@ -12,7 +12,7 @@ import { GestureKey } from './GestureKey'
 @Component
 export struct GestureNumberPad {
   /** 各数字剩余计数 [_, count1, count2, ..., count9]，index 0 不用 */
-  remainingCounts: number[] = [0, 9, 9, 9, 9, 9, 9, 9, 9, 9]
+  @Prop remainingCounts: number[] = [0, 9, 9, 9, 9, 9, 9, 9, 9, 9]
   onGesture: (digit: number, direction: GestureDirection) => void = () => {}
   onGestureDirectionChange: (direction: GestureDirection | null) => void = () => {}
 

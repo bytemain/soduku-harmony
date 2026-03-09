@@ -13,9 +13,9 @@ export struct GestureKey {
   /** 这个键代表的数字 (1-9) */
   digit: number = 1
   /** 这个数字的剩余计数（9 - 已填数量） */
-  remaining: number = 9
+  @Prop remaining: number = 9
   /** 是否已满 9 个 */
-  isComplete: boolean = false
+  @Prop isComplete: boolean = false
   /** 手势回调 */
   onGesture: (digit: number, direction: GestureDirection) => void = () => {}
   /** 当前手势方向指示回调（用于实时更新提示条） */
@@ -79,15 +79,14 @@ export struct GestureKey {
       // 滑动方向文字提示
       if (this.currentDirection !== null && this.currentDirection !== GestureDirection.TAP) {
         Text(this.getDirectionLabel())
-          .fontSize(10)
+          .fontSize(16)
           .fontColor(Colors.indicatorText)
           .fontWeight(FontWeight.Bold)
       }
     }
     .width('100%')
     .height('100%')
-    .justifyContent(FlexAlign.Center)
-    .alignItems(HorizontalAlign.Center)
+    .alignContent(Alignment.Center)
     .borderRadius(Sizes.keyRadius)
     .backgroundColor(this.getKeyBgColor())
     .opacity(this.isComplete ? 0.5 : 1)
