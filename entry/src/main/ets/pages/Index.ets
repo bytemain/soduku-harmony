@@ -13,6 +13,8 @@ import { hasSavedGame, clearSave } from '../utils/GameStorage'
 @Entry
 @Component
 struct Index {
+  @StorageProp('topRectHeight') topRectHeight: number = 0
+  @StorageProp('bottomRectHeight') bottomRectHeight: number = 0
   @State selectedDifficulty: Difficulty = Difficulty.MEDIUM
   @State isStartPressed: boolean = false
   @State hasSave: boolean = false
@@ -40,7 +42,7 @@ struct Index {
           .letterSpacing(4)
           .margin({ top: 4 })
       }
-      .margin({ top: 80 })
+      .margin({ top: this.topRectHeight + 40 })
 
       Blank()
 
@@ -127,11 +129,13 @@ struct Index {
         .layoutWeight(1)
       }
       .width('100%')
-      .margin({ bottom: 24 })
+      .margin({ bottom: this.bottomRectHeight + 24 })
     }
     .width('100%')
     .height('100%')
     .padding({ left: Sizes.pagePadding, right: Sizes.pagePadding })
     .backgroundColor(Colors.pageBg)
+    // 沉浸式：背景色延伸到状态栏和导航栏区域
+    .expandSafeArea([SafeAreaType.SYSTEM, SafeAreaType.CUTOUT], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
   }
 }

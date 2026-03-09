@@ -30,6 +30,8 @@ interface GamePageParams {
 @Entry
 @Component
 struct GamePage {
+  @StorageProp('topRectHeight') topRectHeight: number = 0
+  @StorageProp('bottomRectHeight') bottomRectHeight: number = 0
   @State private gameState: GameState = new GameState()
   @State private cellsWrapper: ArrayWrapper = new ArrayWrapper([])
   @State private gestureDirection: GestureDirection | null = null
@@ -520,6 +522,7 @@ struct GamePage {
     .width('100%')
     .height('100%')
     .backgroundColor(Colors.pageBg)
-    .padding({ top: 12, bottom: 12 })
+    .padding({ top: this.topRectHeight + 12, bottom: this.bottomRectHeight + 12 })
+    .expandSafeArea([SafeAreaType.SYSTEM, SafeAreaType.CUTOUT], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
   }
 }

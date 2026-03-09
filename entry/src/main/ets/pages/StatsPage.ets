@@ -10,6 +10,8 @@ import { loadStats, GameStats, DifficultyStats, formatTime } from '../utils/Stat
 @Entry
 @Component
 struct StatsPage {
+  @StorageProp('topRectHeight') topRectHeight: number = 0
+  @StorageProp('bottomRectHeight') bottomRectHeight: number = 0
   @State private stats: GameStats = new GameStats()
 
   aboutToAppear(): void {
@@ -159,6 +161,7 @@ struct StatsPage {
     .width('100%')
     .height('100%')
     .backgroundColor(Colors.pageBg)
-    .padding({ top: 12 })
+    .padding({ top: this.topRectHeight + 12, bottom: this.bottomRectHeight })
+    .expandSafeArea([SafeAreaType.SYSTEM, SafeAreaType.CUTOUT], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
   }
 }
