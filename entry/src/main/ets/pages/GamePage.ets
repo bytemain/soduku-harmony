@@ -6,14 +6,14 @@
  *
  * 参考：Doc 05 §二, Doc 03 任务 1.17/1.19
  */
-import { router } from '@kit.ArkUI'
+import { router, promptAction } from '@kit.ArkUI'
 import { common } from '@kit.AbilityKit'
 import { CellData,
   getNoteState, setNoteState, NoteState } from '../models/CellData'
 import { GameState } from '../models/GameState'
 import { GameHistory, CellSnapshot } from '../models/GameHistory'
 import { Colors, Sizes, Difficulty, GestureDirection } from '../constants/GameConstants'
-import { generatePuzzle, GeneratedPuzzle } from '../utils/SudokuGenerator'
+import { generatePuzzle, GeneratedPuzzle, Symmetry } from '../utils/SudokuGenerator'
 import { validateAllCells, updateHighlights, isGameCompleted } from '../utils/SudokuValidator'
 import { PEERS } from '../utils/Topology'
 import { SudokuBoard, ArrayWrapper } from '../components/SudokuBoard'
@@ -23,12 +23,14 @@ import { GestureModeIndicator } from '../components/GestureModeIndicator'
 import { AuxButtonGrid } from '../components/AuxButtonGrid'
 import { SettingsPanel } from '../components/SettingsPanel'
 import { CoachSheet } from '../components/CoachSheet'
+import { getNextHint, getTechniqueName, SolveStep } from '../utils/LogicSolver'
 import { saveGame, loadGame, clearSave, GameSaveData, CellSerialized } from '../utils/GameStorage'
 import { recordGameStarted, recordGameWon } from '../utils/StatsStorage'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 
 interface GamePageParams {
   difficulty?: Difficulty
+  symmetry?: string
 }
 
 @Entry
@@ -60,6 +62,7 @@ struct GamePage {
     // 从路由参数获取难度
     const params = router.getParams() as GamePageParams | null
     const difficulty = params?.difficulty ?? Difficulty.EASY
+    const symmetryParam = params?.symmetry as Symmetry | undefined
 
     // 尝试恢复存档
     const saved = loadGame(getContext(this))
@@ -68,7 +71,7 @@ struct GamePage {
       this.gameStartRecorded = true  // 恢复的游戏已经计数过了
     } else {
       // 生成新题
-      const puzzle: GeneratedPuzzle = generatePuzzle(difficulty)
+      const puzzle: GeneratedPuzzle = generatePuzzle(difficulty, symmetryParam)
       this.gameState.initGame(puzzle.puzzle, puzzle.solution, difficulty)
       this.cellsWrapper = new ArrayWrapper(this.gameState.cells)
       // 记录游戏开始
@@ -412,20 +415,77 @@ struct GamePage {
   }
 
   /**
-   * 提示 — 填入选中格的正确答案
+   * 提示 — 用 LogicSolver 分析下一步，显示技巧名称后填入
    */
   private onHint(): void {
+    if (this.gameState.isCompleted) return
+
+    // 构建当前棋盘
+    const board = this.buildCurrentBoard()
+
+    // 尝试 LogicSolver 找下一步
+    const hint = getNextHint(board)
+
+    if (hint !== null && hint.digit !== 0) {
+      // 逻辑提示成功：显示技巧名 + 填数
+      this.applyLogicHint(hint)
+      return
+    }
+
+    // LogicSolver 无法直接给出填数步骤 → 回退到直接提示
+    this.applyDirectHint()
+  }
+
+  /** 构建当前棋盘状态（已填的用 value，未填的为 0） */
+  private buildCurrentBoard(): number[][] {
+    const board: number[][] = []
+    for (let r = 0; r < 9; r++) {
+      const row: number[] = []
+      for (let c = 0; c < 9; c++) {
+        row.push(this.gameState.cells[r * 9 + c].value)
+      }
+      board.push(row)
+    }
+    return board
+  }
+
+  /** 应用逻辑提示：显示技巧名 + 高亮 + 填数 */
+  private applyLogicHint(hint: SolveStep): void {
+    const cell = this.gameState.cells[hint.cellIndex]
+    if (cell.isGiven) return
+
+    const techniqueName = getTechniqueName(hint.technique)
+
+    // 选中目标格子
+    this.onCellClick(hint.cellIndex)
+
+    // 记录到历史
+    const snapshot = new CellSnapshot(
+      cell.index, cell.value, hint.digit,
+      cell.notes, 0, cell.flags, cell.flags
+    )
+
+    cell.fillValue(hint.digit)
+
+    snapshot.newFlags = cell.flags
+    this.history.push(snapshot)
+
+    this.afterAction(cell.index)
+
+    // 显示技巧名称的 Toast
+    this.showHintToast(`💡 ${techniqueName}: ${hint.description}`)
+  }
+
+  /** 直接提示：填入正确答案（无逻辑步骤可用时的回退） */
+  private applyDirectHint(): void {
     const cell = this.gameState.selectedCell
-    if (cell === null || cell.isGiven || this.gameState.isCompleted) return
+    if (cell === null || cell.isGiven) return
     if (this.gameState.solution.length === 0) return
 
     const correctValue = this.gameState.solution[cell.index]
     if (correctValue === 0) return
-
-    // 已经填对了，无需提示
     if (cell.value === correctValue) return
 
-    // 记录到历史
     const snapshot = new CellSnapshot(
       cell.index, cell.value, correctValue,
       cell.notes, 0, cell.flags, cell.flags
@@ -437,6 +497,19 @@ struct GamePage {
     this.history.push(snapshot)
 
     this.afterAction(cell.index)
+  }
+
+  /** 显示提示 Toast */
+  private showHintToast(message: string): void {
+    try {
+      promptAction.showToast({
+        message: message,
+        duration: 3000,
+        bottom: 200,
+      })
+    } catch (e) {
+      hilog.warn(0x0000, 'GamePage', 'showHintToast failed: %{public}s', String(e))
+    }
   }
 
   /**
@@ -572,9 +645,7 @@ struct GamePage {
             eraseDisabled: this.gameState.selectedCell === null ||
               this.gameState.selectedCell!.isGiven ||
               (this.gameState.selectedCell!.isEmpty && this.gameState.selectedCell!.notes === 0),
-            hintDisabled: this.gameState.selectedCell === null ||
-              this.gameState.selectedCell!.isGiven ||
-              this.gameState.isCompleted,
+            hintDisabled: this.gameState.isCompleted,
           })
 
           GestureNumberPad({
@@ -609,9 +680,7 @@ struct GamePage {
             eraseDisabled: this.gameState.selectedCell === null ||
               this.gameState.selectedCell!.isGiven ||
               (this.gameState.selectedCell!.isEmpty && this.gameState.selectedCell!.notes === 0),
-            hintDisabled: this.gameState.selectedCell === null ||
-              this.gameState.selectedCell!.isGiven ||
-              this.gameState.isCompleted,
+            hintDisabled: this.gameState.isCompleted,
           })
         }
       }

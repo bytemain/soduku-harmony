@@ -19,16 +19,29 @@ export struct DifficultySegment {
           // 左侧色条
           Column()
             .width(4)
-            .height(24)
+            .height(this.selectedDifficulty === config.level ? 36 : 24)
             .borderRadius(2)
             .backgroundColor(config.color)
+            .animation({ duration: 200, curve: Curve.EaseInOut })
 
-          // 难度名称
-          Text(getContext(this).resourceManager.getStringByNameSync(config.name))
-            .fontSize(15)
-            .fontColor(this.selectedDifficulty === config.level ? Colors.titleText : Colors.subtitleText)
-            .fontWeight(this.selectedDifficulty === config.level ? FontWeight.Medium : FontWeight.Normal)
-            .margin({ left: 12 })
+          // 难度名称 + 技巧描述
+          Column() {
+            Text(getContext(this).resourceManager.getStringByNameSync(config.name))
+              .fontSize(15)
+              .fontColor(this.selectedDifficulty === config.level ? Colors.titleText : Colors.subtitleText)
+              .fontWeight(this.selectedDifficulty === config.level ? FontWeight.Medium : FontWeight.Normal)
+              .animation({ duration: 200, curve: Curve.EaseInOut })
+
+            Text(getContext(this).resourceManager.getStringByNameSync(config.descName))
+              .fontSize(11)
+              .fontColor(config.color)
+              .margin({ top: this.selectedDifficulty === config.level ? 2 : 0 })
+              .height(this.selectedDifficulty === config.level ? 16 : 0)
+              .opacity(this.selectedDifficulty === config.level ? 1 : 0)
+              .animation({ duration: 200, curve: Curve.EaseInOut })
+          }
+          .margin({ left: 12 })
+          .alignItems(HorizontalAlign.Start)
 
           Blank()
 
@@ -43,8 +56,7 @@ export struct DifficultySegment {
           }
         }
         .width('100%')
-        .height(44)
-        .padding({ left: 12, right: 16 })
+        .padding({ left: 12, right: 16, top: 10, bottom: 10 })
         .alignItems(VerticalAlign.Center)
         .backgroundColor(this.selectedDifficulty === config.level ? Colors.segmentSelected : 'transparent')
         .borderRadius(12)

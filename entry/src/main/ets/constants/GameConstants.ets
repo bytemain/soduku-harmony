@@ -22,6 +22,8 @@ export enum Difficulty {
 export interface DifficultyConfig {
   level: Difficulty
   name: string
+  /** 技巧描述的 i18n key */
+  descName: string
   minClues: number
   maxClues: number
   holesToDig: number
@@ -29,11 +31,11 @@ export interface DifficultyConfig {
 }
 
 export const DIFFICULTY_CONFIGS: DifficultyConfig[] = [
-  { level: Difficulty.EASY, name: 'diff_easy', minClues: 36, maxClues: 45, holesToDig: 40, color: '#4CAF50' },
-  { level: Difficulty.MEDIUM, name: 'diff_medium', minClues: 32, maxClues: 35, holesToDig: 48, color: '#2196F3' },
-  { level: Difficulty.HARD, name: 'diff_hard', minClues: 28, maxClues: 31, holesToDig: 52, color: '#FF9800' },
-  { level: Difficulty.EXPERT, name: 'diff_expert', minClues: 24, maxClues: 27, holesToDig: 56, color: '#F57C00' },
-  { level: Difficulty.EVIL, name: 'diff_evil', minClues: 17, maxClues: 23, holesToDig: 62, color: '#F44336' },
+  { level: Difficulty.EASY, name: 'diff_easy', descName: 'diff_easy_desc', minClues: 36, maxClues: 45, holesToDig: 40, color: '#4CAF50' },
+  { level: Difficulty.MEDIUM, name: 'diff_medium', descName: 'diff_medium_desc', minClues: 32, maxClues: 35, holesToDig: 48, color: '#2196F3' },
+  { level: Difficulty.HARD, name: 'diff_hard', descName: 'diff_hard_desc', minClues: 28, maxClues: 31, holesToDig: 52, color: '#FF9800' },
+  { level: Difficulty.EXPERT, name: 'diff_expert', descName: 'diff_expert_desc', minClues: 24, maxClues: 27, holesToDig: 56, color: '#F57C00' },
+  { level: Difficulty.EVIL, name: 'diff_evil', descName: 'diff_evil_desc', minClues: 17, maxClues: 23, holesToDig: 62, color: '#F44336' },
 ]
 
 /** 根据枚举值获取对应配置 */

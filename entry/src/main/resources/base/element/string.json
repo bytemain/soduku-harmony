@@ -211,6 +211,50 @@
     {
       "name": "permission_detect_gesture_reason",
       "value": "用于检测您的操作手，自动调整键盘布局到更顺手的一侧"
+    },
+    {
+      "name": "diff_easy_desc",
+      "value": "仅需裸单数"
+    },
+    {
+      "name": "diff_medium_desc",
+      "value": "需要隐性单数"
+    },
+    {
+      "name": "diff_hard_desc",
+      "value": "需要裸对 / 指向对"
+    },
+    {
+      "name": "diff_expert_desc",
+      "value": "需要区块消去"
+    },
+    {
+      "name": "diff_evil_desc",
+      "value": "需要 X-Wing 等高级技巧"
+    },
+    {
+      "name": "sym_section",
+      "value": "对称模式"
+    },
+    {
+      "name": "sym_auto",
+      "value": "自动"
+    },
+    {
+      "name": "sym_none",
+      "value": "无"
+    },
+    {
+      "name": "sym_rot180",
+      "value": "180°"
+    },
+    {
+      "name": "sym_rot90",
+      "value": "90°"
+    },
+    {
+      "name": "sym_mirror",
+      "value": "镜像"
     }
   ]
 }

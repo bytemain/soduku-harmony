@@ -211,6 +211,50 @@
     {
       "name": "permission_detect_gesture_reason",
       "value": "Used to detect your operating hand and automatically adjust the keyboard layout for comfort"
+    },
+    {
+      "name": "diff_easy_desc",
+      "value": "Naked Single only"
+    },
+    {
+      "name": "diff_medium_desc",
+      "value": "Hidden Single required"
+    },
+    {
+      "name": "diff_hard_desc",
+      "value": "Naked Pair / Pointing Pair"
+    },
+    {
+      "name": "diff_expert_desc",
+      "value": "Box/Line Reduction"
+    },
+    {
+      "name": "diff_evil_desc",
+      "value": "X-Wing & advanced techniques"
+    },
+    {
+      "name": "sym_section",
+      "value": "Symmetry"
+    },
+    {
+      "name": "sym_auto",
+      "value": "Auto"
+    },
+    {
+      "name": "sym_none",
+      "value": "None"
+    },
+    {
+      "name": "sym_rot180",
+      "value": "180°"
+    },
+    {
+      "name": "sym_rot90",
+      "value": "90°"
+    },
+    {
+      "name": "sym_mirror",
+      "value": "Mirror"
     }
   ]
 }

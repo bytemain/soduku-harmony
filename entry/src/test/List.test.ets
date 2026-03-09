@@ -6,6 +6,7 @@ import solverTest from './SudokuSolver.test'
 import validatorTest from './SudokuValidator.test'
 import generatorTest from './SudokuGenerator.test'
 import gameStateTest from './GameState.test'
+import logicSolverTest from './LogicSolver.test'
 
 export default function testsuite() {
   localUnitTest()
@@ -16,4 +17,5 @@ export default function testsuite() {
   validatorTest()
   generatorTest()
   gameStateTest()
+  logicSolverTest()
 }

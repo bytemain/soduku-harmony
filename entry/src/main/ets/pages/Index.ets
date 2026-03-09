@@ -11,6 +11,25 @@ import { Colors, Sizes, Difficulty, getDifficultyConfig } from '../constants/Gam
 import { DifficultySegment } from '../components/DifficultySegment'
 import { SettingsPanel } from '../components/SettingsPanel'
 import { hasSavedGame, clearSave, loadGame, GameSaveData } from '../utils/GameStorage'
+import { Symmetry } from '../utils/SudokuGenerator'
+
+class SymmetryOption {
+  key: string = ''
+  label: string = ''
+
+  constructor(key: string, label: string) {
+    this.key = key
+    this.label = label
+  }
+}
+
+const SYMMETRY_OPTIONS: SymmetryOption[] = [
+  new SymmetryOption('auto', 'sym_auto'),
+  new SymmetryOption(Symmetry.NONE, 'sym_none'),
+  new SymmetryOption(Symmetry.ROTATIONAL_180, 'sym_rot180'),
+  new SymmetryOption(Symmetry.ROTATIONAL_90, 'sym_rot90'),
+  new SymmetryOption(Symmetry.MIRROR, 'sym_mirror'),
+]
 
 @Entry
 @Component
@@ -24,6 +43,7 @@ struct Index {
   @State savedProgress: number = 0
   @State savedTime: string = '00:00'
   @State showSettings: boolean = false
+  @State selectedSymmetry: string = 'auto'  // 'auto' | Symmetry values
 
   onPageShow(): void {
     this.hasSave = hasSavedGame(getContext(this))
@@ -154,6 +174,49 @@ struct Index {
       })
         .margin({ top: Sizes.btnGap })
 
+      // ==================== ③.5 对称模式选择 ====================
+      Column() {
+        Text($r('app.string.sym_section'))
+          .fontSize(12)
+          .fontColor(Colors.subtitleText)
+          .margin({ bottom: 6 })
+
+        Row({ space: 0 }) {
+          ForEach(SYMMETRY_OPTIONS, (item: SymmetryOption) => {
+            Text(getContext(this).resourceManager.getStringByNameSync(item.label))
+              .fontSize(13)
+              .fontColor(
+                this.selectedSymmetry === item.key
+                  ? Colors.primaryText
+                  : Colors.subtitleText
+              )
+              .fontWeight(
+                this.selectedSymmetry === item.key
+                  ? FontWeight.Medium
+                  : FontWeight.Normal
+              )
+              .backgroundColor(
+                this.selectedSymmetry === item.key
+                  ? Colors.primaryBtn
+                  : 'transparent'
+              )
+              .borderRadius(8)
+              .padding({ left: 10, right: 10, top: 6, bottom: 6 })
+              .layoutWeight(1)
+              .textAlign(TextAlign.Center)
+              .onClick(() => {
+                this.selectedSymmetry = item.key
+              })
+          })
+        }
+        .width('100%')
+        .backgroundColor(Colors.segmentBg)
+        .borderRadius(12)
+        .padding(3)
+      }
+      .width('100%')
+      .margin({ top: 8 })
+
       // ==================== ④ 开始游戏按钮 ====================
       Button(this.hasSave ? $r('app.string.btn_new_game') : $r('app.string.btn_start'))
         .type(ButtonType.Capsule)
@@ -179,6 +242,7 @@ struct Index {
             url: 'pages/GamePage',
             params: {
               difficulty: this.selectedDifficulty,
+              symmetry: this.selectedSymmetry === 'auto' ? undefined : this.selectedSymmetry,
             },
           })
         })
