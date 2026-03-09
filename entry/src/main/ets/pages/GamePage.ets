@@ -47,6 +47,9 @@ struct GamePage {
   @State private canRedo: boolean = false
   @State private showSettings: boolean = false
   @State private showCoach: boolean = false
+  @State private boardScale: number = 0.92
+  @State private boardOpacity: number = 0
+  @State private completionScale: number = 1.0
   private timerId: number = -1
   private history: GameHistory = new GameHistory()
   private gameStartRecorded: boolean = false
@@ -83,6 +86,14 @@ struct GamePage {
       this.gameState.tick()
       this.displayTime = this.gameState.formattedTime
     }, 1000)
+
+    // 棋盘入场动画
+    setTimeout(() => {
+      animateTo({ duration: 400, curve: Curve.EaseOut }, () => {
+        this.boardScale = 1.0
+        this.boardOpacity = 1.0
+      })
+    }, 100)
   }
 
   aboutToDisappear(): void {
@@ -252,7 +263,8 @@ struct GamePage {
         this.gameState.elapsedSeconds,
         this.gameState.errorCount
       )
-      this.showCompletionDialog()
+      // 完成庆祝动画：棋盘弹跳 → 弹窗
+      this.playCompletionAnimation()
     }
   }
 
@@ -445,6 +457,32 @@ struct GamePage {
   }
 
   /**
+   * 完成庆祝动画：棋盘弹跳缩放 → 延迟弹窗
+   */
+  private playCompletionAnimation(): void {
+    // Phase 1: 缩小
+    animateTo({ duration: 150, curve: Curve.EaseIn }, () => {
+      this.completionScale = 0.95
+    })
+    // Phase 2: 弹大
+    setTimeout(() => {
+      animateTo({ duration: 250, curve: Curve.EaseOut }, () => {
+        this.completionScale = 1.06
+      })
+    }, 150)
+    // Phase 3: 回弹到正常
+    setTimeout(() => {
+      animateTo({ duration: 200, curve: Curve.EaseInOut }, () => {
+        this.completionScale = 1.0
+      })
+    }, 400)
+    // Phase 4: 弹窗
+    setTimeout(() => {
+      this.showCompletionDialog()
+    }, 700)
+  }
+
+  /**
    * 完成弹窗
    */
   private showCompletionDialog(): void {
@@ -510,6 +548,8 @@ struct GamePage {
       })
         .margin({ top: 12 })
         .padding({ left: Sizes.gamePagePadding, right: Sizes.gamePagePadding })
+        .scale({ x: this.boardScale * this.completionScale, y: this.boardScale * this.completionScale })
+        .opacity(this.boardOpacity)
 
       // 手势提示条
       GestureModeIndicator({

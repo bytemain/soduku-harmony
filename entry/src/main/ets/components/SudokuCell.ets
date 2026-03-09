@@ -24,6 +24,14 @@ export struct SudokuCell {
   allCells: CellData[] = []
   onCellClick: () => void = () => {}
 
+  // --- 动画状态 ---
+  @State private fillScale: number = 1.0
+  @State private errorShakeX: number = 0
+  /** 上一次渲染的 value，用于检测变化 */
+  private lastValue: number = 0
+  /** 上一次的 error 状态 */
+  private lastError: boolean = false
+
   /**
    * 决定格子背景色（按优先级从高到低）
    */
@@ -124,6 +132,7 @@ export struct SudokuCell {
         .width('100%')
         .height('100%')
         .backgroundColor(this.getCellBgColor())
+        .animation({ duration: 150 })
 
       if (this.cellData.value !== 0) {
         // 显示数字
@@ -132,6 +141,11 @@ export struct SudokuCell {
           .fontColor(this.getTextColor())
           .fontWeight(this.cellData.isGiven ? FontWeight.Bold : FontWeight.Normal)
           .textAlign(TextAlign.Center)
+          .scale({ x: this.fillScale, y: this.fillScale })
+          .translate({ x: this.errorShakeX })
+          .onAppear(() => {
+            this.triggerFillAnimation()
+          })
       } else if (this.cellData.notes !== 0) {
         // 显示笔记
         this.NotesGrid()
@@ -142,5 +156,43 @@ export struct SudokuCell {
     .onClick(() => {
       this.onCellClick()
     })
+    .onAppear(() => {
+      this.lastValue = this.cellData.value
+      this.lastError = this.cellData.isError
+    })
+  }
+
+  /**
+   * 填数弹跳动画：先放大再回弹
+   */
+  private triggerFillAnimation(): void {
+    // 只在新填入数字时触发（非初始加载）
+    if (this.cellData.isGiven) return
+
+    this.fillScale = 0.5
+    animateTo({ duration: 200, curve: Curve.EaseOut }, () => {
+      this.fillScale = 1.15
+    })
+    setTimeout(() => {
+      animateTo({ duration: 150, curve: Curve.EaseInOut }, () => {
+        this.fillScale = 1.0
+      })
+    }, 200)
+  }
+
+  /**
+   * 错误抖动动画
+   */
+  triggerErrorShake(): void {
+    const shakeSequence: number[] = [6, -6, 4, -4, 2, -2, 0]
+    let delay = 0
+    for (const offset of shakeSequence) {
+      setTimeout(() => {
+        animateTo({ duration: 50, curve: Curve.Linear }, () => {
+          this.errorShakeX = offset
+        })
+      }, delay)
+      delay += 50
+    }
   }
 }
