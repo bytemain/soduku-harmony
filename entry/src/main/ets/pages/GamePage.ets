@@ -22,6 +22,7 @@ import { GestureNumberPad } from '../components/GestureNumberPad'
 import { GestureModeIndicator } from '../components/GestureModeIndicator'
 import { AuxButtonGrid } from '../components/AuxButtonGrid'
 import { SettingsPanel } from '../components/SettingsPanel'
+import { CoachSheet } from '../components/CoachSheet'
 import { saveGame, loadGame, clearSave, GameSaveData, CellSerialized } from '../utils/GameStorage'
 import { recordGameStarted, recordGameWon } from '../utils/StatsStorage'
 import { hilog } from '@kit.PerformanceAnalysisKit'
@@ -45,6 +46,7 @@ struct GamePage {
   @State private canUndo: boolean = false
   @State private canRedo: boolean = false
   @State private showSettings: boolean = false
+  @State private showCoach: boolean = false
   private timerId: number = -1
   private history: GameHistory = new GameHistory()
   private gameStartRecorded: boolean = false
@@ -479,6 +481,16 @@ struct GamePage {
     })
   }
 
+  @Builder
+  coachSheetBuilder() {
+    CoachSheet({
+      cells: this.gameState.cells,
+      onClose: () => {
+        this.showCoach = false
+      },
+    })
+  }
+
   build() {
     Column() {
       // ① 顶部信息栏
@@ -576,6 +588,12 @@ struct GamePage {
     .expandSafeArea([SafeAreaType.SYSTEM, SafeAreaType.CUTOUT], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
     .bindSheet($$this.showSettings, this.settingsSheetBuilder(), {
       height: SheetSize.FIT_CONTENT,
+      dragBar: true,
+      showClose: false,
+      backgroundColor: Colors.boardBg,
+    })
+    .bindSheet($$this.showCoach, this.coachSheetBuilder(), {
+      height: SheetSize.LARGE,
       dragBar: true,
       showClose: false,
       backgroundColor: Colors.boardBg,
