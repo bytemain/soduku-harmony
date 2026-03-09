@@ -13,12 +13,12 @@ export struct GestureModeIndicator {
   /** 当前手势方向，null 表示隐藏 */
   currentDirection: GestureDirection | null = null
 
-  private getIndicatorText(): string {
+  private getIndicatorText(): ResourceStr {
     switch (this.currentDirection) {
-      case GestureDirection.UP: return '✏️ 笔记模式'
-      case GestureDirection.RIGHT: return '～～ 删除线模式'
-      case GestureDirection.LEFT: return '🧹 擦除笔记'
-      case GestureDirection.DOWN: return '⬇️ 预留功能'
+      case GestureDirection.UP: return $r('app.string.indicator_note')
+      case GestureDirection.RIGHT: return $r('app.string.indicator_eliminate')
+      case GestureDirection.LEFT: return $r('app.string.indicator_erase')
+      case GestureDirection.DOWN: return $r('app.string.indicator_reserved')
       default: return ''
     }
   }

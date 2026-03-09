@@ -28,7 +28,7 @@ export struct AuxButtonGrid {
   @Prop hintDisabled: boolean = false
 
   @Builder
-  AuxButton(icon: string, label: string, disabled: boolean, onTap: () => void) {
+  AuxButton(icon: string, label: ResourceStr, disabled: boolean, onTap: () => void) {
     Column() {
       Text(icon)
         .fontSize(Sizes.auxIcon)
@@ -54,19 +54,19 @@ export struct AuxButtonGrid {
   build() {
     Grid() {
       GridItem() {
-        this.AuxButton('↩️', '撤销', this.undoDisabled, this.onUndo)
+        this.AuxButton('↩️', $r('app.string.aux_undo'), this.undoDisabled, this.onUndo)
       }
       GridItem() {
-        this.AuxButton('↪️', '前进', this.redoDisabled, this.onRedo)
+        this.AuxButton('↪️', $r('app.string.aux_redo'), this.redoDisabled, this.onRedo)
       }
       GridItem() {
-        this.AuxButton('🗑️', '擦除', this.eraseDisabled, this.onErase)
+        this.AuxButton('🗑️', $r('app.string.aux_erase'), this.eraseDisabled, this.onErase)
       }
       GridItem() {
-        this.AuxButton('💡', '提示', this.hintDisabled, this.onHint)
+        this.AuxButton('💡', $r('app.string.aux_hint'), this.hintDisabled, this.onHint)
       }
       GridItem() {
-        this.AuxButton('⚙️', '设置', false, this.onSettings)
+        this.AuxButton('⚙️', $r('app.string.aux_settings'), false, this.onSettings)
       }
       GridItem() {
         this.AuxButton('', '', true, () => {})

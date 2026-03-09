@@ -28,13 +28,13 @@ struct Index {
         Text('🔢')
           .fontSize(Sizes.appIcon)
 
-        Text('数  独')
+        Text($r('app.string.app_title'))
           .fontSize(Sizes.titleFont)
           .fontWeight(FontWeight.Bold)
           .fontColor(Colors.titleText)
           .margin({ top: 12 })
 
-        Text('S U D O K U')
+        Text($r('app.string.app_subtitle'))
           .fontSize(Sizes.subtitleFont)
           .fontColor(Colors.subtitleText)
           .letterSpacing(4)
@@ -46,7 +46,7 @@ struct Index {
 
       // ==================== ② 继续游戏按钮 ====================
       if (this.hasSave) {
-        Button('▶  继续游戏')
+        Button($r('app.string.btn_continue'))
           .type(ButtonType.Capsule)
           .width('100%')
           .height(Sizes.btnHeight)
@@ -65,7 +65,7 @@ struct Index {
       }
 
       // ==================== ③ 开始游戏按钮 ====================
-      Button(this.hasSave ? '▶  新游戏' : '▶  开始游戏')
+      Button(this.hasSave ? $r('app.string.btn_new_game') : $r('app.string.btn_start'))
         .type(ButtonType.Capsule)
         .width('100%')
         .height(Sizes.btnHeight)
@@ -106,7 +106,7 @@ struct Index {
         Column() {
           Text('📊')
             .fontSize(Sizes.bottomIcon)
-          Text('统计')
+          Text($r('app.string.tab_stats'))
             .fontSize(Sizes.bottomText)
             .fontColor(Colors.bottomText)
             .margin({ top: 2 })
@@ -116,7 +116,7 @@ struct Index {
         Column() {
           Text('⚙️')
             .fontSize(Sizes.bottomIcon)
-          Text('设置')
+          Text($r('app.string.tab_settings'))
             .fontSize(Sizes.bottomText)
             .fontColor(Colors.bottomText)
             .margin({ top: 2 })

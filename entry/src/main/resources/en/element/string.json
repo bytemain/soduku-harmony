@@ -2,19 +2,19 @@
   "string": [
     {
       "name": "module_desc",
-      "value": "数独游戏模块"
+      "value": "Sudoku game module"
     },
     {
       "name": "EntryAbility_desc",
-      "value": "数独游戏"
+      "value": "Sudoku Game"
     },
     {
       "name": "EntryAbility_label",
-      "value": "数独"
+      "value": "Sudoku"
     },
     {
       "name": "app_title",
-      "value": "数  独"
+      "value": "Sudoku"
     },
     {
       "name": "app_subtitle",
@@ -22,111 +22,111 @@
     },
     {
       "name": "btn_continue",
-      "value": "▶  继续游戏"
+      "value": "▶  Continue"
     },
     {
       "name": "btn_new_game",
-      "value": "▶  新游戏"
+      "value": "▶  New Game"
     },
     {
       "name": "btn_start",
-      "value": "▶  开始游戏"
+      "value": "▶  Start Game"
     },
     {
       "name": "tab_stats",
-      "value": "统计"
+      "value": "Stats"
     },
     {
       "name": "tab_settings",
-      "value": "设置"
+      "value": "Settings"
     },
     {
       "name": "diff_easy",
-      "value": "简单"
+      "value": "Easy"
     },
     {
       "name": "diff_medium",
-      "value": "中等"
+      "value": "Medium"
     },
     {
       "name": "diff_hard",
-      "value": "困难"
+      "value": "Hard"
     },
     {
       "name": "diff_expert",
-      "value": "专家"
+      "value": "Expert"
     },
     {
       "name": "diff_evil",
-      "value": "地狱"
+      "value": "Evil"
     },
     {
       "name": "aux_undo",
-      "value": "撤销"
+      "value": "Undo"
     },
     {
       "name": "aux_redo",
-      "value": "前进"
+      "value": "Redo"
     },
     {
       "name": "aux_erase",
-      "value": "擦除"
+      "value": "Erase"
     },
     {
       "name": "aux_hint",
-      "value": "提示"
+      "value": "Hint"
     },
     {
       "name": "aux_settings",
-      "value": "设置"
+      "value": "Settings"
     },
     {
       "name": "gesture_note",
-      "value": "笔记"
+      "value": "Note"
     },
     {
       "name": "gesture_eliminate",
-      "value": "删除线"
+      "value": "Eliminate"
     },
     {
       "name": "gesture_erase",
-      "value": "擦除"
+      "value": "Erase"
     },
     {
       "name": "indicator_note",
-      "value": "✏️ 笔记模式"
+      "value": "✏️ Note Mode"
     },
     {
       "name": "indicator_eliminate",
-      "value": "～～ 删除线模式"
+      "value": "～～ Eliminate Mode"
     },
     {
       "name": "indicator_erase",
-      "value": "🧹 擦除笔记"
+      "value": "🧹 Erase Notes"
     },
     {
       "name": "indicator_reserved",
-      "value": "⬇️ 预留功能"
+      "value": "⬇️ Reserved"
     },
     {
       "name": "dialog_congrats_title",
-      "value": "🎉 恭喜！"
+      "value": "🎉 Congratulations!"
     },
     {
       "name": "dialog_congrats_time",
-      "value": "用时"
+      "value": "Time"
     },
     {
       "name": "dialog_congrats_errors",
-      "value": "错误"
+      "value": "Errors"
     },
     {
       "name": "dialog_congrats_unit",
-      "value": "次"
+      "value": ""
     },
     {
       "name": "dialog_back_home",
-      "value": "返回主页"
+      "value": "Back to Home"
     }
   ]
 }

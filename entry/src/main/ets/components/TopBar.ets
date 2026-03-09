@@ -28,7 +28,7 @@ export struct TopBar {
   build() {
     Row() {
       // 左：难度标签
-      Text(getDifficultyConfig(this.difficulty).name)
+      Text(getContext(this).resourceManager.getStringByNameSync(getDifficultyConfig(this.difficulty).name))
         .fontSize(14)
         .fontColor(this.getDifficultyColor())
         .fontWeight(FontWeight.Medium)

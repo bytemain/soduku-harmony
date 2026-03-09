@@ -29,11 +29,11 @@ export interface DifficultyConfig {
 }
 
 export const DIFFICULTY_CONFIGS: DifficultyConfig[] = [
-  { level: Difficulty.EASY, name: '简单', minClues: 36, maxClues: 45, holesToDig: 40, color: '#4CAF50' },
-  { level: Difficulty.MEDIUM, name: '中等', minClues: 32, maxClues: 35, holesToDig: 48, color: '#2196F3' },
-  { level: Difficulty.HARD, name: '困难', minClues: 28, maxClues: 31, holesToDig: 52, color: '#FF9800' },
-  { level: Difficulty.EXPERT, name: '专家', minClues: 24, maxClues: 27, holesToDig: 56, color: '#F57C00' },
-  { level: Difficulty.EVIL, name: '地狱', minClues: 17, maxClues: 23, holesToDig: 62, color: '#F44336' },
+  { level: Difficulty.EASY, name: 'diff_easy', minClues: 36, maxClues: 45, holesToDig: 40, color: '#4CAF50' },
+  { level: Difficulty.MEDIUM, name: 'diff_medium', minClues: 32, maxClues: 35, holesToDig: 48, color: '#2196F3' },
+  { level: Difficulty.HARD, name: 'diff_hard', minClues: 28, maxClues: 31, holesToDig: 52, color: '#FF9800' },
+  { level: Difficulty.EXPERT, name: 'diff_expert', minClues: 24, maxClues: 27, holesToDig: 56, color: '#F57C00' },
+  { level: Difficulty.EVIL, name: 'diff_evil', minClues: 17, maxClues: 23, holesToDig: 62, color: '#F44336' },
 ]
 
 /** 根据枚举值获取对应配置 */

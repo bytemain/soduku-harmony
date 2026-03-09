@@ -46,11 +46,11 @@ export struct GestureKey {
   /**
    * 获取滑动方向的文字提示
    */
-  private getDirectionLabel(): string {
+  private getDirectionLabel(): ResourceStr {
     switch (this.currentDirection) {
-      case GestureDirection.UP: return '笔记'
-      case GestureDirection.RIGHT: return '删除线'
-      case GestureDirection.LEFT: return '擦除'
+      case GestureDirection.UP: return $r('app.string.gesture_note')
+      case GestureDirection.RIGHT: return $r('app.string.gesture_eliminate')
+      case GestureDirection.LEFT: return $r('app.string.gesture_erase')
       case GestureDirection.DOWN: return '↓'
       default: return ''
     }

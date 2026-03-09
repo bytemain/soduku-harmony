@@ -394,11 +394,18 @@ struct GamePage {
    * 完成弹窗
    */
   private showCompletionDialog(): void {
+    const ctx = getContext(this)
+    const congrats = ctx.resourceManager.getStringByNameSync('dialog_congrats_title')
+    const timeLabel = ctx.resourceManager.getStringByNameSync('dialog_congrats_time')
+    const errLabel = ctx.resourceManager.getStringByNameSync('dialog_congrats_errors')
+    const unit = ctx.resourceManager.getStringByNameSync('dialog_congrats_unit')
+    const backHome = ctx.resourceManager.getStringByNameSync('dialog_back_home')
+    const msg = `${timeLabel}: ${this.gameState.formattedTime}, ${errLabel}: ${this.gameState.errorCount}${unit ? ' ' + unit : ''}`
     AlertDialog.show({
-      title: '🎉 恭喜！',
-      message: `用时 ${this.gameState.formattedTime}，错误 ${this.gameState.errorCount} 次`,
+      title: congrats,
+      message: msg,
       confirm: {
-        value: '返回主页',
+        value: backHome,
         action: () => {
           router.back()
         },

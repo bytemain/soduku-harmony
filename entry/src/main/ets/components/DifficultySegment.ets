@@ -15,7 +15,7 @@ export struct DifficultySegment {
     Row() {
       ForEach(DIFFICULTY_CONFIGS, (config: DifficultyConfig) => {
         Column() {
-          Text(config.name)
+          Text(getContext(this).resourceManager.getStringByNameSync(config.name))
             .fontSize(14)
             .fontColor(this.selectedDifficulty === config.level ? Colors.segmentActive : Colors.segmentText)
             .fontWeight(this.selectedDifficulty === config.level ? FontWeight.Medium : FontWeight.Normal)
