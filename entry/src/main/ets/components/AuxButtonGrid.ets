@@ -4,14 +4,42 @@
  * 撤销、前进、擦除、提示、设置、预留。
  *
  * 参考：Doc 05 §③ 操作区
+ *
+ * 注意：不使用 @Builder 传 disabled 参数，因为 @Builder 会在首次渲染时
+ * 按值捕获参数，后续 @Prop 变化不会反映到 @Builder 内部。
+ * 改用 @Component AuxButton，通过 @Prop disabled 实现响应式更新。
  */
 import { Colors, Sizes } from '../constants/GameConstants'
 
-export interface AuxButtonConfig {
-  icon: string
-  label: string
-  disabled: boolean
-  onTap: () => void
+@Component
+struct AuxButton {
+  icon: string = ''
+  label: ResourceStr = ''
+  @Prop disabled: boolean = false
+  onTap: () => void = () => {}
+
+  build() {
+    Column() {
+      Text(this.icon)
+        .fontSize(Sizes.auxIcon)
+      Text(this.label)
+        .fontSize(Sizes.auxText)
+        .fontColor(this.disabled ? Colors.subtitleText : Colors.toolbarIcon)
+        .margin({ top: 1 })
+    }
+    .width('100%')
+    .height('100%')
+    .justifyContent(FlexAlign.Center)
+    .alignItems(HorizontalAlign.Center)
+    .borderRadius(Sizes.auxRadius)
+    .backgroundColor(Colors.keyBg)
+    .opacity(this.disabled ? 0.4 : 1)
+    .onClick(() => {
+      if (!this.disabled) {
+        this.onTap()
+      }
+    })
+  }
 }
 
 @Component
@@ -27,49 +55,25 @@ export struct AuxButtonGrid {
   @Prop eraseDisabled: boolean = true
   @Prop hintDisabled: boolean = false
 
-  @Builder
-  AuxButton(icon: string, label: ResourceStr, disabled: boolean, onTap: () => void) {
-    Column() {
-      Text(icon)
-        .fontSize(Sizes.auxIcon)
-      Text(label)
-        .fontSize(Sizes.auxText)
-        .fontColor(disabled ? Colors.subtitleText : Colors.toolbarIcon)
-        .margin({ top: 1 })
-    }
-    .width('100%')
-    .height('100%')
-    .justifyContent(FlexAlign.Center)
-    .alignItems(HorizontalAlign.Center)
-    .borderRadius(Sizes.auxRadius)
-    .backgroundColor(Colors.keyBg)
-    .opacity(disabled ? 0.4 : 1)
-    .onClick(() => {
-      if (!disabled) {
-        onTap()
-      }
-    })
-  }
-
   build() {
     Grid() {
       GridItem() {
-        this.AuxButton('↩️', $r('app.string.aux_undo'), this.undoDisabled, this.onUndo)
+        AuxButton({ icon: '↩️', label: $r('app.string.aux_undo'), disabled: this.undoDisabled, onTap: () => this.onUndo() })
       }
       GridItem() {
-        this.AuxButton('↪️', $r('app.string.aux_redo'), this.redoDisabled, this.onRedo)
+        AuxButton({ icon: '↪️', label: $r('app.string.aux_redo'), disabled: this.redoDisabled, onTap: () => this.onRedo() })
       }
       GridItem() {
-        this.AuxButton('🗑️', $r('app.string.aux_erase'), this.eraseDisabled, this.onErase)
+        AuxButton({ icon: '🗑️', label: $r('app.string.aux_erase'), disabled: this.eraseDisabled, onTap: () => this.onErase() })
       }
       GridItem() {
-        this.AuxButton('💡', $r('app.string.aux_hint'), this.hintDisabled, this.onHint)
+        AuxButton({ icon: '💡', label: $r('app.string.aux_hint'), disabled: this.hintDisabled, onTap: () => this.onHint() })
       }
       GridItem() {
-        this.AuxButton('⚙️', $r('app.string.aux_settings'), false, this.onSettings)
+        AuxButton({ icon: '⚙️', label: $r('app.string.aux_settings'), disabled: false, onTap: () => this.onSettings() })
       }
       GridItem() {
-        this.AuxButton('', '', true, () => {})
+        AuxButton({ icon: '', label: '', disabled: true })
       }
     }
     .columnsTemplate('1fr 1fr')
