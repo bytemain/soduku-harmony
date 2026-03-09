@@ -14,12 +14,14 @@ import { GameHistory, CellSnapshot } from '../models/GameHistory'
 import { Colors, Sizes, Difficulty, GestureDirection } from '../constants/GameConstants'
 import { generatePuzzle, GeneratedPuzzle } from '../utils/SudokuGenerator'
 import { validateAllCells, updateHighlights, isGameCompleted } from '../utils/SudokuValidator'
+import { PEERS } from '../utils/Topology'
 import { SudokuBoard, ArrayWrapper } from '../components/SudokuBoard'
 import { TopBar } from '../components/TopBar'
 import { GestureNumberPad } from '../components/GestureNumberPad'
 import { GestureModeIndicator } from '../components/GestureModeIndicator'
 import { AuxButtonGrid } from '../components/AuxButtonGrid'
 import { saveGame, loadGame, clearSave, GameSaveData, CellSerialized } from '../utils/GameStorage'
+import { recordGameStarted, recordGameWon } from '../utils/StatsStorage'
 
 interface GamePageParams {
   difficulty?: Difficulty
@@ -38,6 +40,7 @@ struct GamePage {
   @State private canRedo: boolean = false
   private timerId: number = -1
   private history: GameHistory = new GameHistory()
+  private gameStartRecorded: boolean = false
 
   aboutToAppear(): void {
     // 从路由参数获取难度
@@ -48,11 +51,15 @@ struct GamePage {
     const saved = loadGame(getContext(this))
     if (saved && saved.cells.length === 81) {
       this.restoreFromSave(saved)
+      this.gameStartRecorded = true  // 恢复的游戏已经计数过了
     } else {
       // 生成新题
       const puzzle: GeneratedPuzzle = generatePuzzle(difficulty)
       this.gameState.initGame(puzzle.puzzle, puzzle.solution, difficulty)
       this.cellsWrapper = new ArrayWrapper(this.gameState.cells)
+      // 记录游戏开始
+      recordGameStarted(getContext(this), difficulty)
+      this.gameStartRecorded = true
     }
 
     // 初始验证 + 高亮
@@ -203,6 +210,9 @@ struct GamePage {
    */
   private afterAction(): void {
 
+    // 自动清除 peers 的候选数字
+    this.autoClearPeerNotes()
+
     // 操作后更新冲突 + 高亮 + 剩余计数
     validateAllCells(this.gameState.cells)
     updateHighlights(this.gameState.cells, this.gameState.selectedIndex)
@@ -217,6 +227,13 @@ struct GamePage {
         this.timerId = -1
       }
       clearSave(getContext(this))
+      // 记录胜利统计
+      recordGameWon(
+        getContext(this),
+        this.gameState.difficulty,
+        this.gameState.elapsedSeconds,
+        this.gameState.errorCount
+      )
       this.showCompletionDialog()
     }
   }
@@ -234,6 +251,27 @@ struct GamePage {
       const idx = cell.index
       if (this.gameState.solution.length > 0 && this.gameState.solution[idx] !== digit) {
         this.gameState.errorCount++
+      }
+    }
+  }
+
+  /**
+   * 自动清除 peers 中的候选数字。
+   * 当某格填入数字 d 后，同行/列/宫的所有格子的笔记中如果有 d，自动移除。
+   */
+  private autoClearPeerNotes(): void {
+    const cells = this.gameState.cells
+    for (let i = 0; i < 81; i++) {
+      const val = cells[i].value
+      if (val === 0) continue
+      // 遍历该格子的所有 peers
+      for (const peerIdx of PEERS[i]) {
+        const peer = cells[peerIdx]
+        if (peer.value !== 0) continue // 已填数字的格子不需要处理
+        const noteState = getNoteState(peer.notes, val)
+        if (noteState === NoteState.ACTIVE || noteState === NoteState.ELIMINATED) {
+          peer.notes = setNoteState(peer.notes, val, NoteState.EMPTY)
+        }
       }
     }
   }

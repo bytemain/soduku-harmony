@@ -112,6 +112,9 @@ struct Index {
             .margin({ top: 2 })
         }
         .layoutWeight(1)
+        .onClick(() => {
+          router.pushUrl({ url: 'pages/StatsPage' })
+        })
 
         Column() {
           Text('⚙️')

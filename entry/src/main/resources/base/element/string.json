@@ -127,6 +127,46 @@
     {
       "name": "dialog_back_home",
       "value": "返回主页"
+    },
+    {
+      "name": "stats_title",
+      "value": "游戏统计"
+    },
+    {
+      "name": "stats_total_played",
+      "value": "总局数"
+    },
+    {
+      "name": "stats_total_won",
+      "value": "胜利"
+    },
+    {
+      "name": "stats_games_played",
+      "value": "已玩局数"
+    },
+    {
+      "name": "stats_games_won",
+      "value": "胜利局数"
+    },
+    {
+      "name": "stats_win_rate",
+      "value": "胜率"
+    },
+    {
+      "name": "stats_best_time",
+      "value": "最佳用时"
+    },
+    {
+      "name": "stats_avg_time",
+      "value": "平均用时"
+    },
+    {
+      "name": "stats_current_streak",
+      "value": "当前连胜"
+    },
+    {
+      "name": "stats_best_streak",
+      "value": "最佳连胜"
     }
   ]
 }
