@@ -228,9 +228,9 @@ export const Sizes: SizesConfig = {
   bottomText: 12,
 
   // === 游戏页 ===
-  gamePagePadding: 16,
+  gamePagePadding: 8,
   topBarHeight: 48,
-  boardSize: 328,
+  boardSize: 328,          // 仅在少数场景用作回退
   cellSize: 36,            // ≈ 328 / 9
   cellBorderBold: 2,
   cellBorderThin: 0.5,
@@ -243,14 +243,14 @@ export const Sizes: SizesConfig = {
   indicatorDuration: 150,  // 动画时长 ms
 
   // === 辅助按钮 ===
-  auxColWidth: 60,
-  auxIcon: 28,
-  auxText: 13,
+  auxColWidth: 48,
+  auxIcon: 22,
+  auxText: 9,
   auxRadius: 8,
 
   // === 手势键 ===
-  keyFont: 28,
-  keyCountFont: 11,
+  keyFont: 22,
+  keyCountFont: 10,
   keyRadius: 12,
   gestureThreshold: 30,    // 滑动判定阈值 vp
 }

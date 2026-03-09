@@ -30,8 +30,8 @@ export struct SudokuBoard {
       }
       .columnsTemplate('1fr 1fr 1fr')
       .rowsTemplate('1fr 1fr 1fr')
-      .width(Sizes.boardSize)
-      .height(Sizes.boardSize)
+      .width('100%')
+      .aspectRatio(1)
       .backgroundColor(Colors.cellBorderBold)
       .borderWidth(Sizes.cellBorderBold)
       .borderColor(Colors.cellBorderBold)

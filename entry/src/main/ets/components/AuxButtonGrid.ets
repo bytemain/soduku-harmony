@@ -35,10 +35,10 @@ export struct AuxButtonGrid {
       Text(label)
         .fontSize(Sizes.auxText)
         .fontColor(disabled ? Colors.subtitleText : Colors.toolbarIcon)
-        .margin({ top: 2 })
+        .margin({ top: 1 })
     }
-    .width(Sizes.auxColWidth)
-    .height(Sizes.auxColWidth)
+    .width('100%')
+    .height('100%')
     .justifyContent(FlexAlign.Center)
     .alignItems(HorizontalAlign.Center)
     .borderRadius(Sizes.auxRadius)
@@ -56,33 +56,27 @@ export struct AuxButtonGrid {
       GridItem() {
         this.AuxButton('↩️', '撤销', this.undoDisabled, this.onUndo)
       }
-
       GridItem() {
         this.AuxButton('↪️', '前进', this.redoDisabled, this.onRedo)
       }
-
       GridItem() {
         this.AuxButton('🗑️', '擦除', this.eraseDisabled, this.onErase)
       }
-
       GridItem() {
         this.AuxButton('💡', '提示', this.hintDisabled, this.onHint)
       }
-
       GridItem() {
         this.AuxButton('⚙️', '设置', false, this.onSettings)
       }
-
       GridItem() {
-        // 预留
         this.AuxButton('', '', true, () => {})
       }
     }
     .columnsTemplate('1fr 1fr')
     .rowsTemplate('1fr 1fr 1fr')
-    .columnsGap(6)
-    .rowsGap(6)
-    .width(Sizes.auxColWidth * 2 + 6)
+    .columnsGap(4)
+    .rowsGap(4)
+    .width(Sizes.auxColWidth * 2 + 4)
     .height('100%')
   }
 }

@@ -7,7 +7,7 @@
  * 参考：Doc 03 任务 2.1
  */
 
-export interface CellSnapshot {
+export class CellSnapshot {
   index: number
   oldValue: number
   newValue: number
@@ -15,6 +15,24 @@ export interface CellSnapshot {
   newNotes: number
   oldFlags: number
   newFlags: number
+
+  constructor(
+    index: number = 0,
+    oldValue: number = 0,
+    newValue: number = 0,
+    oldNotes: number = 0,
+    newNotes: number = 0,
+    oldFlags: number = 0,
+    newFlags: number = 0,
+  ) {
+    this.index = index
+    this.oldValue = oldValue
+    this.newValue = newValue
+    this.oldNotes = oldNotes
+    this.newNotes = newNotes
+    this.oldFlags = oldFlags
+    this.newFlags = newFlags
+  }
 }
 
 @Observed

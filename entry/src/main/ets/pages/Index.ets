@@ -8,12 +8,18 @@
 import { router } from '@kit.ArkUI'
 import { Colors, Sizes, Difficulty } from '../constants/GameConstants'
 import { DifficultySegment } from '../components/DifficultySegment'
+import { hasSavedGame, clearSave } from '../utils/GameStorage'
 
 @Entry
 @Component
 struct Index {
   @State selectedDifficulty: Difficulty = Difficulty.MEDIUM
   @State isStartPressed: boolean = false
+  @State hasSave: boolean = false
+
+  onPageShow(): void {
+    this.hasSave = hasSavedGame(getContext(this))
+  }
 
   build() {
     Column() {
@@ -38,15 +44,35 @@ struct Index {
 
       Blank()
 
-      // ==================== ② 开始游戏按钮 ====================
-      Button('▶  开始游戏')
+      // ==================== ② 继续游戏按钮 ====================
+      if (this.hasSave) {
+        Button('▶  继续游戏')
+          .type(ButtonType.Capsule)
+          .width('100%')
+          .height(Sizes.btnHeight)
+          .fontSize(18)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(Colors.primaryText)
+          .backgroundColor(Colors.primaryBtn)
+          .onClick(() => {
+            router.pushUrl({
+              url: 'pages/GamePage',
+              params: {
+                difficulty: this.selectedDifficulty,
+              },
+            })
+          })
+      }
+
+      // ==================== ③ 开始游戏按钮 ====================
+      Button(this.hasSave ? '▶  新游戏' : '▶  开始游戏')
         .type(ButtonType.Capsule)
         .width('100%')
         .height(Sizes.btnHeight)
         .fontSize(18)
         .fontWeight(FontWeight.Medium)
-        .fontColor(Colors.primaryText)
-        .backgroundColor(this.isStartPressed ? Colors.primaryPressed : Colors.primaryBtn)
+        .fontColor(this.hasSave ? Colors.toolbarIcon : Colors.primaryText)
+        .backgroundColor(this.hasSave ? Colors.keyBg : (this.isStartPressed ? Colors.primaryPressed : Colors.primaryBtn))
         .onTouch((event: TouchEvent) => {
           if (event.type === TouchType.Down) {
             this.isStartPressed = true
@@ -55,6 +81,10 @@ struct Index {
           }
         })
         .onClick(() => {
+          // 新游戏时清除存档
+          if (this.hasSave) {
+            clearSave(getContext(this))
+          }
           router.pushUrl({
             url: 'pages/GamePage',
             params: {

@@ -19,6 +19,7 @@ import { TopBar } from '../components/TopBar'
 import { GestureNumberPad } from '../components/GestureNumberPad'
 import { GestureModeIndicator } from '../components/GestureModeIndicator'
 import { AuxButtonGrid } from '../components/AuxButtonGrid'
+import { saveGame, loadGame, clearSave, GameSaveData, CellSerialized } from '../utils/GameStorage'
 
 interface GamePageParams {
   difficulty?: Difficulty
@@ -43,10 +44,16 @@ struct GamePage {
     const params = router.getParams() as GamePageParams | null
     const difficulty = params?.difficulty ?? Difficulty.EASY
 
-    // 生成新题
-    const puzzle: GeneratedPuzzle = generatePuzzle(difficulty)
-    this.gameState.initGame(puzzle.puzzle, puzzle.solution, difficulty)
-    this.cellsWrapper = new ArrayWrapper(this.gameState.cells)
+    // 尝试恢复存档
+    const saved = loadGame(getContext(this))
+    if (saved && saved.cells.length === 81) {
+      this.restoreFromSave(saved)
+    } else {
+      // 生成新题
+      const puzzle: GeneratedPuzzle = generatePuzzle(difficulty)
+      this.gameState.initGame(puzzle.puzzle, puzzle.solution, difficulty)
+      this.cellsWrapper = new ArrayWrapper(this.gameState.cells)
+    }
 
     // 初始验证 + 高亮
     validateAllCells(this.gameState.cells)
@@ -65,6 +72,10 @@ struct GamePage {
       clearInterval(this.timerId)
       this.timerId = -1
     }
+    // 保存游戏状态（已完成的不保存）
+    if (!this.gameState.isCompleted) {
+      this.saveCurrentGame()
+    }
   }
 
   /**
@@ -75,6 +86,58 @@ struct GamePage {
     this.displayErrors = this.gameState.errorCount
     this.canUndo = this.history.canUndo
     this.canRedo = this.history.canRedo
+  }
+
+  /**
+   * 从存档恢复游戏
+   */
+  private restoreFromSave(saved: GameSaveData): void {
+    // 恢复 cells
+    const cells = this.gameState.cells
+    for (let i = 0; i < 81; i++) {
+      const s = saved.cells[i]
+      cells[i].row = s.row
+      cells[i].col = s.col
+      cells[i].value = s.value
+      cells[i].flags = s.flags
+      cells[i].notes = s.notes
+    }
+    // 恢复 solution
+    this.gameState.solution = saved.solution
+    // 恢复其他状态
+    this.gameState.difficulty = saved.difficulty as Difficulty
+    this.gameState.elapsedSeconds = saved.elapsedSeconds
+    this.gameState.errorCount = saved.errorCount
+    this.gameState.selectedIndex = saved.selectedIndex
+    this.gameState.isCompleted = false
+    this.gameState.isPaused = false
+
+    this.cellsWrapper = new ArrayWrapper(this.gameState.cells)
+
+    // 恢复历史
+    this.history.undoStack = saved.undoStack ?? []
+    this.history.redoStack = saved.redoStack ?? []
+  }
+
+  /**
+   * 保存当前游戏状态
+   */
+  private saveCurrentGame(): void {
+    const data = new GameSaveData()
+    const serializedCells: CellSerialized[] = []
+    for (const c of this.gameState.cells) {
+      serializedCells.push(new CellSerialized(c.row, c.col, c.value, c.flags, c.notes))
+    }
+    data.cells = serializedCells
+    data.solution = this.gameState.solution
+    data.difficulty = this.gameState.difficulty
+    data.elapsedSeconds = this.gameState.elapsedSeconds
+    data.errorCount = this.gameState.errorCount
+    data.selectedIndex = this.gameState.selectedIndex
+    data.undoStack = this.history.undoStack
+    data.redoStack = this.history.redoStack
+    data.timestamp = Date.now()
+    saveGame(getContext(this), data)
   }
 
   // ================================================================
@@ -99,15 +162,10 @@ struct GamePage {
     if (this.gameState.isCompleted) return
 
     // 记录操作前状态
-    const snapshot: CellSnapshot = {
-      index: cell.index,
-      oldValue: cell.value,
-      newValue: cell.value,
-      oldNotes: cell.notes,
-      newNotes: cell.notes,
-      oldFlags: cell.flags,
-      newFlags: cell.flags,
-    }
+    const snapshot = new CellSnapshot(
+      cell.index, cell.value, cell.value,
+      cell.notes, cell.notes, cell.flags, cell.flags
+    )
 
     switch (direction) {
       case GestureDirection.TAP:
@@ -158,6 +216,7 @@ struct GamePage {
         clearInterval(this.timerId)
         this.timerId = -1
       }
+      clearSave(getContext(this))
       this.showCompletionDialog()
     }
   }
@@ -233,15 +292,10 @@ struct GamePage {
     if (cell === null || cell.isGiven) return
 
     // 记录到历史
-    const snapshot: CellSnapshot = {
-      index: cell.index,
-      oldValue: cell.value,
-      newValue: 0,
-      oldNotes: cell.notes,
-      newNotes: 0,
-      oldFlags: cell.flags,
-      newFlags: cell.flags,
-    }
+    const snapshot = new CellSnapshot(
+      cell.index, cell.value, 0,
+      cell.notes, 0, cell.flags, cell.flags
+    )
 
     cell.clear()
 
@@ -306,15 +360,10 @@ struct GamePage {
     if (cell.value === correctValue) return
 
     // 记录到历史
-    const snapshot: CellSnapshot = {
-      index: cell.index,
-      oldValue: cell.value,
-      newValue: correctValue,
-      oldNotes: cell.notes,
-      newNotes: 0,
-      oldFlags: cell.flags,
-      newFlags: cell.flags,
-    }
+    const snapshot = new CellSnapshot(
+      cell.index, cell.value, correctValue,
+      cell.notes, 0, cell.flags, cell.flags
+    )
 
     cell.fillValue(correctValue)
 
@@ -379,6 +428,7 @@ struct GamePage {
         },
       })
         .margin({ top: 12 })
+        .padding({ left: Sizes.gamePagePadding, right: Sizes.gamePagePadding })
 
       // 手势提示条
       GestureModeIndicator({
@@ -386,9 +436,9 @@ struct GamePage {
       })
         .margin({ top: 8 })
 
-      // ③ 操作区 — 占满剩余空间
-      Row() {
-        // 左：辅助按钮
+      // ③ 操作区
+      Row({ space: 8 }) {
+        // 左：辅助按钮（窄列）
         AuxButtonGrid({
           onUndo: () => { this.onUndo() },
           onRedo: () => { this.onRedo() },
@@ -405,7 +455,7 @@ struct GamePage {
             this.gameState.isCompleted,
         })
 
-        // 右：手势键盘
+        // 右：手势键盘（正方形）
         GestureNumberPad({
           remainingCounts: this.remainingCounts,
           onGesture: (digit: number, direction: GestureDirection) => {
@@ -415,12 +465,12 @@ struct GamePage {
             this.gestureDirection = direction
           },
         })
-          .layoutWeight(1)
       }
       .width('100%')
       .layoutWeight(1)
-      .margin({ top: 12 })
+      .margin({ top: 8 })
       .padding({ left: Sizes.gamePagePadding, right: Sizes.gamePagePadding })
+      .alignItems(VerticalAlign.Center)
     }
     .width('100%')
     .height('100%')

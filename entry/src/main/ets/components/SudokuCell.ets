@@ -117,8 +117,8 @@ export struct SudokuCell {
         this.NotesGrid()
       }
     }
-    .width(Sizes.cellSize)
-    .height(Sizes.cellSize)
+    .width('100%')
+    .height('100%')
     .onClick(() => {
       this.onCellClick()
     })
