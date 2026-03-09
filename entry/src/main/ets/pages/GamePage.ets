@@ -7,6 +7,7 @@
  * 参考：Doc 05 §二, Doc 03 任务 1.17/1.19
  */
 import { router } from '@kit.ArkUI'
+import { common } from '@kit.AbilityKit'
 import { CellData,
   getNoteState, setNoteState, NoteState } from '../models/CellData'
 import { GameState } from '../models/GameState'
@@ -471,6 +472,7 @@ struct GamePage {
   @Builder
   settingsSheetBuilder() {
     SettingsPanel({
+      context: getContext(this) as common.UIAbilityContext,
       onClose: () => {
         this.showSettings = false
       },

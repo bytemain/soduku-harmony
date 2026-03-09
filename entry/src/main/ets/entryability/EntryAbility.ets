@@ -2,6 +2,7 @@ import { AbilityConstant, ConfigurationConstant, UIAbility, Want } from '@kit.Ab
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
 import { initHandDetection, stopHandDetection } from '../utils/HandDetector';
+import { loadSettings } from '../utils/SettingsStorage';
 
 const DOMAIN = 0x0000;
 
@@ -14,7 +15,8 @@ export default class EntryAbility extends UIAbility {
     }
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onCreate');
 
-    // 初始化左右手检测（不支持则静默 fallback 到右手模式）
+    // 先恢复持久化的设置，再初始化手检测（避免覆盖用户设置）
+    loadSettings(this.context);
     initHandDetection();
   }
 

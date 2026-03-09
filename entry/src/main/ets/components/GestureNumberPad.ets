@@ -33,7 +33,7 @@ export struct GestureNumberPad {
     }
     .columnsTemplate('1fr 1fr 1fr')
     .rowsTemplate('1fr 1fr 1fr')
+    .aspectRatio(1)
     .layoutWeight(1)
-    .height('100%')
   }
 }

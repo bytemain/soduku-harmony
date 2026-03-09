@@ -38,12 +38,19 @@ const holdingHandCallback: Callback<motion.HoldingHandStatus> =
 
 /**
  * 初始化握持手检测。
- * 设置 AppStorage 默认值，然后直接订阅握持手变化事件。
+ * 仅在 AppStorage 尚无值时设置默认值（避免覆盖已从 Preferences 恢复的设置），
+ * 然后订阅握持手变化事件。
+ *
+ * 注意：调用此函数前应先调用 loadSettings() 从 Preferences 恢复设置。
  */
 export function initHandDetection(): void {
-  // 默认右手模式
-  AppStorage.setOrCreate('isLeftHand', false)
-  AppStorage.setOrCreate('handModeManual', false)
+  // 仅在尚无值时设置默认值（loadSettings 已提前写入则不覆盖）
+  if (!AppStorage.has('isLeftHand')) {
+    AppStorage.setOrCreate('isLeftHand', false)
+  }
+  if (!AppStorage.has('handModeManual')) {
+    AppStorage.setOrCreate('handModeManual', false)
+  }
 
   hilog.info(DOMAIN, TAG, '=== initHandDetection START ===')
 

@@ -6,6 +6,7 @@
  * 参考：Doc 05 §一
  */
 import { router } from '@kit.ArkUI'
+import { common } from '@kit.AbilityKit'
 import { Colors, Sizes, Difficulty, getDifficultyConfig } from '../constants/GameConstants'
 import { DifficultySegment } from '../components/DifficultySegment'
 import { SettingsPanel } from '../components/SettingsPanel'
@@ -54,6 +55,7 @@ struct Index {
   @Builder
   settingsSheetBuilder() {
     SettingsPanel({
+      context: getContext(this) as common.UIAbilityContext,
       onClose: () => {
         this.showSettings = false
       },

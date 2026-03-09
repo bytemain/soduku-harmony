@@ -9,11 +9,14 @@
  */
 import { Colors } from '../constants/GameConstants'
 import { hilog } from '@kit.PerformanceAnalysisKit'
+import { saveSettings } from '../utils/SettingsStorage'
+import { common } from '@kit.AbilityKit'
 
 @Component
 export struct SettingsPanel {
   @StorageLink('isLeftHand') isLeftHand: boolean = false
   @StorageLink('handModeManual') handModeManual: boolean = false
+  context?: common.UIAbilityContext
 
   onClose: () => void = () => {}
 
@@ -69,6 +72,9 @@ export struct SettingsPanel {
               this.handModeManual = !isOn
               hilog.info(0x0000, 'SettingsPanel', 'Auto-detect toggle: isOn=%{public}s, handModeManual=%{public}s',
                 isOn.toString(), this.handModeManual.toString())
+              if (this.context) {
+                saveSettings(this.context)
+              }
             })
         }
         .width('100%')
@@ -96,6 +102,9 @@ export struct SettingsPanel {
                   this.isLeftHand = true
                   hilog.info(0x0000, 'SettingsPanel', 'Manual select: LEFT, isLeftHand=%{public}s',
                     this.isLeftHand.toString())
+                  if (this.context) {
+                    saveSettings(this.context)
+                  }
                 })
 
               // 右手按钮
@@ -111,6 +120,9 @@ export struct SettingsPanel {
                   this.isLeftHand = false
                   hilog.info(0x0000, 'SettingsPanel', 'Manual select: RIGHT, isLeftHand=%{public}s',
                     this.isLeftHand.toString())
+                  if (this.context) {
+                    saveSettings(this.context)
+                  }
                 })
             }
           }
