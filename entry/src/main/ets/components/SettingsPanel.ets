@@ -16,6 +16,7 @@ import { common } from '@kit.AbilityKit'
 export struct SettingsPanel {
   @StorageLink('isLeftHand') isLeftHand: boolean = false
   @StorageLink('handModeManual') handModeManual: boolean = false
+  @StorageLink('showCoordinates') showCoordinates: boolean = false
   @StorageProp('bottomRectHeight') bottomRectHeight: number = 0
   context?: common.UIAbilityContext
 
@@ -146,6 +147,41 @@ export struct SettingsPanel {
         .margin({ top: 8 })
         .backgroundColor(Colors.secondaryPress)
         .borderRadius(8)
+
+        // ====== 显示设置 ======
+        Text($r('app.string.settings_section_display'))
+          .fontSize(13)
+          .fontColor(Colors.subtitleText)
+          .fontWeight(FontWeight.Medium)
+          .width('100%')
+          .margin({ top: 24, bottom: 8 })
+
+        // 坐标轴开关
+        Row() {
+          Column() {
+            Text($r('app.string.settings_show_coordinates'))
+              .fontSize(16)
+              .fontColor(Colors.titleText)
+            Text($r('app.string.settings_show_coordinates_desc'))
+              .fontSize(12)
+              .fontColor(Colors.subtitleText)
+              .margin({ top: 2 })
+          }
+          .alignItems(HorizontalAlign.Start)
+          .layoutWeight(1)
+
+          Toggle({ type: ToggleType.Switch, isOn: this.showCoordinates })
+            .selectedColor(Colors.primaryBtn)
+            .onChange((isOn: boolean) => {
+              this.showCoordinates = isOn
+              hilog.info(0x0000, 'SettingsPanel', 'Show coordinates: %{public}s', isOn.toString())
+              if (this.context) {
+                saveSettings(this.context)
+              }
+            })
+        }
+        .width('100%')
+        .padding({ top: 12, bottom: 12 })
       }
       .width('100%')
       .padding({ left: 24, right: 24, bottom: this.bottomRectHeight + 24 })

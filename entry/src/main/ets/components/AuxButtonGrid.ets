@@ -16,15 +16,16 @@ struct AuxButton {
   icon: string = ''
   label: ResourceStr = ''
   @Prop disabled: boolean = false
+  @Prop loading: boolean = false
   onTap: () => void = () => {}
 
   build() {
     Column() {
-      Text(this.icon)
+      Text(this.loading ? '⏳' : this.icon)
         .fontSize(Sizes.auxIcon)
       Text(this.label)
         .fontSize(Sizes.auxText)
-        .fontColor(this.disabled ? Colors.subtitleText : Colors.toolbarIcon)
+        .fontColor((this.disabled || this.loading) ? Colors.subtitleText : Colors.toolbarIcon)
         .margin({ top: 1 })
     }
     .width('100%')
@@ -33,9 +34,9 @@ struct AuxButton {
     .alignItems(HorizontalAlign.Center)
     .borderRadius(Sizes.auxRadius)
     .backgroundColor(Colors.keyBg)
-    .opacity(this.disabled ? 0.4 : 1)
+    .opacity((this.disabled || this.loading) ? 0.4 : 1)
     .onClick(() => {
-      if (!this.disabled) {
+      if (!this.disabled && !this.loading) {
         this.onTap()
       }
     })
@@ -54,6 +55,7 @@ export struct AuxButtonGrid {
   @Prop redoDisabled: boolean = true
   @Prop eraseDisabled: boolean = true
   @Prop hintDisabled: boolean = false
+  @Prop hintLoading: boolean = false
   @Prop gridHeight: number = 0
 
   build() {
@@ -68,7 +70,13 @@ export struct AuxButtonGrid {
         AuxButton({ icon: '🗑️', label: $r('app.string.aux_erase'), disabled: this.eraseDisabled, onTap: () => this.onErase() })
       }
       GridItem() {
-        AuxButton({ icon: '💡', label: $r('app.string.aux_hint'), disabled: this.hintDisabled, onTap: () => this.onHint() })
+        AuxButton({
+          icon: '💡',
+          label: this.hintLoading ? $r('app.string.aux_hint_loading') : $r('app.string.aux_hint'),
+          disabled: this.hintDisabled,
+          loading: this.hintLoading,
+          onTap: () => this.onHint()
+        })
       }
       GridItem() {
         AuxButton({ icon: '⚙️', label: $r('app.string.aux_settings'), disabled: false, onTap: () => this.onSettings() })

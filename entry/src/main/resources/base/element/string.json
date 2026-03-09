@@ -77,6 +77,10 @@
       "value": "提示"
     },
     {
+      "name": "aux_hint_loading",
+      "value": "计算中"
+    },
+    {
       "name": "aux_settings",
       "value": "设置"
     },
@@ -285,6 +289,30 @@
       "value": "✕  退出"
     },
     {
+      "name": "pause_info_seed",
+      "value": "Seed"
+    },
+    {
+      "name": "pause_info_difficulty",
+      "value": "难度"
+    },
+    {
+      "name": "pause_info_symmetry",
+      "value": "对称"
+    },
+    {
+      "name": "pause_info_time",
+      "value": "用时"
+    },
+    {
+      "name": "pause_info_errors",
+      "value": "错误"
+    },
+    {
+      "name": "hint_direct_algorithm",
+      "value": "逻辑步不足，已使用算法直算"
+    },
+    {
       "name": "restart_confirm_title",
       "value": "重新开始"
     },
@@ -323,6 +351,26 @@
     {
       "name": "guide_got_it",
       "value": "知道了"
+    },
+    {
+      "name": "settings_section_display",
+      "value": "显示"
+    },
+    {
+      "name": "settings_show_coordinates",
+      "value": "显示坐标轴"
+    },
+    {
+      "name": "settings_show_coordinates_desc",
+      "value": "在棋盘边缘显示行列编号"
+    },
+    {
+      "name": "seed_copied",
+      "value": "种子已复制到剪贴板"
+    },
+    {
+      "name": "hint_error_erased",
+      "value": "填入有误，已擦除"
     }
   ]
 }

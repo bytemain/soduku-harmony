@@ -14,28 +14,72 @@ import { SudokuCell } from './SudokuCell'
 export struct SudokuBoard {
   @ObjectLink cells: ArrayWrapper
   selectedValue: number = 0
+  hintFocusIndex: number = -1
+  @Prop showCoordinates: boolean = false
   onCellClick: (index: number) => void = () => {}
+
+  @State private boardHeight: number = 0
 
   build() {
     Column() {
-      Grid() {
-        // 9 个宫格（0-8）
-        ForEach([0, 1, 2, 3, 4, 5, 6, 7, 8], (boxIndex: number) => {
-          GridItem() {
-            this.BoxGrid(boxIndex)
+      // 顶部列号（1-9）— 坐标轴开启时显示
+      if (this.showCoordinates) {
+        Row() {
+          Blank().width(18)
+          ForEach([1, 2, 3, 4, 5, 6, 7, 8, 9], (index: number) => {
+            Text(index.toString())
+              .fontSize(11)
+              .fontColor(Colors.subtitleText)
+              .textAlign(TextAlign.Center)
+              .layoutWeight(1)
+          })
+        }
+        .width('100%')
+        .height(16)
+      }
+
+      Row() {
+        // 左侧行号（1-9）
+        if (this.showCoordinates) {
+          Column() {
+            ForEach([1, 2, 3, 4, 5, 6, 7, 8, 9], (index: number) => {
+              Row() {
+                Text(index.toString())
+                  .fontSize(11)
+                  .fontColor(Colors.subtitleText)
+                  .textAlign(TextAlign.Center)
+              }
+              .layoutWeight(1)
+              .justifyContent(FlexAlign.Center)
+            })
           }
-          .borderWidth(Sizes.cellBorderBold / 2)
-          .borderColor(Colors.cellBorderBold)
+          .width(18)
+          .height(this.boardHeight > 0 ? this.boardHeight : undefined)
+        }
+
+        // 棋盘主体
+        Grid() {
+          ForEach([0, 1, 2, 3, 4, 5, 6, 7, 8], (boxIndex: number) => {
+            GridItem() {
+              this.BoxGrid(boxIndex)
+            }
+            .borderWidth(Sizes.cellBorderBold / 2)
+            .borderColor(Colors.cellBorderBold)
+          })
+        }
+        .columnsTemplate('1fr 1fr 1fr')
+        .rowsTemplate('1fr 1fr 1fr')
+        .layoutWeight(1)
+        .aspectRatio(1)
+        .backgroundColor(Colors.cellBorderBold)
+        .borderWidth(Sizes.cellBorderBold)
+        .borderColor(Colors.cellBorderBold)
+        .onAreaChange((_old, newArea) => {
+          this.boardHeight = newArea.height as number
         })
       }
-      .columnsTemplate('1fr 1fr 1fr')
-      .rowsTemplate('1fr 1fr 1fr')
-      .width('100%')
-      .aspectRatio(1)
-      .backgroundColor(Colors.cellBorderBold)
-      .borderWidth(Sizes.cellBorderBold)
-      .borderColor(Colors.cellBorderBold)
     }
+    .width('100%')
   }
 
   @Builder
@@ -50,6 +94,11 @@ export struct SudokuBoard {
               cellInBox
             )],
             selectedValue: this.selectedValue,
+            isHintTarget: this.hintFocusIndex === this.getCellIndex(
+              Math.floor(boxIndex / BOX_SIZE) * BOX_SIZE,
+              (boxIndex % BOX_SIZE) * BOX_SIZE,
+              cellInBox
+            ),
             allCells: this.cells.data,
             onCellClick: () => {
               this.onCellClick(this.getCellIndex(

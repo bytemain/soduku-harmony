@@ -20,6 +20,8 @@ export struct SudokuCell {
   @ObjectLink cellData: CellData
   /** 选中格的 value（用于同数字高亮判断） */
   selectedValue: number = 0
+  /** 是否为当前提示目标格 */
+  @Prop isHintTarget: boolean = false
   /** 全部 81 个格子的引用，用于笔记冲突检测 */
   allCells: CellData[] = []
   onCellClick: () => void = () => {}
@@ -36,6 +38,9 @@ export struct SudokuCell {
    * 决定格子背景色（按优先级从高到低）
    */
   private getCellBgColor(): ResourceColor {
+    if (this.isHintTarget) {
+      return $r('app.color.current_hint_bg')
+    }
     // 1. 选中格 → 浅蓝
     if (this.cellData.isSelected) {
       return Colors.cellSelected

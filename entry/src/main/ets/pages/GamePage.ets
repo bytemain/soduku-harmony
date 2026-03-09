@@ -7,12 +7,13 @@
  * 参考：Doc 05 §二, Doc 03 任务 1.17/1.19
  */
 import { router, promptAction } from '@kit.ArkUI'
+import { pasteboard } from '@kit.BasicServicesKit'
 import { common } from '@kit.AbilityKit'
 import { CellData,
   getNoteState, setNoteState, NoteState } from '../models/CellData'
 import { GameState } from '../models/GameState'
 import { GameHistory, CellSnapshot } from '../models/GameHistory'
-import { Colors, Sizes, Difficulty, GestureDirection } from '../constants/GameConstants'
+import { Colors, Sizes, Difficulty, GestureDirection, getDifficultyConfig } from '../constants/GameConstants'
 import { generatePuzzle, generatePuzzleFromSeed, decodeSeedId, GeneratedPuzzle, Symmetry, encodeSeedId } from '../utils/SudokuGenerator'
 import { validateAllCells, updateHighlights, isGameCompleted } from '../utils/SudokuValidator'
 import { PEERS } from '../utils/Topology'
@@ -22,7 +23,6 @@ import { GestureNumberPad } from '../components/GestureNumberPad'
 import { GestureModeIndicator } from '../components/GestureModeIndicator'
 import { AuxButtonGrid } from '../components/AuxButtonGrid'
 import { SettingsPanel } from '../components/SettingsPanel'
-import { CoachSheet } from '../components/CoachSheet'
 import { GestureGuideOverlay } from '../components/GestureGuideOverlay'
 import { getNextHint, getTechniqueName, SolveStep } from '../utils/LogicSolver'
 import { saveGame, loadGame, clearSave, GameSaveData, CellSerialized } from '../utils/GameStorage'
@@ -51,19 +51,24 @@ struct GamePage {
   @State private canUndo: boolean = false
   @State private canRedo: boolean = false
   @State private showSettings: boolean = false
-  @State private showCoach: boolean = false
+  // Coach sheet removed: ArkUI不支持同一组件绑多个bindSheet
   @State private showPauseOverlay: boolean = false
   @State private showGestureGuide: boolean = false
   @StorageProp('gestureGuideShown') gestureGuideShown: boolean = false
+  @State private showCoordinates: boolean = false
+  @State private isHintLoading: boolean = false
+  @State private hintFocusIndex: number = -1
   @State private boardScale: number = 0.92
   @State private boardOpacity: number = 0
   @State private completionScale: number = 1.0
   @State private numPadHeight: number = 0
+  @State private isLoading: boolean = true
   private timerId: number = -1
   private history: GameHistory = new GameHistory()
   private gameStartRecorded: boolean = false
 
   aboutToAppear(): void {
+    this.showCoordinates = AppStorage.get<boolean>('showCoordinates') ?? false
     hilog.info(0x0000, 'GamePage', 'aboutToAppear: isLeftHand=%{public}s, handModeManual=%{public}s',
       String(this.isLeftHand), String(AppStorage.get<boolean>('handModeManual')))
     // 从路由参数获取难度
@@ -76,35 +81,43 @@ struct GamePage {
     const saved = !seedIdParam ? loadGame(getContext(this)) : null
     if (saved && saved.cells.length === 81) {
       this.restoreFromSave(saved)
-      this.gameStartRecorded = true  // 恢复的游戏已经计数过了
+      this.gameStartRecorded = true
+      this.finishInit()
     } else {
-      // 生成题目
-      let puzzle: GeneratedPuzzle
-      if (seedIdParam) {
-        // 从种子 ID 重建
-        const decoded = decodeSeedId(seedIdParam)
-        if (decoded !== null) {
-          puzzle = generatePuzzleFromSeed(decoded.seed, decoded.difficulty, decoded.symmetry)
+      // 异步生成题目，避免阻塞 UI 线程
+      this.isLoading = true
+      setTimeout(() => {
+        let puzzle: GeneratedPuzzle
+        if (seedIdParam) {
+          const decoded = decodeSeedId(seedIdParam)
+          if (decoded !== null) {
+            puzzle = generatePuzzleFromSeed(decoded.seed, decoded.difficulty, decoded.symmetry)
+          } else {
+            puzzle = generatePuzzle(difficulty, symmetryParam)
+          }
         } else {
           puzzle = generatePuzzle(difficulty, symmetryParam)
         }
-      } else {
-        puzzle = generatePuzzle(difficulty, symmetryParam)
-      }
-      const actualDifficulty = seedIdParam ? (decodeSeedId(seedIdParam)?.difficulty ?? difficulty) : difficulty
-      this.gameState.initGame(puzzle.puzzle, puzzle.solution, actualDifficulty)
-      this.gameState.seed = puzzle.seed
-      this.gameState.symmetry = puzzle.symmetry
-      this.cellsWrapper = new ArrayWrapper(this.gameState.cells)
-      // 记录游戏开始
-      recordGameStarted(getContext(this), actualDifficulty)
-      this.gameStartRecorded = true
+        const actualDifficulty = seedIdParam ? (decodeSeedId(seedIdParam)?.difficulty ?? difficulty) : difficulty
+        this.gameState.initGame(puzzle.puzzle, puzzle.solution, actualDifficulty)
+        this.gameState.seed = puzzle.seed
+        this.gameState.symmetry = puzzle.symmetry
+        this.cellsWrapper = new ArrayWrapper(this.gameState.cells)
+        recordGameStarted(getContext(this), actualDifficulty)
+        this.gameStartRecorded = true
+        this.finishInit()
+      }, 20)
     }
+  }
 
-    // 初始验证 + 高亮
+  /**
+   * 初始化完成后的通用逻辑（验证、计时器、动画）
+   */
+  private finishInit(): void {
     validateAllCells(this.gameState.cells)
     this.updateRemainingCounts()
     this.syncDisplayState()
+    this.isLoading = false
 
     // 启动计时器
     this.timerId = setInterval(() => {
@@ -222,6 +235,36 @@ struct GamePage {
       // 暂停
       this.gameState.isPaused = true
       this.showPauseOverlay = true
+    }
+  }
+
+  private getString(name: string): string {
+    return getContext(this).resourceManager.getStringByNameSync(name)
+  }
+
+  private getCurrentSeedId(): string {
+    if (this.gameState.seed <= 0 || this.gameState.symmetry.length === 0) {
+      return '-'
+    }
+    return encodeSeedId(this.gameState.difficulty, this.gameState.symmetry as Symmetry, this.gameState.seed)
+  }
+
+  private getCurrentDifficultyLabel(): string {
+    return this.getString(getDifficultyConfig(this.gameState.difficulty).name)
+  }
+
+  private getCurrentSymmetryLabel(): string {
+    switch (this.gameState.symmetry) {
+      case Symmetry.NONE:
+        return this.getString('sym_none')
+      case Symmetry.ROTATIONAL_180:
+        return this.getString('sym_rot180')
+      case Symmetry.ROTATIONAL_90:
+        return this.getString('sym_rot90')
+      case Symmetry.MIRROR:
+        return this.getString('sym_mirror')
+      default:
+        return '-'
     }
   }
 
@@ -542,30 +585,123 @@ struct GamePage {
    */
   private onHint(): void {
     if (this.gameState.isCompleted) return
+    if (this.isHintLoading) return
 
-    // 构建当前棋盘
-    const board = this.buildCurrentBoard()
-
-    // 尝试 LogicSolver 找下一步
-    const hint = getNextHint(board)
-
-    if (hint !== null && hint.digit !== 0) {
-      // 逻辑提示成功：显示技巧名 + 填数
-      this.applyLogicHint(hint)
+    // 第一步：如果有错误填入，先擦除错误格子
+    const errorCell = this.findFirstErrorCell()
+    if (errorCell !== null) {
+      this.eraseErrorCell(errorCell)
       return
     }
 
-    // LogicSolver 无法直接给出填数步骤 → 回退到直接提示
-    this.applyDirectHint()
+    // 第二步：无错误，尝试逻辑提示
+    this.isHintLoading = true
+    setTimeout(() => {
+      try {
+        const board = this.buildCurrentBoard()
+        const hint = getNextHint(board)
+
+        if (hint !== null && hint.digit !== 0) {
+          this.applyLogicHint(hint)
+          return
+        }
+
+        this.applyDirectHint()
+      } finally {
+        this.isHintLoading = false
+      }
+    }, 60)
   }
 
-  /** 构建当前棋盘状态（已填的用 value，未填的为 0） */
+  /**
+   * 找到第一个错误填入的格子
+   */
+  private findFirstErrorCell(): CellData | null {
+    // 优先选中格
+    const selected = this.gameState.selectedCell
+    if (selected !== null && !selected.isGiven && selected.value !== 0 &&
+      this.gameState.solution.length > selected.index &&
+      selected.value !== this.gameState.solution[selected.index]) {
+      return selected
+    }
+    // 遍历找第一个错误格
+    for (const cell of this.gameState.cells) {
+      if (!cell.isGiven && cell.value !== 0 &&
+        this.gameState.solution.length > cell.index &&
+        cell.value !== this.gameState.solution[cell.index]) {
+        return cell
+      }
+    }
+    return null
+  }
+
+  /**
+   * 擦除错误格子并提示用户
+   */
+  private eraseErrorCell(cell: CellData): void {
+    this.focusHintCell(cell.index)
+
+    const snapshot = new CellSnapshot(
+      cell.index, cell.value, 0,
+      cell.notes, 0, cell.flags, cell.flags
+    )
+    cell.clear()
+    snapshot.newFlags = cell.flags
+    this.history.push(snapshot)
+
+    this.afterAction(cell.index)
+    this.showHintToast(`💡 ${this.formatCellLabel(cell.index)} ${this.getString('hint_error_erased')}`)
+  }
+
+  private formatCellLabel(index: number): string {
+    const row = Math.floor(index / 9) + 1
+    const col = (index % 9) + 1
+    return `第${row}行第${col}列`
+  }
+
+  private focusHintCell(index: number): void {
+    this.hintFocusIndex = index
+    this.gameState.selectedIndex = index
+    updateHighlights(this.gameState.cells, this.gameState.selectedIndex)
+    setTimeout(() => {
+      if (this.hintFocusIndex === index) {
+        this.hintFocusIndex = -1
+      }
+    }, 1800)
+  }
+
+  private findDirectHintCellIndex(): number {
+    const selected = this.gameState.selectedCell
+    if (selected !== null && !selected.isGiven && this.gameState.solution[selected.index] !== selected.value) {
+      return selected.index
+    }
+
+    for (const cell of this.gameState.cells) {
+      if (!cell.isGiven && this.gameState.solution.length > cell.index && this.gameState.solution[cell.index] !== cell.value) {
+        return cell.index
+      }
+    }
+
+    return -1
+  }
+
+  /** 构建当前棋盘状态（已填的用 value，未填的为 0）
+   *  错误填入的格子视为空格，确保 solver 在干净棋盘上分析
+   */
   private buildCurrentBoard(): number[][] {
     const board: number[][] = []
     for (let r = 0; r < 9; r++) {
       const row: number[] = []
       for (let c = 0; c < 9; c++) {
-        row.push(this.gameState.cells[r * 9 + c].value)
+        const cell = this.gameState.cells[r * 9 + c]
+        // 跳过错误填入：用户填了但和答案不符的格子视为空
+        if (cell.value !== 0 && !cell.isGiven &&
+          this.gameState.solution.length > cell.index &&
+          cell.value !== this.gameState.solution[cell.index]) {
+          row.push(0)
+        } else {
+          row.push(cell.value)
+        }
       }
       board.push(row)
     }
@@ -579,8 +715,8 @@ struct GamePage {
 
     const techniqueName = getTechniqueName(hint.technique)
 
-    // 选中目标格子
-    this.onCellClick(hint.cellIndex)
+    // 选中并高亮目标格子
+    this.focusHintCell(hint.cellIndex)
 
     // 记录到历史
     const snapshot = new CellSnapshot(
@@ -596,18 +732,22 @@ struct GamePage {
     this.afterAction(cell.index)
 
     // 显示技巧名称的 Toast
-    this.showHintToast(`💡 ${techniqueName}: ${hint.description}`)
+    this.showHintToast(`💡 ${techniqueName}：${this.formatCellLabel(hint.cellIndex)} 填入 ${hint.digit}`)
   }
 
   /** 直接提示：填入正确答案（无逻辑步骤可用时的回退） */
   private applyDirectHint(): void {
-    const cell = this.gameState.selectedCell
-    if (cell === null || cell.isGiven) return
+    const targetIndex = this.findDirectHintCellIndex()
+    if (targetIndex < 0) return
+    const cell = this.gameState.cells[targetIndex]
+    if (cell.isGiven) return
     if (this.gameState.solution.length === 0) return
 
     const correctValue = this.gameState.solution[cell.index]
     if (correctValue === 0) return
     if (cell.value === correctValue) return
+
+    this.focusHintCell(cell.index)
 
     const snapshot = new CellSnapshot(
       cell.index, cell.value, correctValue,
@@ -620,6 +760,7 @@ struct GamePage {
     this.history.push(snapshot)
 
     this.afterAction(cell.index)
+    this.showHintToast(`💡 ${this.getString('hint_direct_algorithm')}：${this.formatCellLabel(cell.index)} 填入 ${correctValue}`)
   }
 
   /** 显示提示 Toast */
@@ -710,23 +851,29 @@ struct GamePage {
     SettingsPanel({
       context: getContext(this) as common.UIAbilityContext,
       onClose: () => {
+        this.showCoordinates = AppStorage.get<boolean>('showCoordinates') ?? false
         this.showSettings = false
       },
     })
   }
 
-  @Builder
-  coachSheetBuilder() {
-    CoachSheet({
-      cells: this.gameState.cells,
-      onClose: () => {
-        this.showCoach = false
-      },
-    })
-  }
+
 
   build() {
-    Stack() {
+    Column() {
+      if (this.isLoading) {
+        // 加载中
+        Column() {
+          LoadingProgress()
+            .width(48)
+            .height(48)
+            .color(Colors.primaryBtn)
+        }
+        .width('100%')
+        .layoutWeight(1)
+        .justifyContent(FlexAlign.Center)
+        .alignItems(HorizontalAlign.Center)
+      } else {
       // === 主游戏内容 ===
       Column() {
         // ① 顶部信息栏
@@ -742,6 +889,8 @@ struct GamePage {
         SudokuBoard({
           cells: this.cellsWrapper,
           selectedValue: this.gameState.selectedCell?.value ?? 0,
+          hintFocusIndex: this.hintFocusIndex,
+          showCoordinates: this.showCoordinates,
           onCellClick: (index: number) => {
             this.onCellClick(index)
           },
@@ -773,6 +922,7 @@ struct GamePage {
                 this.gameState.selectedCell!.isGiven ||
                 (this.gameState.selectedCell!.isEmpty && this.gameState.selectedCell!.notes === 0),
               hintDisabled: this.gameState.isCompleted,
+              hintLoading: this.isHintLoading,
               gridHeight: this.numPadHeight,
             })
 
@@ -811,6 +961,7 @@ struct GamePage {
                 this.gameState.selectedCell!.isGiven ||
                 (this.gameState.selectedCell!.isEmpty && this.gameState.selectedCell!.notes === 0),
               hintDisabled: this.gameState.isCompleted,
+              hintLoading: this.isHintLoading,
               gridHeight: this.numPadHeight,
             })
           }
@@ -826,7 +977,6 @@ struct GamePage {
       // === 暂停遮罩 ===
       if (this.showPauseOverlay) {
         Column() {
-          // 半透明背景
           Column()
             .width('100%')
             .height('100%')
@@ -835,6 +985,7 @@ struct GamePage {
         }
         .width('100%')
         .height('100%')
+        .position({ x: 0, y: 0 })
         .justifyContent(FlexAlign.Center)
 
         Column({ space: 16 }) {
@@ -843,6 +994,42 @@ struct GamePage {
             .fontColor('#FFFFFF')
             .fontWeight(FontWeight.Bold)
             .margin({ bottom: 16 })
+
+          Column({ space: 8 }) {
+            Row({ space: 4 }) {
+              Text(`${this.getString('pause_info_seed')}: ${this.getCurrentSeedId()}`)
+                .fontSize(13)
+                .fontColor('#FFFFFF')
+              Text('📋')
+                .fontSize(12)
+            }
+            .onClick(() => {
+              const seedId = this.getCurrentSeedId()
+              if (seedId !== '-') {
+                const pasteData = pasteboard.createData(pasteboard.MIMETYPE_TEXT_PLAIN, seedId)
+                const clipboard = pasteboard.getSystemPasteboard()
+                clipboard.setData(pasteData)
+                promptAction.showToast({ message: this.getString('seed_copied'), duration: 1500 })
+              }
+            })
+            Text(`${this.getString('pause_info_difficulty')}: ${this.getCurrentDifficultyLabel()}`)
+              .fontSize(13)
+              .fontColor('#FFFFFF')
+            Text(`${this.getString('pause_info_symmetry')}: ${this.getCurrentSymmetryLabel()}`)
+              .fontSize(13)
+              .fontColor('#FFFFFF')
+            Text(`${this.getString('pause_info_time')}: ${this.displayTime}`)
+              .fontSize(13)
+              .fontColor('#FFFFFF')
+            Text(`${this.getString('pause_info_errors')}: ${this.displayErrors}/3`)
+              .fontSize(13)
+              .fontColor('#FFFFFF')
+          }
+          .width(280)
+          .padding(16)
+          .borderRadius(16)
+          .backgroundColor('#FFFFFF22')
+          .margin({ bottom: 8 })
 
           // 继续
           Button($r('app.string.pause_resume'))
@@ -877,6 +1064,9 @@ struct GamePage {
             .fontColor('#FFFFFF')
             .onClick(() => this.quitGame())
         }
+        .width('100%')
+        .height('100%')
+        .position({ x: 0, y: 0 })
         .justifyContent(FlexAlign.Center)
       }
 
@@ -887,7 +1077,11 @@ struct GamePage {
             this.showGestureGuide = false
           },
         })
+          .width('100%')
+          .height('100%')
+          .position({ x: 0, y: 0 })
       }
+      } // end else (not loading)
     }
     .width('100%')
     .height('100%')
@@ -899,12 +1093,10 @@ struct GamePage {
       dragBar: true,
       showClose: false,
       backgroundColor: Colors.boardBg,
+      onDisappear: () => {
+        this.showCoordinates = AppStorage.get<boolean>('showCoordinates') ?? false
+      },
     })
-    .bindSheet($$this.showCoach, this.coachSheetBuilder(), {
-      height: SheetSize.LARGE,
-      dragBar: true,
-      showClose: false,
-      backgroundColor: Colors.boardBg,
-    })
+
   }
 }

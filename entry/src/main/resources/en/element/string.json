@@ -77,6 +77,10 @@
       "value": "Hint"
     },
     {
+      "name": "aux_hint_loading",
+      "value": "Thinking"
+    },
+    {
       "name": "aux_settings",
       "value": "Settings"
     },
@@ -285,6 +289,30 @@
       "value": "✕  Quit"
     },
     {
+      "name": "pause_info_seed",
+      "value": "Seed"
+    },
+    {
+      "name": "pause_info_difficulty",
+      "value": "Difficulty"
+    },
+    {
+      "name": "pause_info_symmetry",
+      "value": "Symmetry"
+    },
+    {
+      "name": "pause_info_time",
+      "value": "Time"
+    },
+    {
+      "name": "pause_info_errors",
+      "value": "Errors"
+    },
+    {
+      "name": "hint_direct_algorithm",
+      "value": "No logical step found, used algorithm fallback"
+    },
+    {
       "name": "restart_confirm_title",
       "value": "Restart"
     },
@@ -323,6 +351,26 @@
     {
       "name": "guide_got_it",
       "value": "Got it"
+    },
+    {
+      "name": "settings_section_display",
+      "value": "Display"
+    },
+    {
+      "name": "settings_show_coordinates",
+      "value": "Show coordinates"
+    },
+    {
+      "name": "settings_show_coordinates_desc",
+      "value": "Show row and column numbers on the board edges"
+    },
+    {
+      "name": "seed_copied",
+      "value": "Seed copied to clipboard"
+    },
+    {
+      "name": "hint_error_erased",
+      "value": "Wrong entry erased"
     }
   ]
 }
