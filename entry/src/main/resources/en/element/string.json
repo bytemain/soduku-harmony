@@ -167,6 +167,50 @@
     {
       "name": "stats_best_streak",
       "value": "Best Streak"
+    },
+    {
+      "name": "settings_title",
+      "value": "Settings"
+    },
+    {
+      "name": "settings_section_controls",
+      "value": "Controls"
+    },
+    {
+      "name": "settings_auto_hand",
+      "value": "Auto-detect operating hand"
+    },
+    {
+      "name": "settings_auto_hand_desc",
+      "value": "Automatically switch layout based on grip"
+    },
+    {
+      "name": "settings_hand_mode",
+      "value": "Operating hand"
+    },
+    {
+      "name": "settings_left_hand",
+      "value": "Left"
+    },
+    {
+      "name": "settings_right_hand",
+      "value": "Right"
+    },
+    {
+      "name": "settings_current_left",
+      "value": "Current: Left-hand mode — keyboard on left"
+    },
+    {
+      "name": "settings_current_right",
+      "value": "Current: Right-hand mode — keyboard on right"
+    },
+    {
+      "name": "permission_activity_motion_reason",
+      "value": "Used to detect your operating hand and automatically adjust the keyboard layout for comfort"
+    },
+    {
+      "name": "permission_detect_gesture_reason",
+      "value": "Used to detect your operating hand and automatically adjust the keyboard layout for comfort"
     }
   ]
 }

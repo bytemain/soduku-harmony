@@ -167,6 +167,50 @@
     {
       "name": "stats_best_streak",
       "value": "最佳连胜"
+    },
+    {
+      "name": "settings_title",
+      "value": "设置"
+    },
+    {
+      "name": "settings_section_controls",
+      "value": "操作设置"
+    },
+    {
+      "name": "settings_auto_hand",
+      "value": "自动检测操作手"
+    },
+    {
+      "name": "settings_auto_hand_desc",
+      "value": "根据握持方式自动切换布局"
+    },
+    {
+      "name": "settings_hand_mode",
+      "value": "操作手"
+    },
+    {
+      "name": "settings_left_hand",
+      "value": "左手"
+    },
+    {
+      "name": "settings_right_hand",
+      "value": "右手"
+    },
+    {
+      "name": "settings_current_left",
+      "value": "当前：左手模式 — 键盘在左侧"
+    },
+    {
+      "name": "settings_current_right",
+      "value": "当前：右手模式 — 键盘在右侧"
+    },
+    {
+      "name": "permission_activity_motion_reason",
+      "value": "用于检测您的操作手，自动调整键盘布局到更顺手的一侧"
+    },
+    {
+      "name": "permission_detect_gesture_reason",
+      "value": "用于检测您的操作手，自动调整键盘布局到更顺手的一侧"
     }
   ]
 }

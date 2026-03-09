@@ -20,8 +20,10 @@ import { TopBar } from '../components/TopBar'
 import { GestureNumberPad } from '../components/GestureNumberPad'
 import { GestureModeIndicator } from '../components/GestureModeIndicator'
 import { AuxButtonGrid } from '../components/AuxButtonGrid'
+import { SettingsPanel } from '../components/SettingsPanel'
 import { saveGame, loadGame, clearSave, GameSaveData, CellSerialized } from '../utils/GameStorage'
 import { recordGameStarted, recordGameWon } from '../utils/StatsStorage'
+import { hilog } from '@kit.PerformanceAnalysisKit'
 
 interface GamePageParams {
   difficulty?: Difficulty
@@ -32,6 +34,7 @@ interface GamePageParams {
 struct GamePage {
   @StorageProp('topRectHeight') topRectHeight: number = 0
   @StorageProp('bottomRectHeight') bottomRectHeight: number = 0
+  @StorageProp('isLeftHand') isLeftHand: boolean = false
   @State private gameState: GameState = new GameState()
   @State private cellsWrapper: ArrayWrapper = new ArrayWrapper([])
   @State private gestureDirection: GestureDirection | null = null
@@ -40,11 +43,14 @@ struct GamePage {
   @State private displayErrors: number = 0
   @State private canUndo: boolean = false
   @State private canRedo: boolean = false
+  @State private showSettings: boolean = false
   private timerId: number = -1
   private history: GameHistory = new GameHistory()
   private gameStartRecorded: boolean = false
 
   aboutToAppear(): void {
+    hilog.info(0x0000, 'GamePage', 'aboutToAppear: isLeftHand=%{public}s, handModeManual=%{public}s',
+      String(this.isLeftHand), String(AppStorage.get<boolean>('handModeManual')))
     // 从路由参数获取难度
     const params = router.getParams() as GamePageParams | null
     const difficulty = params?.difficulty ?? Difficulty.EASY
@@ -462,6 +468,15 @@ struct GamePage {
   // UI 布局
   // ================================================================
 
+  @Builder
+  settingsSheetBuilder() {
+    SettingsPanel({
+      onClose: () => {
+        this.showSettings = false
+      },
+    })
+  }
+
   build() {
     Column() {
       // ① 顶部信息栏
@@ -488,35 +503,63 @@ struct GamePage {
       })
         .margin({ top: 8 })
 
-      // ③ 操作区
+      // ③ 操作区（左右手模式镜像）
       Row({ space: 8 }) {
-        // 左：辅助按钮（窄列）
-        AuxButtonGrid({
-          onUndo: () => { this.onUndo() },
-          onRedo: () => { this.onRedo() },
-          onErase: () => { this.onErase() },
-          onHint: () => { this.onHint() },
-          onSettings: () => {},
-          undoDisabled: !this.canUndo,
-          redoDisabled: !this.canRedo,
-          eraseDisabled: this.gameState.selectedCell === null ||
-            this.gameState.selectedCell!.isGiven ||
-            (this.gameState.selectedCell!.isEmpty && this.gameState.selectedCell!.notes === 0),
-          hintDisabled: this.gameState.selectedCell === null ||
-            this.gameState.selectedCell!.isGiven ||
-            this.gameState.isCompleted,
-        })
+        if (!this.isLeftHand) {
+          // 右手模式：辅助按钮在左，键盘在右
+          AuxButtonGrid({
+            onUndo: () => { this.onUndo() },
+            onRedo: () => { this.onRedo() },
+            onErase: () => { this.onErase() },
+            onHint: () => { this.onHint() },
+            onSettings: () => { this.showSettings = true },
+            undoDisabled: !this.canUndo,
+            redoDisabled: !this.canRedo,
+            eraseDisabled: this.gameState.selectedCell === null ||
+              this.gameState.selectedCell!.isGiven ||
+              (this.gameState.selectedCell!.isEmpty && this.gameState.selectedCell!.notes === 0),
+            hintDisabled: this.gameState.selectedCell === null ||
+              this.gameState.selectedCell!.isGiven ||
+              this.gameState.isCompleted,
+          })
 
-        // 右：手势键盘（正方形）
-        GestureNumberPad({
-          remainingCounts: this.remainingCounts,
-          onGesture: (digit: number, direction: GestureDirection) => {
-            this.onGesture(digit, direction)
-          },
-          onGestureDirectionChange: (direction: GestureDirection | null) => {
-            this.gestureDirection = direction
-          },
-        })
+          GestureNumberPad({
+            remainingCounts: this.remainingCounts,
+            onGesture: (digit: number, direction: GestureDirection) => {
+              this.onGesture(digit, direction)
+            },
+            onGestureDirectionChange: (direction: GestureDirection | null) => {
+              this.gestureDirection = direction
+            },
+          })
+        } else {
+          // 左手模式：键盘在左，辅助按钮在右
+          GestureNumberPad({
+            remainingCounts: this.remainingCounts,
+            onGesture: (digit: number, direction: GestureDirection) => {
+              this.onGesture(digit, direction)
+            },
+            onGestureDirectionChange: (direction: GestureDirection | null) => {
+              this.gestureDirection = direction
+            },
+          })
+
+          AuxButtonGrid({
+            onUndo: () => { this.onUndo() },
+            onRedo: () => { this.onRedo() },
+            onErase: () => { this.onErase() },
+            onHint: () => { this.onHint() },
+            onSettings: () => { this.showSettings = true },
+            undoDisabled: !this.canUndo,
+            redoDisabled: !this.canRedo,
+            eraseDisabled: this.gameState.selectedCell === null ||
+              this.gameState.selectedCell!.isGiven ||
+              (this.gameState.selectedCell!.isEmpty && this.gameState.selectedCell!.notes === 0),
+            hintDisabled: this.gameState.selectedCell === null ||
+              this.gameState.selectedCell!.isGiven ||
+              this.gameState.isCompleted,
+          })
+        }
       }
       .width('100%')
       .layoutWeight(1)
@@ -529,5 +572,11 @@ struct GamePage {
     .backgroundColor(Colors.pageBg)
     .padding({ top: this.topRectHeight + 12, bottom: this.bottomRectHeight + 12 })
     .expandSafeArea([SafeAreaType.SYSTEM, SafeAreaType.CUTOUT], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
+    .bindSheet($$this.showSettings, this.settingsSheetBuilder(), {
+      height: SheetSize.FIT_CONTENT,
+      dragBar: true,
+      showClose: false,
+      backgroundColor: Colors.boardBg,
+    })
   }
 }

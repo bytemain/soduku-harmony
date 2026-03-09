@@ -13,6 +13,24 @@
     "deliveryWithInstall": true,
     "installationFree": false,
     "pages": "$profile:main_pages",
+    "requestPermissions": [
+      {
+        "name": "ohos.permission.ACTIVITY_MOTION",
+        "reason": "$string:permission_activity_motion_reason",
+        "usedScene": {
+          "abilities": ["EntryAbility"],
+          "when": "inuse"
+        }
+      },
+      {
+        "name": "ohos.permission.DETECT_GESTURE",
+        "reason": "$string:permission_detect_gesture_reason",
+        "usedScene": {
+          "abilities": ["EntryAbility"],
+          "when": "inuse"
+        }
+      }
+    ],
     "abilities": [
       {
         "name": "EntryAbility",

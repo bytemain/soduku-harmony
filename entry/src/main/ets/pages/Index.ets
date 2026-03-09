@@ -8,6 +8,7 @@
 import { router } from '@kit.ArkUI'
 import { Colors, Sizes, Difficulty, getDifficultyConfig } from '../constants/GameConstants'
 import { DifficultySegment } from '../components/DifficultySegment'
+import { SettingsPanel } from '../components/SettingsPanel'
 import { hasSavedGame, clearSave, loadGame, GameSaveData } from '../utils/GameStorage'
 
 @Entry
@@ -21,6 +22,7 @@ struct Index {
   @State savedDifficulty: Difficulty = Difficulty.MEDIUM
   @State savedProgress: number = 0
   @State savedTime: string = '00:00'
+  @State showSettings: boolean = false
 
   onPageShow(): void {
     this.hasSave = hasSavedGame(getContext(this))
@@ -47,6 +49,15 @@ struct Index {
         this.savedTime = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
       }
     }
+  }
+
+  @Builder
+  settingsSheetBuilder() {
+    SettingsPanel({
+      onClose: () => {
+        this.showSettings = false
+      },
+    })
   }
 
   build() {
@@ -196,6 +207,9 @@ struct Index {
             .margin({ top: 2 })
         }
         .layoutWeight(1)
+        .onClick(() => {
+          this.showSettings = true
+        })
       }
       .width('100%')
       .margin({ bottom: this.bottomRectHeight + 24 })
@@ -205,5 +219,11 @@ struct Index {
     .padding({ left: Sizes.pagePadding, right: Sizes.pagePadding })
     .backgroundColor(Colors.pageBg)
     .expandSafeArea([SafeAreaType.SYSTEM, SafeAreaType.CUTOUT], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
+    .bindSheet($$this.showSettings, this.settingsSheetBuilder(), {
+      height: SheetSize.FIT_CONTENT,
+      dragBar: true,
+      showClose: false,
+      backgroundColor: Colors.boardBg,
+    })
   }
 }
