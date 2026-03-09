@@ -50,6 +50,7 @@ export struct SudokuBoard {
               cellInBox
             )],
             selectedValue: this.selectedValue,
+            allCells: this.cells.data,
             onCellClick: () => {
               this.onCellClick(this.getCellIndex(
                 Math.floor(boxIndex / BOX_SIZE) * BOX_SIZE,

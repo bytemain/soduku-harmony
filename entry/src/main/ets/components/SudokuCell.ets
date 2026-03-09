@@ -13,12 +13,15 @@
  */
 import { CellData, CellFlags, hasFlag, getNoteState, NoteState } from '../models/CellData'
 import { Colors, Sizes } from '../constants/GameConstants'
+import { PEERS } from '../utils/Topology'
 
 @Component
 export struct SudokuCell {
   @ObjectLink cellData: CellData
   /** 选中格的 value（用于同数字高亮判断） */
   selectedValue: number = 0
+  /** 全部 81 个格子的引用，用于笔记冲突检测 */
+  allCells: CellData[] = []
   onCellClick: () => void = () => {}
 
   /**
@@ -77,6 +80,20 @@ export struct SudokuCell {
     .height('100%')
   }
 
+  /**
+   * Check if note digit n conflicts with any peer's filled value
+   */
+  private isNoteConflicting(n: number): boolean {
+    if (this.allCells.length === 0) return false
+    const idx = this.cellData.index
+    for (const peerIdx of PEERS[idx]) {
+      if (this.allCells[peerIdx].value === n) {
+        return true
+      }
+    }
+    return false
+  }
+
   private getNoteText(n: number): string {
     const state = getNoteState(this.cellData.notes, n)
     if (state === NoteState.EMPTY) return ''
@@ -85,7 +102,10 @@ export struct SudokuCell {
 
   private getNoteColor(n: number): ResourceColor {
     const state = getNoteState(this.cellData.notes, n)
+    if (state === NoteState.EMPTY) return Colors.textNote
     if (state === NoteState.ELIMINATED) return Colors.textNoteElim
+    // Check if this note conflicts with a peer's filled value
+    if (this.isNoteConflicting(n)) return Colors.textError
     return Colors.textNote
   }
 

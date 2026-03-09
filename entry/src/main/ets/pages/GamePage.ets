@@ -176,9 +176,15 @@ struct GamePage {
       cell.notes, cell.notes, cell.flags, cell.flags
     )
 
+    let filledIndex: number | undefined = undefined
+
     switch (direction) {
       case GestureDirection.TAP:
         this.handleFillDigit(cell, digit)
+        // 如果填入了数字（非擦除），记录索引用于自动清除 peers 笔记
+        if (cell.value !== 0) {
+          filledIndex = cell.index
+        }
         break
       case GestureDirection.UP:
         this.handleToggleNote(cell, digit)
@@ -204,16 +210,17 @@ struct GamePage {
       this.history.push(snapshot)
     }
 
-    this.afterAction()
+    this.afterAction(filledIndex)
   }
 
   /**
    * 每次操作后的统一处理
+   * @param filledIndex 如果是填数操作，传入填数的格子索引，用于自动清除 peers 笔记
    */
-  private afterAction(): void {
+  private afterAction(filledIndex?: number): void {
 
-    // 自动清除 peers 的候选数字
-    this.autoClearPeerNotes()
+    // 自动清除 peers 的候选数字（仅在填数时）
+    this.autoClearPeerNotes(filledIndex)
 
     // 操作后更新冲突 + 高亮 + 剩余计数
     validateAllCells(this.gameState.cells)
@@ -259,21 +266,19 @@ struct GamePage {
 
   /**
    * 自动清除 peers 中的候选数字。
-   * 当某格填入数字 d 后，同行/列/宫的所有格子的笔记中如果有 d，自动移除。
+   * 仅当指定格子填入数字时，清除其 peers 的对应笔记。
    */
-  private autoClearPeerNotes(): void {
+  private autoClearPeerNotes(filledIndex?: number): void {
+    if (filledIndex === undefined) return
     const cells = this.gameState.cells
-    for (let i = 0; i < 81; i++) {
-      const val = cells[i].value
-      if (val === 0) continue
-      // 遍历该格子的所有 peers
-      for (const peerIdx of PEERS[i]) {
-        const peer = cells[peerIdx]
-        if (peer.value !== 0) continue // 已填数字的格子不需要处理
-        const noteState = getNoteState(peer.notes, val)
-        if (noteState === NoteState.ACTIVE || noteState === NoteState.ELIMINATED) {
-          peer.notes = setNoteState(peer.notes, val, NoteState.EMPTY)
-        }
+    const val = cells[filledIndex].value
+    if (val === 0) return
+    for (const peerIdx of PEERS[filledIndex]) {
+      const peer = cells[peerIdx]
+      if (peer.value !== 0) continue
+      const noteState = getNoteState(peer.notes, val)
+      if (noteState === NoteState.ACTIVE || noteState === NoteState.ELIMINATED) {
+        peer.notes = setNoteState(peer.notes, val, NoteState.EMPTY)
       }
     }
   }
@@ -410,7 +415,7 @@ struct GamePage {
     snapshot.newFlags = cell.flags
     this.history.push(snapshot)
 
-    this.afterAction()
+    this.afterAction(cell.index)
   }
 
   /**
