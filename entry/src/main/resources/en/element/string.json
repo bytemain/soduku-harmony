@@ -255,6 +255,18 @@
     {
       "name": "sym_mirror",
       "value": "Mirror"
+    },
+    {
+      "name": "stats_tab_overview",
+      "value": "Overview"
+    },
+    {
+      "name": "stats_tab_history",
+      "value": "History"
+    },
+    {
+      "name": "stats_no_history",
+      "value": "No history yet"
     }
   ]
 }

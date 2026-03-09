@@ -54,6 +54,7 @@ export struct AuxButtonGrid {
   @Prop redoDisabled: boolean = true
   @Prop eraseDisabled: boolean = true
   @Prop hintDisabled: boolean = false
+  @Prop gridHeight: number = 0
 
   build() {
     Grid() {
@@ -80,7 +81,7 @@ export struct AuxButtonGrid {
     .rowsTemplate('1fr 1fr 1fr')
     .columnsGap(4)
     .rowsGap(4)
-    .width(Sizes.auxColWidth * 2 + 4)
-    .height('100%')
+    .width(this.gridHeight > 0 ? this.gridHeight * 2 / 3 : 0)
+    .height(this.gridHeight > 0 ? this.gridHeight : 0)
   }
 }

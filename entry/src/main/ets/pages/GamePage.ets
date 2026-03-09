@@ -13,7 +13,7 @@ import { CellData,
 import { GameState } from '../models/GameState'
 import { GameHistory, CellSnapshot } from '../models/GameHistory'
 import { Colors, Sizes, Difficulty, GestureDirection } from '../constants/GameConstants'
-import { generatePuzzle, GeneratedPuzzle, Symmetry } from '../utils/SudokuGenerator'
+import { generatePuzzle, generatePuzzleFromSeed, decodeSeedId, GeneratedPuzzle, Symmetry, encodeSeedId } from '../utils/SudokuGenerator'
 import { validateAllCells, updateHighlights, isGameCompleted } from '../utils/SudokuValidator'
 import { PEERS } from '../utils/Topology'
 import { SudokuBoard, ArrayWrapper } from '../components/SudokuBoard'
@@ -26,11 +26,13 @@ import { CoachSheet } from '../components/CoachSheet'
 import { getNextHint, getTechniqueName, SolveStep } from '../utils/LogicSolver'
 import { saveGame, loadGame, clearSave, GameSaveData, CellSerialized } from '../utils/GameStorage'
 import { recordGameStarted, recordGameWon } from '../utils/StatsStorage'
+import { addGameRecord, GameRecord } from '../utils/HistoryStorage'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 
 interface GamePageParams {
   difficulty?: Difficulty
   symmetry?: string
+  seedId?: string
 }
 
 @Entry
@@ -52,6 +54,7 @@ struct GamePage {
   @State private boardScale: number = 0.92
   @State private boardOpacity: number = 0
   @State private completionScale: number = 1.0
+  @State private numPadHeight: number = 0
   private timerId: number = -1
   private history: GameHistory = new GameHistory()
   private gameStartRecorded: boolean = false
@@ -63,19 +66,34 @@ struct GamePage {
     const params = router.getParams() as GamePageParams | null
     const difficulty = params?.difficulty ?? Difficulty.EASY
     const symmetryParam = params?.symmetry as Symmetry | undefined
+    const seedIdParam = params?.seedId
 
-    // 尝试恢复存档
-    const saved = loadGame(getContext(this))
+    // 尝试恢复存档（种子模式不恢复存档）
+    const saved = !seedIdParam ? loadGame(getContext(this)) : null
     if (saved && saved.cells.length === 81) {
       this.restoreFromSave(saved)
       this.gameStartRecorded = true  // 恢复的游戏已经计数过了
     } else {
-      // 生成新题
-      const puzzle: GeneratedPuzzle = generatePuzzle(difficulty, symmetryParam)
-      this.gameState.initGame(puzzle.puzzle, puzzle.solution, difficulty)
+      // 生成题目
+      let puzzle: GeneratedPuzzle
+      if (seedIdParam) {
+        // 从种子 ID 重建
+        const decoded = decodeSeedId(seedIdParam)
+        if (decoded !== null) {
+          puzzle = generatePuzzleFromSeed(decoded.seed, decoded.difficulty, decoded.symmetry)
+        } else {
+          puzzle = generatePuzzle(difficulty, symmetryParam)
+        }
+      } else {
+        puzzle = generatePuzzle(difficulty, symmetryParam)
+      }
+      const actualDifficulty = seedIdParam ? (decodeSeedId(seedIdParam)?.difficulty ?? difficulty) : difficulty
+      this.gameState.initGame(puzzle.puzzle, puzzle.solution, actualDifficulty)
+      this.gameState.seed = puzzle.seed
+      this.gameState.symmetry = puzzle.symmetry
       this.cellsWrapper = new ArrayWrapper(this.gameState.cells)
       // 记录游戏开始
-      recordGameStarted(getContext(this), difficulty)
+      recordGameStarted(getContext(this), actualDifficulty)
       this.gameStartRecorded = true
     }
 
@@ -143,6 +161,8 @@ struct GamePage {
     this.gameState.selectedIndex = saved.selectedIndex
     this.gameState.isCompleted = false
     this.gameState.isPaused = false
+    this.gameState.seed = saved.seed ?? 0
+    this.gameState.symmetry = saved.symmetry ?? ''
 
     this.cellsWrapper = new ArrayWrapper(this.gameState.cells)
 
@@ -169,6 +189,8 @@ struct GamePage {
     data.undoStack = this.history.undoStack
     data.redoStack = this.history.redoStack
     data.timestamp = Date.now()
+    data.seed = this.gameState.seed
+    data.symmetry = this.gameState.symmetry
     saveGame(getContext(this), data)
   }
 
@@ -266,6 +288,23 @@ struct GamePage {
         this.gameState.elapsedSeconds,
         this.gameState.errorCount
       )
+      // 记录到历史记录（含种子和每步操作）
+      const record = new GameRecord()
+      record.seedId = encodeSeedId(
+        this.gameState.difficulty,
+        this.gameState.symmetry as Symmetry,
+        this.gameState.seed
+      )
+      record.seed = this.gameState.seed
+      record.difficulty = this.gameState.difficulty
+      record.symmetry = this.gameState.symmetry
+      record.timeSeconds = this.gameState.elapsedSeconds
+      record.errors = this.gameState.errorCount
+      record.stepCount = this.history.undoStack.length
+      record.won = true
+      record.timestamp = Date.now()
+      record.steps = this.history.undoStack.slice() // 复制一份
+      addGameRecord(getContext(this), record)
       // 完成庆祝动画：棋盘弹跳 → 弹窗
       this.playCompletionAnimation()
     }
@@ -646,6 +685,7 @@ struct GamePage {
               this.gameState.selectedCell!.isGiven ||
               (this.gameState.selectedCell!.isEmpty && this.gameState.selectedCell!.notes === 0),
             hintDisabled: this.gameState.isCompleted,
+            gridHeight: this.numPadHeight,
           })
 
           GestureNumberPad({
@@ -656,6 +696,7 @@ struct GamePage {
             onGestureDirectionChange: (direction: GestureDirection | null) => {
               this.gestureDirection = direction
             },
+            onHeightChange: (h: number) => { this.numPadHeight = h },
           })
         } else {
           // 左手模式：键盘在左，辅助按钮在右
@@ -667,6 +708,7 @@ struct GamePage {
             onGestureDirectionChange: (direction: GestureDirection | null) => {
               this.gestureDirection = direction
             },
+            onHeightChange: (h: number) => { this.numPadHeight = h },
           })
 
           AuxButtonGrid({
@@ -681,6 +723,7 @@ struct GamePage {
               this.gameState.selectedCell!.isGiven ||
               (this.gameState.selectedCell!.isEmpty && this.gameState.selectedCell!.notes === 0),
             hintDisabled: this.gameState.isCompleted,
+            gridHeight: this.numPadHeight,
           })
         }
       }
@@ -688,7 +731,6 @@ struct GamePage {
       .layoutWeight(1)
       .margin({ top: 8 })
       .padding({ left: Sizes.gamePagePadding, right: Sizes.gamePagePadding })
-      .alignItems(VerticalAlign.Center)
     }
     .width('100%')
     .height('100%')

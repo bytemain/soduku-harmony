@@ -27,6 +27,10 @@ export class GameState {
   isCompleted: boolean
   /** 游戏是否暂停 */
   isPaused: boolean
+  /** 生成种子（用于复现/分享同一题） */
+  seed: number
+  /** 对称模式 */
+  symmetry: string
 
   constructor() {
     this.cells = createEmptyBoard()
@@ -37,6 +41,8 @@ export class GameState {
     this.errorCount = 0
     this.isCompleted = false
     this.isPaused = false
+    this.seed = 0
+    this.symmetry = ''
   }
 
   // --- 选中格 ---

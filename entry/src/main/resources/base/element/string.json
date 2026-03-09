@@ -255,6 +255,18 @@
     {
       "name": "sym_mirror",
       "value": "镜像"
+    },
+    {
+      "name": "stats_tab_overview",
+      "value": "统计"
+    },
+    {
+      "name": "stats_tab_history",
+      "value": "历史"
+    },
+    {
+      "name": "stats_no_history",
+      "value": "暂无历史记录"
     }
   ]
 }

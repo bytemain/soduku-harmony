@@ -15,6 +15,8 @@ export struct GestureNumberPad {
   @Prop remainingCounts: number[] = [0, 9, 9, 9, 9, 9, 9, 9, 9, 9]
   onGesture: (digit: number, direction: GestureDirection) => void = () => {}
   onGestureDirectionChange: (direction: GestureDirection | null) => void = () => {}
+  /** 高度变化回调，用于同步 AuxButtonGrid 高度 */
+  onHeightChange: (height: number) => void = () => {}
 
   build() {
     Grid() {
@@ -35,5 +37,11 @@ export struct GestureNumberPad {
     .rowsTemplate('1fr 1fr 1fr')
     .aspectRatio(1)
     .layoutWeight(1)
+    .onAreaChange((_oldArea, newArea) => {
+      const h = newArea.height as number
+      if (h > 0) {
+        this.onHeightChange(h)
+      }
+    })
   }
 }

@@ -9,6 +9,43 @@
 import { GRID_SIZE } from '../constants/GameConstants'
 
 // ============================================================
+// 可播种伪随机数生成器（Mulberry32）
+// ============================================================
+
+/**
+ * Mulberry32 — 高质量 32-bit PRNG，周期 2^32。
+ * 相同 seed 保证产生完全相同的随机序列，
+ * 用于从 seed 重现同一道数独题。
+ */
+export class SeededRandom {
+  private state: number
+
+  constructor(seed: number) {
+    this.state = seed | 0
+  }
+
+  /** 返回 [0, 1) */
+  next(): number {
+    this.state = (this.state + 0x6D2B79F5) | 0
+    let t = Math.imul(this.state ^ (this.state >>> 15), 1 | this.state)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+
+  /** 返回 [0, max) 整数 */
+  nextInt(max: number): number {
+    return Math.floor(this.next() * max)
+  }
+}
+
+/**
+ * 生成一个随机种子（用于首次生成）
+ */
+export function randomSeed(): number {
+  return Math.floor(Math.random() * 0x7FFFFFFF)
+}
+
+// ============================================================
 // Fisher-Yates 洗牌 — 原地打乱数组
 // ============================================================
 
@@ -23,6 +60,20 @@ import { GRID_SIZE } from '../constants/GameConstants'
 export function shuffle<T>(arr: T[]): T[] {
   for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1))
+    const temp = arr[i]
+    arr[i] = arr[j]
+    arr[j] = temp
+  }
+  return arr
+}
+
+/**
+ * 带种子的 Fisher-Yates shuffle。
+ * 使用 SeededRandom 代替 Math.random()，保证可复现。
+ */
+export function seededShuffle<T>(arr: T[], rng: SeededRandom): T[] {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = rng.nextInt(i + 1)
     const temp = arr[i]
     arr[i] = arr[j]
     arr[j] = temp

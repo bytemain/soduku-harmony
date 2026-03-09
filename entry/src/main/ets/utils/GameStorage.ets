@@ -43,6 +43,8 @@ export class GameSaveData {
   undoStack: CellSnapshot[] = []
   redoStack: CellSnapshot[] = []
   timestamp: number = 0
+  seed: number = 0
+  symmetry: string = ''
 
   constructor() {}
 }

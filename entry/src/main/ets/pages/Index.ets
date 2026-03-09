@@ -5,13 +5,14 @@
  *
  * 参考：Doc 05 §一
  */
-import { router } from '@kit.ArkUI'
+import { router, promptAction } from '@kit.ArkUI'
 import { common } from '@kit.AbilityKit'
+import { pasteboard } from '@kit.BasicServicesKit'
 import { Colors, Sizes, Difficulty, getDifficultyConfig } from '../constants/GameConstants'
 import { DifficultySegment } from '../components/DifficultySegment'
 import { SettingsPanel } from '../components/SettingsPanel'
 import { hasSavedGame, clearSave, loadGame, GameSaveData } from '../utils/GameStorage'
-import { Symmetry } from '../utils/SudokuGenerator'
+import { Symmetry, decodeSeedId } from '../utils/SudokuGenerator'
 
 class SymmetryOption {
   key: string = ''
@@ -44,6 +45,7 @@ struct Index {
   @State savedTime: string = '00:00'
   @State showSettings: boolean = false
   @State selectedSymmetry: string = 'auto'  // 'auto' | Symmetry values
+  @State seedInput: string = ''
 
   onPageShow(): void {
     this.hasSave = hasSavedGame(getContext(this))
@@ -105,7 +107,7 @@ struct Index {
 
       Blank()
 
-      // ==================== ② 继续游戏卡片（有存档时显示） ====================
+      // ==================== ② 继续游戏卡片（有存档时显示） ======================================
       if (this.hasSave) {
         Row() {
           // 左侧难度色条
@@ -217,6 +219,45 @@ struct Index {
       .width('100%')
       .margin({ top: 8 })
 
+      // ==================== ③.6 种子输入 ====================
+      Row({ space: 8 }) {
+        TextInput({ text: this.seedInput, placeholder: '输入种子 ID（如 3:rot180:12345）' })
+          .fontSize(13)
+          .fontColor(Colors.titleText)
+          .placeholderColor(Colors.subtitleText)
+          .placeholderFont({ size: 12 })
+          .backgroundColor(Colors.cellDefault)
+          .borderRadius(8)
+          .height(36)
+          .layoutWeight(1)
+          .padding({ left: 10, right: 10 })
+          .onChange((value: string) => {
+            this.seedInput = value
+          })
+
+        Text('📋')
+          .fontSize(20)
+          .onClick(() => {
+            const pb = pasteboard.getSystemPasteboard()
+            const data = pb.getDataSync()
+            const text = data.getPrimaryText()
+            if (text) {
+              this.seedInput = text
+            }
+          })
+
+        if (this.seedInput.length > 0) {
+          Text('✕')
+            .fontSize(16)
+            .fontColor(Colors.subtitleText)
+            .onClick(() => {
+              this.seedInput = ''
+            })
+        }
+      }
+      .width('100%')
+      .margin({ top: 8 })
+
       // ==================== ④ 开始游戏按钮 ====================
       Button(this.hasSave ? $r('app.string.btn_new_game') : $r('app.string.btn_start'))
         .type(ButtonType.Capsule)
@@ -235,16 +276,35 @@ struct Index {
           }
         })
         .onClick(() => {
-          if (this.hasSave) {
-            clearSave(getContext(this))
+          if (this.seedInput.length > 0) {
+            // 种子模式
+            const decoded = decodeSeedId(this.seedInput.trim())
+            if (decoded !== null) {
+              if (this.hasSave) {
+                clearSave(getContext(this))
+              }
+              router.pushUrl({
+                url: 'pages/GamePage',
+                params: {
+                  difficulty: decoded.difficulty,
+                  seedId: this.seedInput.trim(),
+                },
+              })
+            } else {
+              promptAction.showToast({ message: '种子格式无效，请检查', duration: 2000 })
+            }
+          } else {
+            if (this.hasSave) {
+              clearSave(getContext(this))
+            }
+            router.pushUrl({
+              url: 'pages/GamePage',
+              params: {
+                difficulty: this.selectedDifficulty,
+                symmetry: this.selectedSymmetry === 'auto' ? undefined : this.selectedSymmetry,
+              },
+            })
           }
-          router.pushUrl({
-            url: 'pages/GamePage',
-            params: {
-              difficulty: this.selectedDifficulty,
-              symmetry: this.selectedSymmetry === 'auto' ? undefined : this.selectedSymmetry,
-            },
-          })
         })
 
       Blank()

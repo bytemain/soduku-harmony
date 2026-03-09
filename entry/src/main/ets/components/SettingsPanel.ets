@@ -16,6 +16,7 @@ import { common } from '@kit.AbilityKit'
 export struct SettingsPanel {
   @StorageLink('isLeftHand') isLeftHand: boolean = false
   @StorageLink('handModeManual') handModeManual: boolean = false
+  @StorageProp('bottomRectHeight') bottomRectHeight: number = 0
   context?: common.UIAbilityContext
 
   onClose: () => void = () => {}
@@ -147,7 +148,7 @@ export struct SettingsPanel {
         .borderRadius(8)
       }
       .width('100%')
-      .padding({ left: 24, right: 24 })
+      .padding({ left: 24, right: 24, bottom: this.bottomRectHeight + 24 })
     }
     .width('100%')
     .backgroundColor(Colors.boardBg)
