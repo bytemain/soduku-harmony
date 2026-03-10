@@ -16,7 +16,7 @@ import { common } from '@kit.AbilityKit'
 @Component
 export struct SettingsPanel {
   @StorageLink('isLeftHand') isLeftHand: boolean = false
-  @StorageLink('handModeManual') handModeManual: boolean = false
+  @StorageLink('handModeManual') handModeManual: boolean = true
   @StorageLink('showCoordinates') showCoordinates: boolean = false
   @StorageLink('validateInput') validateInput: boolean = true
   @StorageProp('bottomRectHeight') bottomRectHeight: number = 0
