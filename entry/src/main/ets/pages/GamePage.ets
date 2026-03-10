@@ -141,6 +141,13 @@ struct GamePage {
     }
   }
 
+  onPageHide(): void {
+    // 页面隐藏时保存（含切后台），确保 flush() 有时间写入磁盘
+    if (!this.gameState.isCompleted) {
+      this.saveCurrentGame()
+    }
+  }
+
   aboutToDisappear(): void {
     if (this.timerId !== -1) {
       clearInterval(this.timerId)
