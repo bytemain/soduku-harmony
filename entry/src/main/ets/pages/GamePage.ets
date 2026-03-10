@@ -448,14 +448,6 @@ struct GamePage {
       this.multiSelectIndices.clear()
       this.multiSelectIndices.add(index)
 
-      // 如果之前有单选的非 given 格，也加入
-      if (this.gameState.selectedIndex >= 0 && this.gameState.selectedIndex !== index) {
-        const prevCell = this.gameState.cells[this.gameState.selectedIndex]
-        if (!prevCell.isGiven) {
-          this.multiSelectIndices.add(this.gameState.selectedIndex)
-        }
-      }
-
       this.gameState.selectedIndex = index
       this.updateMultiSelectFlags()
     } else if (action === 'move') {
@@ -742,7 +734,11 @@ struct GamePage {
       addGameRecord(getContext(this), record)
       // 完成庆祝动画：棋盘弹跳 → 弹窗
       this.playCompletionAnimation()
+      return // 游戏完成，已 clearSave，不再持久化
     }
+
+    // 每次操作后持久化，防止闪退丢数据
+    this.saveCurrentGame()
   }
 
   /**
