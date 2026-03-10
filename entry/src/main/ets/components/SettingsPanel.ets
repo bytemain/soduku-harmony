@@ -175,6 +175,7 @@ export struct SettingsPanel {
 
           Toggle({ type: ToggleType.Switch, isOn: !this.handModeManual })
             .selectedColor(Colors.primaryBtn)
+            .switchStyle({ unselectedColor: Colors.switchTrackOff })
             .onChange((isOn: boolean) => {
               this.handModeManual = !isOn
               hilog.info(0x0000, 'SettingsPanel', 'Auto-detect toggle: isOn=%{public}s, handModeManual=%{public}s',
@@ -277,6 +278,7 @@ export struct SettingsPanel {
 
           Toggle({ type: ToggleType.Switch, isOn: this.showCoordinates })
             .selectedColor(Colors.primaryBtn)
+            .switchStyle({ unselectedColor: Colors.switchTrackOff })
             .onChange((isOn: boolean) => {
               this.showCoordinates = isOn
               hilog.info(0x0000, 'SettingsPanel', 'Show coordinates: %{public}s', isOn.toString())
@@ -312,6 +314,7 @@ export struct SettingsPanel {
 
           Toggle({ type: ToggleType.Switch, isOn: this.validateInput })
             .selectedColor(Colors.primaryBtn)
+            .switchStyle({ unselectedColor: Colors.switchTrackOff })
             .onChange((isOn: boolean) => {
               this.validateInput = isOn
               hilog.info(0x0000, 'SettingsPanel', 'Validate input: %{public}s', isOn.toString())
