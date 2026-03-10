@@ -36,13 +36,24 @@ function hasConflictWith(cells: CellData[], index: number): boolean {
  * 扫描全部 81 格，更新每个格子的 ERROR 标志。
  * 应该在每次玩家操作后调用。
  *
+ * 当提供 solution 时，还会将与答案不符的用户填入格标记为错误
+ * （即使该格没有同行/列/宫的重复冲突）。
+ *
  * 返回冲突格的数量（用于统计）。
  */
-export function validateAllCells(cells: CellData[]): number {
+export function validateAllCells(cells: CellData[], solution?: number[]): number {
   let errorCount = 0
 
   for (let i = 0; i < TOTAL_CELLS; i++) {
-    if (hasConflictWith(cells, i)) {
+    const hasPeerConflict = hasConflictWith(cells, i)
+    // 若提供了答案，也检查用户填入的数字是否与答案不符
+    const hasSolutionMismatch = solution !== undefined &&
+      solution.length > i &&
+      cells[i].value !== 0 &&
+      !cells[i].isGiven &&
+      cells[i].value !== solution[i]
+
+    if (hasPeerConflict || hasSolutionMismatch) {
       cells[i].flags = setFlag(cells[i].flags, CellFlags.ERROR)
       errorCount++
     } else {

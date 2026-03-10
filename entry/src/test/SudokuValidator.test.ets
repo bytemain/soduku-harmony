@@ -91,6 +91,78 @@ export default function validatorTest() {
     })
   })
 
+  describe('validateAllCells.SolutionMismatch', () => {
+    it('wrong_value_without_peer_conflict_flagged_with_solution', 0, () => {
+      // Fill a cell with a value that doesn't match the solution but causes no peer conflict
+      const sol = getCompleteSolution()
+      const flat: number[] = []
+      for (const row of sol) {
+        for (const v of row) flat.push(v)
+      }
+      const cells = createEmptyBoard()
+      // Fill the correct values everywhere except index 0 (mark them GIVEN)
+      for (let i = 1; i < 81; i++) {
+        cells[i].value = flat[i]
+        cells[i].flags = setFlag(cells[i].flags, CellFlags.GIVEN)
+      }
+      // Fill index 0 with a wrong value that has no peer with the same number
+      // (all peer cells are GIVEN and have different values)
+      const wrongVal = flat[0] === 9 ? 1 : 9 // pick a value != correct answer
+      cells[0].value = wrongVal
+
+      const count = validateAllCells(cells, flat)
+      expect(cells[0].isError).assertTrue()
+      expect(count).assertLargerOrEqual(1)
+    })
+
+    it('wrong_value_without_solution_not_flagged', 0, () => {
+      // Without solution, only peer-conflict detection applies
+      const sol = getCompleteSolution()
+      const flat: number[] = []
+      for (const row of sol) {
+        for (const v of row) flat.push(v)
+      }
+      const cells = createEmptyBoard()
+      for (let i = 1; i < 81; i++) {
+        cells[i].value = flat[i]
+        cells[i].flags = setFlag(cells[i].flags, CellFlags.GIVEN)
+      }
+      const wrongVal = flat[0] === 9 ? 1 : 9
+      cells[0].value = wrongVal
+
+      // No solution provided — only peer conflicts matter
+      const count = validateAllCells(cells)
+      // wrongVal doesn't appear in any peer → no error flagged
+      expect(cells[0].isError).assertFalse()
+      expect(count).assertEqual(0)
+    })
+
+    it('correct_value_with_solution_not_flagged', 0, () => {
+      const sol = getCompleteSolution()
+      const flat: number[] = []
+      for (const row of sol) {
+        for (const v of row) flat.push(v)
+      }
+      const cells = createEmptyBoard()
+      cells[0].value = flat[0] // correct value
+      const count = validateAllCells(cells, flat)
+      expect(cells[0].isError).assertFalse()
+      expect(count).assertEqual(0)
+    })
+
+    it('given_cell_not_flagged_by_solution_check', 0, () => {
+      // GIVEN cells are never flagged by solution mismatch (they define the puzzle)
+      const flat: number[] = []
+      for (let i = 0; i < 81; i++) flat.push(1)
+      const cells = createEmptyBoard()
+      cells[0].value = 5
+      cells[0].flags = setFlag(cells[0].flags, CellFlags.GIVEN) // mark as given
+      const count = validateAllCells(cells, flat)
+      expect(cells[0].isError).assertFalse()
+      expect(count).assertEqual(0)
+    })
+  })
+
   describe('isCorrectValue', () => {
     it('correct_value_returns_true', 0, () => {
       const cells = createEmptyBoard()

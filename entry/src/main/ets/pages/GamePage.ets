@@ -114,7 +114,7 @@ struct GamePage {
    * 初始化完成后的通用逻辑（验证、计时器、动画）
    */
   private finishInit(): void {
-    validateAllCells(this.gameState.cells)
+    validateAllCells(this.gameState.cells, this.gameState.solution)
     this.updateRemainingCounts()
     this.syncDisplayState()
     this.isLoading = false
@@ -292,7 +292,7 @@ struct GamePage {
           this.gameState.resetGame()
           this.history = new GameHistory()
           this.cellsWrapper = new ArrayWrapper(this.gameState.cells)
-          validateAllCells(this.gameState.cells)
+          validateAllCells(this.gameState.cells, this.gameState.solution)
           this.updateRemainingCounts()
           this.syncDisplayState()
           this.gameState.isPaused = false
@@ -395,7 +395,7 @@ struct GamePage {
     this.autoClearPeerNotes(filledIndex)
 
     // 操作后更新冲突 + 高亮 + 剩余计数
-    validateAllCells(this.gameState.cells)
+    validateAllCells(this.gameState.cells, this.gameState.solution)
     updateHighlights(this.gameState.cells, this.gameState.selectedIndex)
     this.updateRemainingCounts()
     this.syncDisplayState()
