@@ -85,6 +85,10 @@
       "value": "Settings"
     },
     {
+      "name": "aux_auto_notes",
+      "value": "Auto"
+    },
+    {
       "name": "gesture_note",
       "value": "Note"
     },
@@ -399,6 +403,14 @@
     {
       "name": "settings_validate_input_off_hint",
       "value": "Conflicts only"
+    },
+    {
+      "name": "settings_auto_notes",
+      "value": "Auto Candidates"
+    },
+    {
+      "name": "settings_auto_notes_desc",
+      "value": "Fill all empty cells with possible candidate digits, excluding numbers in same row/column/box"
     },
     {
       "name": "multi_select_hint",

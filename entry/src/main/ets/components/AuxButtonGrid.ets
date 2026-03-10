@@ -1,7 +1,7 @@
 /**
  * AuxButtonGrid.ets — 辅助按钮区（2×3 网格）
  *
- * 撤销、前进、擦除、提示、设置、预留。
+ * 撤销、前进、擦除、提示、设置、自动候选数。
  *
  * 参考：Doc 05 §③ 操作区
  *
@@ -50,12 +50,14 @@ export struct AuxButtonGrid {
   onErase: () => void = () => {}
   onHint: () => void = () => {}
   onSettings: () => void = () => {}
+  onAutoNotes: () => void = () => {}
 
   @Prop undoDisabled: boolean = true
   @Prop redoDisabled: boolean = true
   @Prop eraseDisabled: boolean = true
   @Prop hintDisabled: boolean = false
   @Prop hintLoading: boolean = false
+  @Prop autoNotesDisabled: boolean = false
   @Prop gridHeight: number = 0
 
   build() {
@@ -82,7 +84,7 @@ export struct AuxButtonGrid {
         AuxButton({ icon: '⚙️', label: $r('app.string.aux_settings'), disabled: false, onTap: () => this.onSettings() })
       }
       GridItem() {
-        AuxButton({ icon: '', label: '', disabled: true })
+        AuxButton({ icon: '✏️', label: $r('app.string.aux_auto_notes'), disabled: this.autoNotesDisabled, onTap: () => this.onAutoNotes() })
       }
     }
     .columnsTemplate('1fr 1fr')

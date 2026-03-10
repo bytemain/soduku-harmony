@@ -1022,6 +1022,40 @@ struct GamePage {
   }
 
   /**
+   * 自动候选数 — 遍历所有空格，排除同行/列/宫已有数字，填入候选笔记
+   */
+  private onAutoNotes(): void {
+    if (this.gameState.isCompleted) return
+
+    const cells = this.gameState.cells
+    for (let i = 0; i < 81; i++) {
+      const cell = cells[i]
+      // 跳过已有数字的格子
+      if (cell.value !== 0) continue
+
+      // 收集 peers 中已有的数字
+      const usedDigits = new Set<number>()
+      for (const peerIdx of PEERS[i]) {
+        const peerVal = cells[peerIdx].value
+        if (peerVal !== 0) {
+          usedDigits.add(peerVal)
+        }
+      }
+
+      // 设置候选笔记：不在 peers 中的数字标记为 ACTIVE
+      let newNotes = 0
+      for (let d = 1; d <= 9; d++) {
+        if (!usedDigits.has(d)) {
+          newNotes = setNoteState(newNotes, d, NoteState.ACTIVE)
+        }
+      }
+      cell.notes = newNotes
+    }
+
+    this.afterAction()
+  }
+
+  /**
    * 找到第一个错误填入的格子
    */
   private findFirstErrorCell(): CellData | null {
@@ -1262,6 +1296,7 @@ struct GamePage {
         this.showCoordinates = AppStorage.get<boolean>('showCoordinates') ?? false
         this.showSettings = false
       },
+      onAutoNotes: () => { this.onAutoNotes() },
     })
   }
 
@@ -1353,6 +1388,7 @@ struct GamePage {
               onErase: () => { this.onErase() },
               onHint: () => { this.onHint() },
               onSettings: () => { this.showSettings = true },
+              onAutoNotes: () => { this.onAutoNotes() },
               undoDisabled: !this.canUndo,
               redoDisabled: !this.canRedo,
               eraseDisabled: this.gameState.selectedCell === null ||
@@ -1360,6 +1396,7 @@ struct GamePage {
                 (this.gameState.selectedCell!.isEmpty && this.gameState.selectedCell!.notes === 0),
               hintDisabled: this.gameState.isCompleted,
               hintLoading: this.isHintLoading,
+              autoNotesDisabled: this.gameState.isCompleted,
               gridHeight: this.numPadHeight,
             })
 
@@ -1392,6 +1429,7 @@ struct GamePage {
               onErase: () => { this.onErase() },
               onHint: () => { this.onHint() },
               onSettings: () => { this.showSettings = true },
+              onAutoNotes: () => { this.onAutoNotes() },
               undoDisabled: !this.canUndo,
               redoDisabled: !this.canRedo,
               eraseDisabled: this.gameState.selectedCell === null ||
@@ -1399,6 +1437,7 @@ struct GamePage {
                 (this.gameState.selectedCell!.isEmpty && this.gameState.selectedCell!.notes === 0),
               hintDisabled: this.gameState.isCompleted,
               hintLoading: this.isHintLoading,
+              autoNotesDisabled: this.gameState.isCompleted,
               gridHeight: this.numPadHeight,
             })
           }

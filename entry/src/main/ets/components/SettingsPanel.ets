@@ -26,6 +26,7 @@ export struct SettingsPanel {
   context?: common.UIAbilityContext
 
   onClose: () => void = () => {}
+  onAutoNotes: () => void = () => {}
 
   /**
    * 切换主题模式
@@ -433,6 +434,34 @@ export struct SettingsPanel {
 
         // 图示说明
         this.AssistantIllustration()
+
+        // 自动候选数按钮
+        Row() {
+          Column() {
+            Text($r('app.string.settings_auto_notes'))
+              .fontSize(16)
+              .fontColor(Colors.titleText)
+            Text($r('app.string.settings_auto_notes_desc'))
+              .fontSize(12)
+              .fontColor(Colors.subtitleText)
+              .margin({ top: 2 })
+          }
+          .alignItems(HorizontalAlign.Start)
+          .layoutWeight(1)
+
+          Button($r('app.string.settings_auto_notes'))
+            .fontSize(13)
+            .fontColor(Colors.primaryText)
+            .backgroundColor(Colors.primaryBtn)
+            .height(34)
+            .borderRadius(17)
+            .onClick(() => {
+              this.onAutoNotes()
+              this.onClose()
+            })
+        }
+        .width('100%')
+        .padding({ top: 12, bottom: 12 })
       }
       .width('100%')
       .padding({ left: 24, right: 24, bottom: this.bottomRectHeight + 24 })
