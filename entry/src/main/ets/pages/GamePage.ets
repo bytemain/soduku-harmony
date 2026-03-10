@@ -447,9 +447,9 @@ struct GamePage {
       cell.value = 0
     } else {
       cell.fillValue(digit)
-      // 检查是否与答案不符 → 计数错误（仅在助手验证开启时）
+      // 检查是否与答案不符 → 计数错误（无论助手开关，均记录）
       const idx = cell.index
-      if (this.validateInput && this.gameState.solution.length > 0 && this.gameState.solution[idx] !== digit) {
+      if (this.gameState.solution.length > 0 && this.gameState.solution[idx] !== digit) {
         this.gameState.errorCount++
       }
     }
