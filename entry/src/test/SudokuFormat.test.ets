@@ -2,7 +2,7 @@ import { describe, it, expect } from '@ohos/hypium'
 import {
   parseSudokuInput, parse81String, detectFormat,
   exportTo81String, exportToSdk, exportToSs, exportToJson,
-  countGivens, getFormatDisplayName, boardPreview,
+  countGivens, getFormatDisplayNameKey, boardPreview,
   initFormatSolver, validateUniqueness,
 } from '../main/ets/utils/SudokuFormat'
 import { countSolutions } from '../main/ets/utils/SudokuSolver'
@@ -539,15 +539,15 @@ export default function sudokuFormatTest() {
   // ============================================================
   // getFormatDisplayName
   // ============================================================
-  describe('getFormatDisplayName', () => {
-    it('returns_correct_name_for_each_format', 0, () => {
-      expect(getFormatDisplayName('seed')).assertEqual('种子 ID')
-      expect(getFormatDisplayName('81string')).assertEqual('81字符串')
-      expect(getFormatDisplayName('sdm')).assertEqual('SDM 题库')
-      expect(getFormatDisplayName('sdk')).assertEqual('SDK 格式')
-      expect(getFormatDisplayName('ss')).assertEqual('SS 格式')
-      expect(getFormatDisplayName('json')).assertEqual('JSON 格式')
-      expect(getFormatDisplayName('unknown')).assertEqual('未知格式')
+  describe('getFormatDisplayNameKey', () => {
+    it('returns_correct_key_for_each_format', 0, () => {
+      expect(getFormatDisplayNameKey('seed')).assertEqual('format_seed')
+      expect(getFormatDisplayNameKey('81string')).assertEqual('format_81string')
+      expect(getFormatDisplayNameKey('sdm')).assertEqual('format_sdm')
+      expect(getFormatDisplayNameKey('sdk')).assertEqual('format_sdk')
+      expect(getFormatDisplayNameKey('ss')).assertEqual('format_ss')
+      expect(getFormatDisplayNameKey('json')).assertEqual('format_json')
+      expect(getFormatDisplayNameKey('unknown')).assertEqual('format_unknown')
     })
   })
 

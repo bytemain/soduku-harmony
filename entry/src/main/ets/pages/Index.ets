@@ -14,7 +14,8 @@ import { SettingsPanel } from '../components/SettingsPanel'
 import { hasSavedGame, clearSave, loadGame, GameSaveData } from '../utils/GameStorage'
 import { Symmetry, decodeSeedId } from '../utils/SudokuGenerator'
 import { parseSudokuInput, ParseResult, countGivens, exportTo81String,
-  getFormatDisplayName, SudokuFormatType } from '../utils/SudokuFormat'
+  getFormatDisplayNameKey, SudokuFormatType } from '../utils/SudokuFormat'
+import { formatStr } from '../utils/I18nHelper'
 import { evaluateDifficulty } from '../utils/DifficultyEvaluator'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 
@@ -131,6 +132,33 @@ struct Index {
   /**
    * 迷你棋盘预览（9×9 缩略图）
    */
+
+  private getString(name: string): string {
+    return getContext(this).resourceManager.getStringByNameSync(name)
+  }
+
+  /**
+   * 解析错误消息的 i18n key，返回本地化文本。
+   * 错误格式为 "key" 或 "key:param1:param2..."
+   */
+  private resolveErrorMessage(error: string | undefined): string | undefined {
+    if (!error) return undefined
+    const parts = error.split(':')
+    const key = parts[0]
+    try {
+      const template = this.getString(key)
+      if (template === key) return error // 不是 resource key，原样返回
+      const params = parts.slice(1)
+      let result = template
+      for (const p of params) {
+        result = result.replace(/%[ds]/, p)
+      }
+      return result
+    } catch (_e) {
+      return error // 回退到原始文本
+    }
+  }
+
   @Builder
   MiniPreview(board: number[][]) {
     Column({ space: 0 }) {
@@ -346,13 +374,13 @@ struct Index {
         Column({ space: 6 }) {
           // 格式 + 题数信息
           Row() {
-            Text(`✅ ${getFormatDisplayName(this.importResult.format)}`)
+            Text(`✅ ${this.getString(getFormatDisplayNameKey(this.importResult.format))}`)
               .fontSize(12)
               .fontColor(Colors.primaryBtn)
               .fontWeight(FontWeight.Medium)
 
             if (this.importResult.puzzles.length > 1) {
-              Text(` · ${this.importResult.puzzles.length} 题`)
+              Text(formatStr(this.getString('import_puzzle_count'), this.importResult.puzzles.length))
                 .fontSize(12)
                 .fontColor(Colors.subtitleText)
             }
@@ -361,7 +389,7 @@ struct Index {
 
             // 给定数计数
             if (this.importResult.puzzles.length > 0) {
-              Text(`${countGivens(this.importResult.puzzles[this.importSelectedIndex].board)} 个提示`)
+              Text(formatStr(this.getString('import_givens_count'), countGivens(this.importResult.puzzles[this.importSelectedIndex].board)))
                 .fontSize(11)
                 .fontColor(Colors.subtitleText)
             }
@@ -435,7 +463,7 @@ struct Index {
       } else if (this.importResult !== null && !this.importResult.success) {
         // 解析失败提示
         if (this.seedInput.trim().length > 0 && !decodeSeedId(this.seedInput.trim())) {
-          Text(this.importResult.error ?? '格式无法识别')
+          Text(this.resolveErrorMessage(this.importResult.error) ?? this.getString('import_format_unknown'))
             .fontSize(11)
             .fontColor(Colors.textError)
             .width('100%')

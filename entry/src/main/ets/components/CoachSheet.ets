@@ -24,6 +24,8 @@ export struct CoachSheet {
   private scroller: Scroller = new Scroller()
 
   aboutToAppear(): void {
+    this.coachService.getStr = (name: string) =>
+      getContext(this).resourceManager.getStringByNameSync(name)
     this.initStatus = 'loading'
     this.coachService.init().then((ok) => {
       this.initStatus = ok ? 'ready' : 'failed'
@@ -82,7 +84,7 @@ export struct CoachSheet {
     Column() {
       // Title bar
       Row() {
-        Text('🤖 数独教练')
+        Text($r('app.string.coach_title'))
           .fontSize(18)
           .fontWeight(FontWeight.Bold)
           .fontColor(Colors.titleText)
@@ -90,7 +92,7 @@ export struct CoachSheet {
         Blank()
 
         if (this.initStatus === 'loading') {
-          Text('初始化中...')
+          Text($r('app.string.coach_init_loading'))
             .fontSize(12)
             .fontColor(Colors.subtitleText)
         }
@@ -113,11 +115,11 @@ export struct CoachSheet {
           Text('🎓')
             .fontSize(48)
             .margin({ bottom: 12 })
-          Text('我是你的数独教练')
+          Text($r('app.string.coach_empty_title'))
             .fontSize(16)
             .fontColor(Colors.titleText)
             .fontWeight(FontWeight.Medium)
-          Text('我会引导你思考，但不会直接告诉你答案')
+          Text($r('app.string.coach_empty_subtitle'))
             .fontSize(13)
             .fontColor(Colors.subtitleText)
             .margin({ top: 4 })
@@ -176,16 +178,16 @@ export struct CoachSheet {
 
       // Quick action buttons
       Row({ space: 8 }) {
-        this.quickButton('🔍 分析局面', '帮我分析一下当前局面')
-        this.quickButton('💡 下一步', '我卡住了，下一步怎么走？')
-        this.quickButton('📚 教我技巧', '教我一个数独解题技巧')
+        this.quickButton('coach_btn_analyze', 'coach_prompt_analyze')
+        this.quickButton('coach_btn_next', 'coach_prompt_next')
+        this.quickButton('coach_btn_teach', 'coach_prompt_teach')
       }
       .width('100%')
       .padding({ left: 20, right: 20, top: 10, bottom: 6 })
 
       // Input area
       Row({ space: 8 }) {
-        TextInput({ text: this.inputText, placeholder: '输入你的问题...' })
+        TextInput({ text: this.inputText, placeholder: $r('app.string.coach_input_placeholder') })
           .layoutWeight(1)
           .height(40)
           .borderRadius(20)
@@ -197,7 +199,7 @@ export struct CoachSheet {
             this.sendMessage(this.inputText)
           })
 
-        Button('发送')
+        Button($r('app.string.coach_send'))
           .fontSize(14)
           .fontColor(Colors.primaryText)
           .backgroundColor(this.inputText.trim() && !this.isLoading ? Colors.primaryBtn : Colors.chatDisabledBtn)
@@ -219,8 +221,8 @@ export struct CoachSheet {
   }
 
   @Builder
-  quickButton(label: string, prompt: string) {
-    Text(label)
+  quickButton(labelKey: string, promptKey: string) {
+    Text(getContext(this).resourceManager.getStringByNameSync(labelKey))
       .fontSize(13)
       .fontColor(Colors.primaryBtn)
       .backgroundColor(Colors.chatQuickBtnBg)
@@ -228,7 +230,7 @@ export struct CoachSheet {
       .padding({ left: 12, right: 12, top: 6, bottom: 6 })
       .onClick(() => {
         if (!this.isLoading) {
-          this.sendMessage(prompt)
+          this.sendMessage(getContext(this).resourceManager.getStringByNameSync(promptKey))
         }
       })
       .opacity(this.isLoading ? 0.5 : 1)

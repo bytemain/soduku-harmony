@@ -1,6 +1,11 @@
 {
   "apiType": "stageMode",
   "buildOption": {
+    "sourceOption": {
+      "workers": [
+        "./src/main/ets/workers/PuzzleWorker.ets"
+      ]
+    },
     "resOptions": {
       "copyCodeResource": {
         "enable": false

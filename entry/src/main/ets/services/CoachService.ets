@@ -10,6 +10,7 @@ import { localChatModel } from '@kit.DataAugmentationKit'
 import { BusinessError } from '@kit.BasicServicesKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { CellData } from '../models/CellData'
+import { formatStr } from '../utils/I18nHelper'
 
 const DOMAIN = 0x0000
 const TAG = 'CoachService'
@@ -47,20 +48,10 @@ function boardToString(cells: CellData[]): string {
 /**
  * 构建教练 Prompt
  */
-function buildCoachPrompt(cells: CellData[], userQuestion: string): string {
+function buildCoachPrompt(cells: CellData[], userQuestion: string,
+  getStr: (name: string) => string): string {
   const boardStr = boardToString(cells)
-
-  return `你是一位数独教练。以下是当前棋盘状态（. 表示空格）：
-
-${boardStr}
-
-规则：
-1. 绝对不要直接告诉用户答案（哪个格子填什么数字）
-2. 引导用户自己发现——指出可以用什么技巧，在哪个区域（如"看看第3行"）
-3. 用简洁的中文回答
-4. 用 R行C列 标记格子位置（如 R3C5 表示第3行第5列）
-
-用户提问：${userQuestion}`
+  return formatStr(getStr('coach_system_prompt'), boardStr, userQuestion)
 }
 
 /**
@@ -70,6 +61,8 @@ export class CoachService {
   private questionId: number = 0
   private isInitialized: boolean = false
   private isChatting: boolean = false
+  /** i18n 字符串解析函数，由调用方注入 */
+  getStr: (name: string) => string = (name: string) => name
 
   /**
    * 初始化端侧模型（可能需要几秒）
@@ -111,14 +104,14 @@ export class CoachService {
     onError: (message: string) => void
   ): Promise<void> {
     if (this.isChatting) {
-      onError('教练正在思考中，请稍候...')
+      onError(this.getStr('coach_busy'))
       return
     }
 
     if (!this.isInitialized) {
       const ok = await this.init()
       if (!ok) {
-        onError('AI 教练初始化失败，该设备可能不支持此功能')
+        onError(this.getStr('coach_init_failed'))
         return
       }
     }
@@ -126,7 +119,7 @@ export class CoachService {
     this.isChatting = true
     this.questionId++
 
-    const prompt = buildCoachPrompt(cells, userMessage)
+    const prompt = buildCoachPrompt(cells, userMessage, this.getStr)
 
     const questionInfo: localChatModel.QuestionInfo = {
       questionId: this.questionId,
@@ -146,7 +139,7 @@ export class CoachService {
           if (err) {
             hilog.error(DOMAIN, TAG, 'chat error: code=%{public}d, msg=%{public}s', err.code, err.message)
             this.isChatting = false
-            onError(`教练出错了 (${err.code})`)
+            onError(formatStr(this.getStr('coach_error'), err.code))
             return
           }
 
@@ -167,7 +160,7 @@ export class CoachService {
       this.isChatting = false
       const e = err as BusinessError
       hilog.error(DOMAIN, TAG, 'chat exception: code=%{public}d, msg=%{public}s', e.code, e.message)
-      onError(`发送失败 (${e.code})`)
+      onError(formatStr(this.getStr('coach_send_failed'), e.code))
     }
   }
 

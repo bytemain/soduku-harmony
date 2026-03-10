@@ -76,7 +76,7 @@ export interface ParseResult {
 export function parseSudokuInput(input: string): ParseResult {
   const trimmed = input.trim()
   if (trimmed.length === 0) {
-    return { success: false, format: 'unknown', puzzles: [], error: '输入为空' }
+    return { success: false, format: 'unknown', puzzles: [], error: 'error_empty_input' }
   }
 
   // 1. 种子 ID
@@ -134,7 +134,7 @@ export function parseSudokuInput(input: string): ParseResult {
       const puzzle = parse81String(digits)
       return { success: true, format: '81string', puzzles: [puzzle] }
     } catch (e) {
-      return { success: false, format: '81string', puzzles: [], error: `81字符串解析失败: ${String(e)}` }
+      return { success: false, format: '81string', puzzles: [], error: `error_parse_81:${String(e)}` }
     }
   }
 
@@ -142,7 +142,7 @@ export function parseSudokuInput(input: string): ParseResult {
     success: false,
     format: 'unknown',
     puzzles: [],
-    error: `无法识别的格式（提取到 ${digits.length} 个数字，需要 81 个）`
+    error: `error_unrecognized_format:${digits.length}`
   }
 }
 
@@ -229,7 +229,7 @@ function extractDigits(input: string): string {
 export function parse81String(input: string): ParsedPuzzle {
   const digits = extractDigits(input)
   if (digits.length !== 81) {
-    throw new Error(`需要 81 个数字，实际 ${digits.length} 个`)
+    throw new Error(`error_need_81_digits:${digits.length}`)
   }
 
   const board: number[][] = []
@@ -395,16 +395,16 @@ function parseJsonObject(obj: Record<string, Object>): ParsedPuzzle | null {
  */
 function validateBoard(board: number[][]): void {
   if (board.length !== GRID_SIZE) {
-    throw new Error(`棋盘行数错误: ${board.length}`)
+    throw new Error(`error_board_rows:${board.length}`)
   }
   for (let r = 0; r < GRID_SIZE; r++) {
     if (board[r].length !== GRID_SIZE) {
-      throw new Error(`第 ${r + 1} 行列数错误: ${board[r].length}`)
+      throw new Error(`error_row_cols:${r + 1}:${board[r].length}`)
     }
     for (let c = 0; c < GRID_SIZE; c++) {
       const v = board[r][c]
       if (v < 0 || v > 9 || !Number.isInteger(v)) {
-        throw new Error(`位置 (${r + 1},${c + 1}) 值非法: ${v}`)
+        throw new Error(`error_cell_value:${r + 1}:${c + 1}:${v}`)
       }
     }
   }
@@ -416,7 +416,7 @@ function validateBoard(board: number[][]): void {
       const v = board[r][c]
       if (v > 0) {
         if (rowSeen[v]) {
-          throw new Error(`第 ${r + 1} 行数字 ${v} 重复`)
+          throw new Error(`error_row_duplicate:${r + 1}:${v}`)
         }
         rowSeen[v] = true
       }
@@ -428,7 +428,7 @@ function validateBoard(board: number[][]): void {
       const v = board[r][c]
       if (v > 0) {
         if (colSeen[v]) {
-          throw new Error(`第 ${c + 1} 列数字 ${v} 重复`)
+          throw new Error(`error_col_duplicate:${c + 1}:${v}`)
         }
         colSeen[v] = true
       }
@@ -442,7 +442,7 @@ function validateBoard(board: number[][]): void {
           const v = board[br * 3 + dr][bc * 3 + dc]
           if (v > 0) {
             if (boxSeen[v]) {
-              throw new Error(`第 ${br * 3 + bc + 1} 宫数字 ${v} 重复`)
+              throw new Error(`error_box_duplicate:${br * 3 + bc + 1}:${v}`)
             }
             boxSeen[v] = true
           }
@@ -555,17 +555,18 @@ export function exportToJson(board: number[][], metadata?: PuzzleMetadata): stri
 // ============================================================
 
 /**
- * 格式类型的中文名称
+ * 格式类型的 i18n 资源 key。
+ * 调用方通过 resourceManager.getStringByNameSync() 解析。
  */
-export function getFormatDisplayName(format: SudokuFormatType): string {
+export function getFormatDisplayNameKey(format: SudokuFormatType): string {
   switch (format) {
-    case 'seed': return '种子 ID'
-    case '81string': return '81字符串'
-    case 'sdm': return 'SDM 题库'
-    case 'sdk': return 'SDK 格式'
-    case 'ss': return 'SS 格式'
-    case 'json': return 'JSON 格式'
-    default: return '未知格式'
+    case 'seed': return 'format_seed'
+    case '81string': return 'format_81string'
+    case 'sdm': return 'format_sdm'
+    case 'sdk': return 'format_sdk'
+    case 'ss': return 'format_ss'
+    case 'json': return 'format_json'
+    default: return 'format_unknown'
   }
 }
 

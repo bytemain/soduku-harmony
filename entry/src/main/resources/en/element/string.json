@@ -665,6 +665,10 @@
       "value": "Duplicate %d in box %d"
     },
     {
+      "name": "generation_failed",
+      "value": "Puzzle generation failed, please retry"
+    },
+    {
       "name": "coach_system_prompt",
       "value": "You are a Sudoku coach. Here is the current board state (. means empty):\n\n%s\n\nRules:\n1. Never tell the user the answer directly (which cell gets which number)\n2. Guide the user to discover it themselves — point out which technique to use and in which area (e.g. \"look at row 3\")\n3. Answer concisely in English\n4. Use R-row C-col notation for cell positions (e.g. R3C5 means row 3, column 5)\n\nUser question: %s"
     }

@@ -10,12 +10,13 @@ import { router, promptAction } from '@kit.ArkUI'
 import { KeyCode } from '@kit.InputKit'
 import { pasteboard } from '@kit.BasicServicesKit'
 import { common } from '@kit.AbilityKit'
+import { worker, MessageEvents, ErrorEvent } from '@kit.ArkTS'
 import { CellData, CellFlags, setFlag, clearFlag,
   getNoteState, setNoteState, NoteState } from '../models/CellData'
 import { GameState } from '../models/GameState'
 import { GameHistory, CellSnapshot } from '../models/GameHistory'
 import { Colors, Sizes, Difficulty, GestureDirection, getDifficultyConfig } from '../constants/GameConstants'
-import { generatePuzzle, generatePuzzleFromSeed, decodeSeedId, GeneratedPuzzle, Symmetry, encodeSeedId } from '../utils/SudokuGenerator'
+import { decodeSeedId, Symmetry, encodeSeedId } from '../utils/SudokuGenerator'
 import { validateAllCells, updateHighlights, isGameCompleted } from '../utils/SudokuValidator'
 import { PEERS } from '../utils/Topology'
 import { SudokuBoard, ArrayWrapper } from '../components/SudokuBoard'
@@ -83,6 +84,8 @@ struct GamePage {
   private timerId: number = -1
   private history: GameHistory = new GameHistory()
   private gameStartRecorded: boolean = false
+  /** Worker 线程实例（用于异步生成谜题） */
+  private puzzleWorker: worker.ThreadWorker | null = null
 
   aboutToAppear(): void {
     this.showCoordinates = AppStorage.get<boolean>('showCoordinates') ?? false
@@ -96,38 +99,6 @@ struct GamePage {
     const importedPuzzle = params?.importedPuzzle
     const importedDifficulty = params?.importedDifficulty
 
-    // 导入模式：直接从 81 字符串生成棋盘
-    if (importedPuzzle) {
-      this.isLoading = true
-      setTimeout(() => {
-        try {
-          const parsed = parse81String(importedPuzzle)
-          const puzzleBoard = parsed.board
-          // 求解获取完整答案
-          const solution = solve(puzzleBoard)
-          if (solution) {
-            const actualDiff = importedDifficulty ?? Difficulty.MEDIUM
-            this.gameState.initGame(puzzleBoard, solution, actualDiff)
-            this.gameState.seed = 0
-            this.gameState.symmetry = 'imported'
-            this.cellsWrapper = new ArrayWrapper(this.gameState.cells)
-            recordGameStarted(getContext(this), actualDiff)
-            this.gameStartRecorded = true
-            this.finishInit()
-          } else {
-            hilog.error(0x0000, 'GamePage', 'Imported puzzle has no solution')
-            promptAction.showToast({ message: this.getString('puzzle_no_solution'), duration: 2000 })
-            router.back()
-          }
-        } catch (e) {
-          hilog.error(0x0000, 'GamePage', 'Failed to parse imported puzzle: %{public}s', String(e))
-          promptAction.showToast({ message: formatStr(this.getString('import_failed'), String(e)), duration: 2000 })
-          router.back()
-        }
-      }, 20)
-      return
-    }
-
     // 尝试恢复存档（种子模式不恢复存档）
     const saved = !seedIdParam ? loadGame(getContext(this)) : null
     if (saved && saved.cells.length === 81) {
@@ -135,29 +106,103 @@ struct GamePage {
       this.gameStartRecorded = true
       this.finishInit()
     } else {
-      // 异步生成题目，避免阻塞 UI 线程
+      // Worker 线程异步生成，不阻塞 UI（Loading 动画可流畅转动）
       this.isLoading = true
-      setTimeout(() => {
-        let puzzle: GeneratedPuzzle
-        if (seedIdParam) {
-          const decoded = decodeSeedId(seedIdParam)
-          if (decoded !== null) {
-            puzzle = generatePuzzleFromSeed(decoded.seed, decoded.difficulty, decoded.symmetry)
-          } else {
-            puzzle = generatePuzzle(difficulty, symmetryParam)
-          }
+      this.startPuzzleWorker(difficulty, symmetryParam, seedIdParam, importedPuzzle, importedDifficulty)
+    }
+  }
+
+  /**
+   * 启动 Worker 线程生成谜题
+   */
+  private startPuzzleWorker(
+    difficulty: Difficulty,
+    symmetryParam: Symmetry | undefined,
+    seedIdParam: string | undefined,
+    importedPuzzle: string | undefined,
+    importedDifficulty: Difficulty | undefined,
+  ): void {
+    const w = new worker.ThreadWorker('entry/ets/workers/PuzzleWorker.ets')
+    this.puzzleWorker = w
+
+    w.onmessage = (e: MessageEvents): void => {
+      const msg = e.data as Record<string, Object>
+      const type = msg['type'] as string
+
+      if (type === 'result') {
+        const action = msg['action'] as string
+        const puzzle = msg['puzzle'] as number[][]
+        const solution = msg['solution'] as number[][]
+        const msgDifficulty = msg['difficulty'] as number as Difficulty
+
+        if (action === 'import') {
+          this.gameState.initGame(puzzle, solution, msgDifficulty)
+          this.gameState.seed = 0
+          this.gameState.symmetry = 'imported'
         } else {
-          puzzle = generatePuzzle(difficulty, symmetryParam)
+          const seed = msg['seed'] as number
+          const symmetry = msg['symmetry'] as string
+          const actualDifficulty = seedIdParam
+            ? (decodeSeedId(seedIdParam)?.difficulty ?? difficulty)
+            : difficulty
+          this.gameState.initGame(puzzle, solution, actualDifficulty)
+          this.gameState.seed = seed
+          this.gameState.symmetry = symmetry
         }
-        const actualDifficulty = seedIdParam ? (decodeSeedId(seedIdParam)?.difficulty ?? difficulty) : difficulty
-        this.gameState.initGame(puzzle.puzzle, puzzle.solution, actualDifficulty)
-        this.gameState.seed = puzzle.seed
-        this.gameState.symmetry = puzzle.symmetry
+
         this.cellsWrapper = new ArrayWrapper(this.gameState.cells)
-        recordGameStarted(getContext(this), actualDifficulty)
+        recordGameStarted(getContext(this), this.gameState.difficulty)
         this.gameStartRecorded = true
         this.finishInit()
-      }, 20)
+      } else if (type === 'error') {
+        const errorMsg = msg['message'] as string
+        hilog.error(0x0000, 'GamePage', 'Worker error: %{public}s', errorMsg)
+        if (errorMsg === 'puzzle_no_solution') {
+          promptAction.showToast({ message: this.getString('puzzle_no_solution'), duration: 2000 })
+        } else {
+          promptAction.showToast({ message: formatStr(this.getString('import_failed'), errorMsg), duration: 2000 })
+        }
+        router.back()
+      }
+
+      this.terminateWorker()
+    }
+
+    w.onerror = (e: ErrorEvent): void => {
+      hilog.error(0x0000, 'GamePage', 'Worker onerror: %{public}s', e.message)
+      promptAction.showToast({ message: this.getString('generation_failed'), duration: 2000 })
+      this.terminateWorker()
+      router.back()
+    }
+
+    // 发送任务到 Worker
+    if (importedPuzzle) {
+      w.postMessage({
+        type: 'import',
+        puzzle81: importedPuzzle,
+        difficulty: importedDifficulty ?? null,
+      })
+    } else if (seedIdParam) {
+      w.postMessage({
+        type: 'generateFromSeed',
+        seedId: seedIdParam,
+      })
+    } else {
+      w.postMessage({
+        type: 'generate',
+        difficulty: difficulty,
+        symmetry: symmetryParam ?? null,
+      })
+    }
+  }
+
+  /**
+   * 安全销毁 Worker
+   */
+  private terminateWorker(): void {
+    if (this.puzzleWorker) {
+      this.puzzleWorker.terminate()
+      this.puzzleWorker = null
     }
   }
 
@@ -200,6 +245,7 @@ struct GamePage {
   }
 
   aboutToDisappear(): void {
+    this.terminateWorker()
     if (this.timerId !== -1) {
       clearInterval(this.timerId)
       this.timerId = -1

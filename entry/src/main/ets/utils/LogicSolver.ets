@@ -243,7 +243,7 @@ function findNakedSingle(candidates: number[]): SolveStep | null {
         i,
         d,
         [],
-        `R${r + 1}C${c + 1} 只剩候选数 ${d}，直接填入`
+        `R${r + 1}C${c + 1} only candidate ${d}, fill in`
       )
     }
   }
@@ -276,7 +276,7 @@ function findHiddenSingle(candidates: number[]): SolveStep | null {
             place,
             d,
             [],
-            `数字 ${d} 在其所在区域中只能放在 R${r + 1}C${c + 1}`
+            `Digit ${d} can only go at R${r + 1}C${c + 1} in its unit`
           )
         }
       }
@@ -327,7 +327,7 @@ function findNakedPair(candidates: number[]): SolveStep | null {
               pairs[a],
               0,
               eliminations,
-              `R${r1 + 1}C${c1 + 1} 和 R${r2 + 1}C${c2 + 1} 形成裸对 {${digits.join(',')}}`
+              `R${r1 + 1}C${c1 + 1} and R${r2 + 1}C${c2 + 1} form Naked Pair {${digits.join(',')}}`
             )
           }
         }
@@ -381,7 +381,7 @@ function findPointingPair(candidates: number[]): SolveStep | null {
             positions[0],
             0,
             eliminations,
-            `宫${box + 1} 中数字 ${d} 只能在第 ${row + 1} 行 → 该行其他位置排除 ${d}`
+            `Box ${box + 1}: digit ${d} only in row ${row + 1} -> eliminate ${d} from rest of row`
           )
         }
       }
@@ -402,7 +402,7 @@ function findPointingPair(candidates: number[]): SolveStep | null {
             positions[0],
             0,
             eliminations,
-            `宫${box + 1} 中数字 ${d} 只能在第 ${col + 1} 列 → 该列其他位置排除 ${d}`
+            `Box ${box + 1}: digit ${d} only in col ${col + 1} -> eliminate ${d} from rest of col`
           )
         }
       }
@@ -449,7 +449,7 @@ function findBoxLineReduction(candidates: number[]): SolveStep | null {
             positions[0],
             0,
             eliminations,
-            `第 ${row + 1} 行中数字 ${d} 只在宫${box + 1} → 宫内其他行排除 ${d}`
+            `Row ${row + 1}: digit ${d} only in box ${box + 1} -> eliminate ${d} from other rows in box`
           )
         }
       }
@@ -489,7 +489,7 @@ function findBoxLineReduction(candidates: number[]): SolveStep | null {
             positions[0],
             0,
             eliminations,
-            `第 ${col + 1} 列中数字 ${d} 只在宫${box + 1} → 宫内其他列排除 ${d}`
+            `Col ${col + 1}: digit ${d} only in box ${box + 1} -> eliminate ${d} from other cols in box`
           )
         }
       }
@@ -548,7 +548,7 @@ function findXWing(candidates: number[]): SolveStep | null {
               indexOf(r1, c1),
               0,
               eliminations,
-              `数字 ${d} 在第 ${r1 + 1},${r2 + 1} 行形成 X-Wing (列 ${c1 + 1},${c2 + 1})`
+              `Digit ${d} forms X-Wing in rows ${r1 + 1},${r2 + 1} (cols ${c1 + 1},${c2 + 1})`
             )
           }
         }
@@ -593,7 +593,7 @@ function findXWing(candidates: number[]): SolveStep | null {
               indexOf(r1, c1),
               0,
               eliminations,
-              `数字 ${d} 在第 ${c1 + 1},${c2 + 1} 列形成 X-Wing (行 ${r1 + 1},${r2 + 1})`
+              `Digit ${d} forms X-Wing in cols ${c1 + 1},${c2 + 1} (rows ${r1 + 1},${r2 + 1})`
             )
           }
         }
