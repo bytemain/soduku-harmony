@@ -19,7 +19,7 @@ import { PEERS } from '../utils/Topology'
 export struct SudokuCell {
   @ObjectLink cellData: CellData
   /** 选中格的 value（用于同数字高亮判断） */
-  selectedValue: number = 0
+  @Prop selectedValue: number = 0
   /** 是否为当前提示目标格 */
   @Prop isHintTarget: boolean = false
   /** 全部 81 个格子的引用，用于笔记冲突检测 */

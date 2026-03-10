@@ -13,8 +13,8 @@ import { SudokuCell } from './SudokuCell'
 @Component
 export struct SudokuBoard {
   @ObjectLink cells: ArrayWrapper
-  selectedValue: number = 0
-  hintFocusIndex: number = -1
+  @Prop selectedValue: number = 0
+  @Prop hintFocusIndex: number = -1
   @Prop showCoordinates: boolean = false
   onCellClick: (index: number) => void = () => {}
 
