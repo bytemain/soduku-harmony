@@ -42,6 +42,7 @@ struct GamePage {
   @StorageProp('topRectHeight') topRectHeight: number = 0
   @StorageProp('bottomRectHeight') bottomRectHeight: number = 0
   @StorageProp('isLeftHand') isLeftHand: boolean = false
+  @StorageProp('validateInput') validateInput: boolean = true
   @State private gameState: GameState = new GameState()
   @State private cellsWrapper: ArrayWrapper = new ArrayWrapper([])
   @State private gestureDirection: GestureDirection | null = null
@@ -114,7 +115,7 @@ struct GamePage {
    * 初始化完成后的通用逻辑（验证、计时器、动画）
    */
   private finishInit(): void {
-    validateAllCells(this.gameState.cells)
+    validateAllCells(this.gameState.cells, this.validateInput ? this.gameState.solution : undefined)
     this.updateRemainingCounts()
     this.syncDisplayState()
     this.isLoading = false
@@ -299,7 +300,7 @@ struct GamePage {
           this.gameState.resetGame()
           this.history = new GameHistory()
           this.cellsWrapper = new ArrayWrapper(this.gameState.cells)
-          validateAllCells(this.gameState.cells)
+          validateAllCells(this.gameState.cells, this.validateInput ? this.gameState.solution : undefined)
           this.updateRemainingCounts()
           this.syncDisplayState()
           this.gameState.isPaused = false
@@ -402,7 +403,7 @@ struct GamePage {
     this.autoClearPeerNotes(filledIndex)
 
     // 操作后更新冲突 + 高亮 + 剩余计数
-    validateAllCells(this.gameState.cells)
+    validateAllCells(this.gameState.cells, this.validateInput ? this.gameState.solution : undefined)
     updateHighlights(this.gameState.cells, this.gameState.selectedIndex)
     this.updateRemainingCounts()
     this.syncDisplayState()
@@ -453,7 +454,7 @@ struct GamePage {
       cell.value = 0
     } else {
       cell.fillValue(digit)
-      // 检查是否与答案不符 → 计数错误
+      // 检查是否与答案不符 → 计数错误（无论助手开关，均记录）
       const idx = cell.index
       if (this.gameState.solution.length > 0 && this.gameState.solution[idx] !== digit) {
         this.gameState.errorCount++
