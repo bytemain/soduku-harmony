@@ -35,6 +35,7 @@ const SYMMETRY_OPTIONS: SymmetryOption[] = [
 @Entry
 @Component
 struct Index {
+  @StorageProp('isDarkMode') isDarkMode: boolean = false
   @StorageProp('topRectHeight') topRectHeight: number = 0
   @StorageProp('bottomRectHeight') bottomRectHeight: number = 0
   @State selectedDifficulty: Difficulty = Difficulty.MEDIUM

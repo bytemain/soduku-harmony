@@ -9,9 +9,10 @@
  * 参考：Doc 05 §6 左右手自适应
  */
 import { Colors } from '../constants/GameConstants'
+import { applyTheme } from '../constants/GameConstants'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { saveSettings } from '../utils/SettingsStorage'
-import { common } from '@kit.AbilityKit'
+import { common, ConfigurationConstant } from '@kit.AbilityKit'
 
 @Component
 export struct SettingsPanel {
@@ -19,10 +20,46 @@ export struct SettingsPanel {
   @StorageLink('handModeManual') handModeManual: boolean = true
   @StorageLink('showCoordinates') showCoordinates: boolean = false
   @StorageLink('validateInput') validateInput: boolean = true
+  @StorageLink('themeMode') themeMode: string = 'system'
+  @StorageProp('isDarkMode') isDarkMode: boolean = false
   @StorageProp('bottomRectHeight') bottomRectHeight: number = 0
   context?: common.UIAbilityContext
 
   onClose: () => void = () => {}
+
+  /**
+   * 切换主题模式
+   * 通过 setColorMode API 设置应用级颜色模式，
+   * 系统会自动触发 onConfigurationUpdate 完成 applyTheme + AppStorage 更新。
+   * 对于手动 light/dark，同时立即 applyTheme 确保即时生效。
+   */
+  private switchTheme(mode: string): void {
+    if (mode === this.themeMode) return
+    this.themeMode = mode
+    hilog.info(0x0000, 'SettingsPanel', 'Switch theme to: %{public}s', mode)
+
+    try {
+      const appCtx = (this.context as common.UIAbilityContext).getApplicationContext()
+      if (mode === 'light') {
+        applyTheme(false)
+        AppStorage.setOrCreate('isDarkMode', false)
+        appCtx.setColorMode(ConfigurationConstant.ColorMode.COLOR_MODE_LIGHT)
+      } else if (mode === 'dark') {
+        applyTheme(true)
+        AppStorage.setOrCreate('isDarkMode', true)
+        appCtx.setColorMode(ConfigurationConstant.ColorMode.COLOR_MODE_DARK)
+      } else {
+        // 跟随系统
+        appCtx.setColorMode(ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET)
+      }
+    } catch (err) {
+      hilog.error(0x0000, 'SettingsPanel', 'Failed to set colorMode: %{public}s', JSON.stringify(err))
+    }
+
+    if (this.context) {
+      saveSettings(this.context)
+    }
+  }
 
   /**
    * 迷你数独演示格——用于图示说明助手功能
@@ -53,7 +90,7 @@ export struct SettingsPanel {
       Column({ space: 4 }) {
         Text($r('app.string.settings_validate_input_on'))
           .fontSize(10)
-          .fontColor('#4CAF50')
+          .fontColor(Colors.settingsValidateOnText)
           .fontWeight(FontWeight.Medium)
 
         // 3×3 mini grid：位置 (1,2) 填了错误的数字 7
@@ -147,10 +184,78 @@ export struct SettingsPanel {
       .padding({ left: 24, right: 24, top: 20, bottom: 16 })
 
       // 分割线
-      Divider().color('#E0E0E0').height(0.5)
+      Divider().color(Colors.divider).height(0.5)
 
-      // 设置项列表
+      // 设置项列表（可滚动）
+      Scroll() {
       Column() {
+      // ====== 外观设置 ======
+        Text($r('app.string.settings_section_appearance'))
+          .fontSize(13)
+          .fontColor(Colors.subtitleText)
+          .fontWeight(FontWeight.Medium)
+          .width('100%')
+          .margin({ top: 20, bottom: 8 })
+
+        // 主题切换
+        Row() {
+          Column() {
+            Text($r('app.string.settings_theme'))
+              .fontSize(16)
+              .fontColor(Colors.titleText)
+            Text($r('app.string.settings_theme_desc'))
+              .fontSize(12)
+              .fontColor(Colors.subtitleText)
+              .margin({ top: 2 })
+          }
+          .alignItems(HorizontalAlign.Start)
+          .layoutWeight(1)
+        }
+        .width('100%')
+        .padding({ top: 12, bottom: 4 })
+
+        // 三段式切换按钮
+        Row({ space: 0 }) {
+          Text($r('app.string.settings_theme_system'))
+            .fontSize(13)
+            .fontColor(this.themeMode === 'system' ? Colors.primaryText : Colors.titleText)
+            .textAlign(TextAlign.Center)
+            .height(34)
+            .layoutWeight(1)
+            .backgroundColor(this.themeMode === 'system' ? Colors.primaryBtn : Colors.settingsInactiveBg)
+            .borderRadius({ topLeft: 17, bottomLeft: 17 })
+            .onClick(() => this.switchTheme('system'))
+
+          // 细分割线
+          Divider().vertical(true).height(20).color(Colors.divider)
+
+          Text($r('app.string.settings_theme_light'))
+            .fontSize(13)
+            .fontColor(this.themeMode === 'light' ? Colors.primaryText : Colors.titleText)
+            .textAlign(TextAlign.Center)
+            .height(34)
+            .layoutWeight(1)
+            .backgroundColor(this.themeMode === 'light' ? Colors.primaryBtn : Colors.settingsInactiveBg)
+            .onClick(() => this.switchTheme('light'))
+
+          // 细分割线
+          Divider().vertical(true).height(20).color(Colors.divider)
+
+          Text($r('app.string.settings_theme_dark'))
+            .fontSize(13)
+            .fontColor(this.themeMode === 'dark' ? Colors.primaryText : Colors.titleText)
+            .textAlign(TextAlign.Center)
+            .height(34)
+            .layoutWeight(1)
+            .backgroundColor(this.themeMode === 'dark' ? Colors.primaryBtn : Colors.settingsInactiveBg)
+            .borderRadius({ topRight: 17, bottomRight: 17 })
+            .onClick(() => this.switchTheme('dark'))
+        }
+        .width('100%')
+        .margin({ top: 8 })
+        .borderRadius(17)
+        .clip(true)
+
         // ====== 操作手设置 ======
         Text($r('app.string.settings_section_controls'))
           .fontSize(13)
@@ -204,7 +309,7 @@ export struct SettingsPanel {
                 .textAlign(TextAlign.Center)
                 .height(36)
                 .padding({ left: 16, right: 16 })
-                .backgroundColor(this.isLeftHand ? Colors.primaryBtn : '#F0F0F0')
+                .backgroundColor(this.isLeftHand ? Colors.primaryBtn : Colors.settingsInactiveBg)
                 .borderRadius({ topLeft: 18, bottomLeft: 18 })
                 .onClick(() => {
                   this.isLeftHand = true
@@ -222,7 +327,7 @@ export struct SettingsPanel {
                 .textAlign(TextAlign.Center)
                 .height(36)
                 .padding({ left: 16, right: 16 })
-                .backgroundColor(!this.isLeftHand ? Colors.primaryBtn : '#F0F0F0')
+                .backgroundColor(!this.isLeftHand ? Colors.primaryBtn : Colors.settingsInactiveBg)
                 .borderRadius({ topRight: 18, bottomRight: 18 })
                 .onClick(() => {
                   this.isLeftHand = false
@@ -331,6 +436,10 @@ export struct SettingsPanel {
       }
       .width('100%')
       .padding({ left: 24, right: 24, bottom: this.bottomRectHeight + 24 })
+      }
+      .layoutWeight(1)
+      .scrollBar(BarState.Off)
+      .edgeEffect(EdgeEffect.Spring)
     }
     .width('100%')
     .backgroundColor(Colors.boardBg)

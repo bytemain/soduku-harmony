@@ -51,7 +51,7 @@ export struct DifficultySegment {
               Circle()
                 .width(6)
                 .height(6)
-                .fill((i as number) < config.level ? config.color : '#E0E0E0')
+                .fill((i as number) < config.level ? config.color : Colors.diffDotInactive)
             })
           }
         }
@@ -62,7 +62,7 @@ export struct DifficultySegment {
         .borderRadius(12)
         .shadow(this.selectedDifficulty === config.level ? {
           radius: 4,
-          color: '#1A000000',
+          color: Colors.shadowColor,
           offsetX: 0,
           offsetY: 1,
         } : {

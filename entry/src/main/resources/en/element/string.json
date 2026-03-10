@@ -403,6 +403,30 @@
     {
       "name": "multi_select_hint",
       "value": "Multi-select: tap number to add notes"
+    },
+    {
+      "name": "settings_section_appearance",
+      "value": "Appearance"
+    },
+    {
+      "name": "settings_theme",
+      "value": "Theme"
+    },
+    {
+      "name": "settings_theme_desc",
+      "value": "Switch between light and dark mode"
+    },
+    {
+      "name": "settings_theme_system",
+      "value": "System"
+    },
+    {
+      "name": "settings_theme_light",
+      "value": "Light"
+    },
+    {
+      "name": "settings_theme_dark",
+      "value": "Dark"
     }
   ]
 }

@@ -14,6 +14,7 @@ import { loadHistory, GameRecord } from '../utils/HistoryStorage'
 @Entry
 @Component
 struct StatsPage {
+  @StorageProp('isDarkMode') isDarkMode: boolean = false
   @StorageProp('topRectHeight') topRectHeight: number = 0
   @StorageProp('bottomRectHeight') bottomRectHeight: number = 0
   @State private stats: GameStats = new GameStats()
@@ -76,7 +77,7 @@ struct StatsPage {
     .borderRadius(12)
     .shadow({
       radius: 4,
-      color: '#1A000000',
+      color: Colors.shadowColor,
       offsetX: 0,
       offsetY: 2,
     })
@@ -157,7 +158,7 @@ struct StatsPage {
             Text(this.stats.totalGamesWon.toString())
               .fontSize(28)
               .fontWeight(FontWeight.Bold)
-              .fontColor('#4CAF50')
+              .fontColor(Colors.statsWonText)
             Text($r('app.string.stats_total_won'))
               .fontSize(12)
               .fontColor(Colors.subtitleText)
@@ -306,7 +307,7 @@ struct StatsPage {
     .borderRadius(12)
     .shadow({
       radius: 2,
-      color: '#0D000000',
+      color: Colors.shadowColorLight,
       offsetX: 0,
       offsetY: 1,
     })

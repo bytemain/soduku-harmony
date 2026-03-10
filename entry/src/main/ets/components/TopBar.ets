@@ -48,7 +48,7 @@ export struct TopBar {
       .onClick(() => this.onPause())
       .padding({ left: 8, right: 8, top: 4, bottom: 4 })
       .borderRadius(8)
-      .backgroundColor(this.isPaused ? '#F0F0F0' : Color.Transparent)
+      .backgroundColor(this.isPaused ? Colors.topBarPausedBg : Color.Transparent)
 
       // 右：错误计数
       Text(`✕ ${this.errorCount}/${this.maxErrors}`)

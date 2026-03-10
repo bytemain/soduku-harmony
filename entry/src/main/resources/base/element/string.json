@@ -403,6 +403,30 @@
     {
       "name": "multi_select_hint",
       "value": "多选模式，点击数字添加笔记"
+    },
+    {
+      "name": "settings_section_appearance",
+      "value": "外观"
+    },
+    {
+      "name": "settings_theme",
+      "value": "主题"
+    },
+    {
+      "name": "settings_theme_desc",
+      "value": "切换亮色或深色模式"
+    },
+    {
+      "name": "settings_theme_system",
+      "value": "跟随系统"
+    },
+    {
+      "name": "settings_theme_light",
+      "value": "浅色"
+    },
+    {
+      "name": "settings_theme_dark",
+      "value": "深色"
     }
   ]
 }

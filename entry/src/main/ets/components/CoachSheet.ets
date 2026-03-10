@@ -104,7 +104,7 @@ export struct CoachSheet {
       .width('100%')
       .padding({ left: 20, right: 20, top: 16, bottom: 12 })
 
-      Divider().color('#E0E0E0').height(0.5)
+      Divider().color(Colors.divider).height(0.5)
 
       // Messages area
       if (this.messages.length === 0) {
@@ -137,7 +137,7 @@ export struct CoachSheet {
                   Blank()
                   Text(msg.content)
                     .fontSize(15)
-                    .fontColor('#FFFFFF')
+                    .fontColor(Colors.primaryText)
                     .backgroundColor(Colors.primaryBtn)
                     .borderRadius(16)
                     .padding({ left: 14, right: 14, top: 10, bottom: 10 })
@@ -154,7 +154,7 @@ export struct CoachSheet {
                   Text(msg.content + (msg.isStreaming ? ' ●' : ''))
                     .fontSize(15)
                     .fontColor(Colors.titleText)
-                    .backgroundColor('#F0F0F0')
+                    .backgroundColor(Colors.chatBubbleBg)
                     .borderRadius(16)
                     .padding({ left: 14, right: 14, top: 10, bottom: 10 })
                     .constraintSize({ maxWidth: '70%' })
@@ -172,7 +172,7 @@ export struct CoachSheet {
         .width('100%')
       }
 
-      Divider().color('#E0E0E0').height(0.5)
+      Divider().color(Colors.divider).height(0.5)
 
       // Quick action buttons
       Row({ space: 8 }) {
@@ -189,7 +189,7 @@ export struct CoachSheet {
           .layoutWeight(1)
           .height(40)
           .borderRadius(20)
-          .backgroundColor('#F5F5F5')
+          .backgroundColor(Colors.chatInputBg)
           .onChange((value: string) => {
             this.inputText = value
           })
@@ -199,8 +199,8 @@ export struct CoachSheet {
 
         Button('发送')
           .fontSize(14)
-          .fontColor('#FFFFFF')
-          .backgroundColor(this.inputText.trim() && !this.isLoading ? Colors.primaryBtn : '#CCCCCC')
+          .fontColor(Colors.primaryText)
+          .backgroundColor(this.inputText.trim() && !this.isLoading ? Colors.primaryBtn : Colors.chatDisabledBtn)
           .height(40)
           .borderRadius(20)
           .padding({ left: 16, right: 16 })
@@ -223,7 +223,7 @@ export struct CoachSheet {
     Text(label)
       .fontSize(13)
       .fontColor(Colors.primaryBtn)
-      .backgroundColor('#F0F4FF')
+      .backgroundColor(Colors.chatQuickBtnBg)
       .borderRadius(16)
       .padding({ left: 12, right: 12, top: 6, bottom: 6 })
       .onClick(() => {

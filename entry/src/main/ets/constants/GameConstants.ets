@@ -2,7 +2,7 @@
  * GameConstants.ets — 全局常量（配色、尺寸、难度配置）
  *
  * 所有魔法数字都定义在这里，任何组件不应出现硬编码的颜色或尺寸。
- * 后续做深色模式时，只需提供第二套 DarkColors 对象。
+ * 深色模式通过 applyTheme(isDark) 切换 Colors 对象。
  *
  * 参考：Doc 05 §三/四, Doc 01 §五
  */
@@ -105,9 +105,43 @@ export interface ColorsConfig {
   bottomIcon: string
   bottomText: string
   switchTrackOff: string
+
+  // === 分割线 & 阴影 ===
+  divider: string
+  shadowColor: string
+  shadowColorLight: string
+
+  // === 暂停遮罩 ===
+  pauseOverlayBg: string
+  pauseOverlayText: string
+  pauseInfoCardBg: string
+  pauseRestartBtn: string
+  pauseQuitBtn: string
+
+  // === 多选提示条 ===
+  multiSelectBar: string
+
+  // === TopBar 暂停背景 ===
+  topBarPausedBg: string
+
+  // === 设置面板 ===
+  settingsInactiveBg: string
+  settingsValidateOnText: string
+
+  // === 难度指示点（未激活） ===
+  diffDotInactive: string
+
+  // === 聊天气泡 ===
+  chatBubbleBg: string
+  chatInputBg: string
+  chatQuickBtnBg: string
+  chatDisabledBtn: string
+
+  // === 统计页胜率 ===
+  statsWonText: string
 }
 
-export const Colors: ColorsConfig = {
+export const LightColors: ColorsConfig = {
   // === 页面级 ===
   pageBg: '#F5F5F5',
 
@@ -180,6 +214,162 @@ export const Colors: ColorsConfig = {
 
   // === Switch 开关 ===
   switchTrackOff: '#BDBDBD',
+
+  // === 分割线 & 阴影 ===
+  divider: '#E0E0E0',
+  shadowColor: '#1A000000',
+  shadowColorLight: '#0D000000',
+
+  // === 暂停遮罩 ===
+  pauseOverlayBg: '#000000',
+  pauseOverlayText: '#FFFFFF',
+  pauseInfoCardBg: '#FFFFFF22',
+  pauseRestartBtn: '#FF9800',
+  pauseQuitBtn: '#424242',
+
+  // === 多选提示条 ===
+  multiSelectBar: '#E3F2FD',
+
+  // === TopBar 暂停背景 ===
+  topBarPausedBg: '#F0F0F0',
+
+  // === 设置面板 ===
+  settingsInactiveBg: '#F0F0F0',
+  settingsValidateOnText: '#4CAF50',
+
+  // === 难度指示点（未激活） ===
+  diffDotInactive: '#E0E0E0',
+
+  // === 聊天气泡 ===
+  chatBubbleBg: '#F0F0F0',
+  chatInputBg: '#F5F5F5',
+  chatQuickBtnBg: '#F0F4FF',
+  chatDisabledBtn: '#CCCCCC',
+
+  // === 统计页胜率 ===
+  statsWonText: '#4CAF50',
+}
+
+export const DarkColors: ColorsConfig = {
+  // === 页面级 ===
+  pageBg: '#121212',
+
+  // === 标题 ===
+  titleText: '#E0E0E0',
+  subtitleText: '#9E9E9E',
+
+  // === 主按钮（开始游戏） ===
+  primaryBtn: '#42A5F5',
+  primaryPressed: '#1E88E5',
+  primaryText: '#121212',
+
+  // === 次按钮（继续游戏） ===
+  secondaryBtn: '#1E1E1E',
+  secondaryBorder: '#42A5F5',
+  secondaryText: '#42A5F5',
+  secondaryPress: '#1A237E',
+
+  // === 棋盘 ===
+  boardBg: '#1E1E1E',
+  cellBorderThin: '#424242',
+  cellBorderBold: '#9E9E9E',
+
+  // === 格子背景（高亮系统） ===
+  cellDefault: '#1E1E1E',
+  cellSelected: '#1A3A5C',
+  cellHighlight: '#1A2332',
+  cellSameNumber: '#1B3B2A',
+  cellError: '#3E1A1A',
+
+  // === 文字颜色 ===
+  textGiven: '#E0E0E0',
+  textUser: '#64B5F6',
+  textError: '#EF5350',
+  textNote: '#9E9E9E',
+  textNoteElim: '#616161',
+
+  // === 手势键盘 ===
+  keyBg: '#2A2A2A',
+  keyText: '#E0E0E0',
+  keyDisabled: '#333333',
+  keyDisabledText: '#616161',
+
+  // === 工具栏 ===
+  toolbarIcon: '#BDBDBD',
+  toolbarActive: '#42A5F5',
+
+  // === 手势提示条 ===
+  indicatorNote: '#1A2332',
+  indicatorElim: '#2A2216',
+  indicatorErase: '#2A2A2A',
+  indicatorText: '#E0E0E0',
+
+  // === 难度色标 ===
+  diffEasy: '#66BB6A',
+  diffMedium: '#42A5F5',
+  diffHard: '#FFA726',
+  diffExpert: '#FF9800',
+  diffEvil: '#EF5350',
+
+  // === 分段按钮 ===
+  segmentBg: '#2A2A2A',
+  segmentSelected: '#3A3A3A',
+  segmentText: '#9E9E9E',
+  segmentActive: '#E0E0E0',
+
+  // === 底部入口 ===
+  bottomIcon: '#BDBDBD',
+  bottomText: '#9E9E9E',
+
+  // === Switch 开关 ===
+  switchTrackOff: '#616161',
+
+  // === 分割线 & 阴影 ===
+  divider: '#333333',
+  shadowColor: '#40000000',
+  shadowColorLight: '#20000000',
+
+  // === 暂停遮罩 ===
+  pauseOverlayBg: '#000000',
+  pauseOverlayText: '#E0E0E0',
+  pauseInfoCardBg: '#FFFFFF15',
+  pauseRestartBtn: '#E65100',
+  pauseQuitBtn: '#616161',
+
+  // === 多选提示条 ===
+  multiSelectBar: '#1A2332',
+
+  // === TopBar 暂停背景 ===
+  topBarPausedBg: '#2A2A2A',
+
+  // === 设置面板 ===
+  settingsInactiveBg: '#2A2A2A',
+  settingsValidateOnText: '#66BB6A',
+
+  // === 难度指示点（未激活） ===
+  diffDotInactive: '#424242',
+
+  // === 聊天气泡 ===
+  chatBubbleBg: '#2A2A2A',
+  chatInputBg: '#1E1E1E',
+  chatQuickBtnBg: '#1A2332',
+  chatDisabledBtn: '#424242',
+
+  // === 统计页胜率 ===
+  statsWonText: '#66BB6A',
+}
+
+/**
+ * 当前生效的颜色方案（可被 applyTheme 切换）
+ */
+export let Colors: ColorsConfig = LightColors
+
+/**
+ * 切换主题色
+ * @param isDark 是否深色模式
+ */
+export function applyTheme(isDark: boolean): void {
+  Colors = isDark ? DarkColors : LightColors
 }
 
 // ============================================================

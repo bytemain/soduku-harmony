@@ -40,6 +40,7 @@ interface GamePageParams {
 @Entry
 @Component
 struct GamePage {
+  @StorageProp('isDarkMode') isDarkMode: boolean = false
   @StorageProp('topRectHeight') topRectHeight: number = 0
   @StorageProp('bottomRectHeight') bottomRectHeight: number = 0
   @StorageProp('isLeftHand') isLeftHand: boolean = false
@@ -1228,7 +1229,7 @@ struct GamePage {
           .justifyContent(FlexAlign.Center)
           .padding({ top: 4, bottom: 4 })
           .margin({ top: 4 })
-          .backgroundColor('#E3F2FD')
+          .backgroundColor(Colors.multiSelectBar)
           .borderRadius(8)
           .padding({ left: Sizes.gamePagePadding, right: Sizes.gamePagePadding })
         }
@@ -1313,7 +1314,7 @@ struct GamePage {
           Column()
             .width('100%')
             .height('100%')
-            .backgroundColor('#000000')
+            .backgroundColor(Colors.pauseOverlayBg)
             .opacity(0.6)
         }
         .width('100%')
@@ -1324,7 +1325,7 @@ struct GamePage {
         Column({ space: 16 }) {
           Text($r('app.string.pause_title'))
             .fontSize(24)
-            .fontColor('#FFFFFF')
+            .fontColor(Colors.pauseOverlayText)
             .fontWeight(FontWeight.Bold)
             .margin({ bottom: 16 })
 
@@ -1332,7 +1333,7 @@ struct GamePage {
             Row({ space: 4 }) {
               Text(`${this.getString('pause_info_seed')}: ${this.getCurrentSeedId()}`)
                 .fontSize(13)
-                .fontColor('#FFFFFF')
+                .fontColor(Colors.pauseOverlayText)
               Text('📋')
                 .fontSize(12)
             }
@@ -1347,21 +1348,21 @@ struct GamePage {
             })
             Text(`${this.getString('pause_info_difficulty')}: ${this.getCurrentDifficultyLabel()}`)
               .fontSize(13)
-              .fontColor('#FFFFFF')
+              .fontColor(Colors.pauseOverlayText)
             Text(`${this.getString('pause_info_symmetry')}: ${this.getCurrentSymmetryLabel()}`)
               .fontSize(13)
-              .fontColor('#FFFFFF')
+              .fontColor(Colors.pauseOverlayText)
             Text(`${this.getString('pause_info_time')}: ${this.displayTime}`)
               .fontSize(13)
-              .fontColor('#FFFFFF')
+              .fontColor(Colors.pauseOverlayText)
             Text(`${this.getString('pause_info_errors')}: ${this.displayErrors}/3`)
               .fontSize(13)
-              .fontColor('#FFFFFF')
+              .fontColor(Colors.pauseOverlayText)
           }
           .width(280)
           .padding(16)
           .borderRadius(16)
-          .backgroundColor('#FFFFFF22')
+          .backgroundColor(Colors.pauseInfoCardBg)
           .margin({ bottom: 8 })
 
           // 继续
@@ -1382,8 +1383,8 @@ struct GamePage {
             .height(48)
             .fontSize(16)
             .fontWeight(FontWeight.Medium)
-            .backgroundColor('#FF9800')
-            .fontColor('#FFFFFF')
+            .backgroundColor(Colors.pauseRestartBtn)
+            .fontColor(Colors.pauseOverlayText)
             .onClick(() => this.restartGame())
 
           // 退出
@@ -1393,8 +1394,8 @@ struct GamePage {
             .height(48)
             .fontSize(16)
             .fontWeight(FontWeight.Medium)
-            .backgroundColor('#424242')
-            .fontColor('#FFFFFF')
+            .backgroundColor(Colors.pauseQuitBtn)
+            .fontColor(Colors.pauseOverlayText)
             .onClick(() => this.quitGame())
         }
         .width('100%')
