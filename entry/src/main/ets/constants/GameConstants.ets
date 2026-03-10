@@ -104,6 +104,7 @@ export interface ColorsConfig {
   segmentActive: string
   bottomIcon: string
   bottomText: string
+  switchTrackOff: string
 }
 
 export const Colors: ColorsConfig = {
@@ -176,6 +177,9 @@ export const Colors: ColorsConfig = {
   // === 底部入口 ===
   bottomIcon: '#616161',
   bottomText: '#757575',
+
+  // === Switch 开关 ===
+  switchTrackOff: '#BDBDBD',
 }
 
 // ============================================================
