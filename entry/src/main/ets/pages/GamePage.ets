@@ -7,9 +7,10 @@
  * 参考：Doc 05 §二, Doc 03 任务 1.17/1.19
  */
 import { router, promptAction } from '@kit.ArkUI'
+import { KeyCode } from '@kit.InputKit'
 import { pasteboard } from '@kit.BasicServicesKit'
 import { common } from '@kit.AbilityKit'
-import { CellData,
+import { CellData, CellFlags, setFlag, clearFlag,
   getNoteState, setNoteState, NoteState } from '../models/CellData'
 import { GameState } from '../models/GameState'
 import { GameHistory, CellSnapshot } from '../models/GameHistory'
@@ -64,6 +65,13 @@ struct GamePage {
   @State private completionScale: number = 1.0
   @State private numPadHeight: number = 0
   @State private isLoading: boolean = true
+  @State private isMultiSelectMode: boolean = false
+  @State private multiSelectCount: number = 0
+  private multiSelectIndices: Set<number> = new Set()
+  /** 鼠标是否正在拖拽选择 */
+  private isMouseDragging: boolean = false
+  /** 鼠标按下的起始格子索引 */
+  private mouseDragStartIndex: number = -1
   private timerId: number = -1
   private history: GameHistory = new GameHistory()
   private gameStartRecorded: boolean = false
@@ -336,19 +344,257 @@ struct GamePage {
    */
   private onCellClick(index: number): void {
     if (this.gameState.isPaused) return
+
+    if (this.isMultiSelectMode) {
+      // 多选模式下：切换格子的多选状态
+      this.toggleMultiSelect(index)
+      return
+    }
+
     this.gameState.selectCell(index)
     updateHighlights(this.gameState.cells, this.gameState.selectedIndex)
+  }
+
+  /**
+   * 键盘输入回调 — 支持方向键切换格子、数字键填数、Delete/Backspace 擦除
+   */
+  private handleKeyboardInput(keyCode: number): void {
+    if (this.gameState.isCompleted) return
+    if (this.gameState.isPaused) return
+
+    const sel = this.gameState.selectedIndex
+
+    // --- 方向键导航 ---
+    if (keyCode === KeyCode.KEYCODE_DPAD_UP || keyCode === KeyCode.KEYCODE_DPAD_DOWN ||
+      keyCode === KeyCode.KEYCODE_DPAD_LEFT || keyCode === KeyCode.KEYCODE_DPAD_RIGHT) {
+      // 如果当前无选中格，默认从中心 (4,4) 开始
+      let row = sel >= 0 ? Math.floor(sel / 9) : 4
+      let col = sel >= 0 ? sel % 9 : 4
+      switch (keyCode) {
+        case KeyCode.KEYCODE_DPAD_UP:
+          row = row > 0 ? row - 1 : 8
+          break
+        case KeyCode.KEYCODE_DPAD_DOWN:
+          row = row < 8 ? row + 1 : 0
+          break
+        case KeyCode.KEYCODE_DPAD_LEFT:
+          col = col > 0 ? col - 1 : 8
+          break
+        case KeyCode.KEYCODE_DPAD_RIGHT:
+          col = col < 8 ? col + 1 : 0
+          break
+      }
+      const newIndex = row * 9 + col
+      // 退出多选模式（如果在多选中）
+      if (this.isMultiSelectMode) {
+        this.exitMultiSelect()
+      }
+      this.gameState.selectedIndex = newIndex
+      updateHighlights(this.gameState.cells, this.gameState.selectedIndex)
+      return
+    }
+
+    // --- 数字键 1-9 填数（等同于 TAP 手势）---
+    const digitMap: Map<number, number> = new Map([
+      [KeyCode.KEYCODE_1, 1], [KeyCode.KEYCODE_2, 2], [KeyCode.KEYCODE_3, 3],
+      [KeyCode.KEYCODE_4, 4], [KeyCode.KEYCODE_5, 5], [KeyCode.KEYCODE_6, 6],
+      [KeyCode.KEYCODE_7, 7], [KeyCode.KEYCODE_8, 8], [KeyCode.KEYCODE_9, 9],
+      [KeyCode.KEYCODE_NUMPAD_1, 1], [KeyCode.KEYCODE_NUMPAD_2, 2], [KeyCode.KEYCODE_NUMPAD_3, 3],
+      [KeyCode.KEYCODE_NUMPAD_4, 4], [KeyCode.KEYCODE_NUMPAD_5, 5], [KeyCode.KEYCODE_NUMPAD_6, 6],
+      [KeyCode.KEYCODE_NUMPAD_7, 7], [KeyCode.KEYCODE_NUMPAD_8, 8], [KeyCode.KEYCODE_NUMPAD_9, 9],
+    ])
+    if (digitMap.has(keyCode)) {
+      const digit = digitMap.get(keyCode)!
+      this.onGesture(digit, GestureDirection.TAP)
+      return
+    }
+
+    // --- Delete / Backspace / 数字0 → 擦除 ---
+    if (keyCode === KeyCode.KEYCODE_DEL || keyCode === KeyCode.KEYCODE_FORWARD_DEL ||
+      keyCode === KeyCode.KEYCODE_0 || keyCode === KeyCode.KEYCODE_NUMPAD_0) {
+      this.onErase()
+      return
+    }
+
+    // --- Z = 撤销, Y = 重做 ---
+    if (keyCode === KeyCode.KEYCODE_Z) {
+      this.onUndo()
+      return
+    }
+    if (keyCode === KeyCode.KEYCODE_Y) {
+      this.onRedo()
+      return
+    }
+  }
+
+  /**
+   * 触摸长按拖拽多选处理（手机端）
+   * start: 长按 400ms 触发，进入多选模式
+   * move: 手指滑动经过新格子，自动加入多选
+   * end: 手指抬起，保持多选模式等待笔记输入
+   */
+  private onTouchDragSelect(index: number, action: string): void {
+    if (this.gameState.isPaused) return
+    if (this.gameState.isCompleted) return
+    if (index < 0 || index >= 81) return
+
+    const cell = this.gameState.cells[index]
+
+    if (action === 'start') {
+      if (cell.isGiven) return
+
+      // 进入多选模式
+      this.isMultiSelectMode = true
+      this.multiSelectIndices.clear()
+      this.multiSelectIndices.add(index)
+
+      // 如果之前有单选的非 given 格，也加入
+      if (this.gameState.selectedIndex >= 0 && this.gameState.selectedIndex !== index) {
+        const prevCell = this.gameState.cells[this.gameState.selectedIndex]
+        if (!prevCell.isGiven) {
+          this.multiSelectIndices.add(this.gameState.selectedIndex)
+        }
+      }
+
+      this.gameState.selectedIndex = index
+      this.updateMultiSelectFlags()
+    } else if (action === 'move') {
+      // 滑动经过新格子
+      if (cell.isGiven) return
+      if (!this.multiSelectIndices.has(index)) {
+        this.multiSelectIndices.add(index)
+        this.updateMultiSelectFlags()
+      }
+    } else if (action === 'end') {
+      // 手指抬起：如果只选了一个格子，退出多选（视为普通长按选中）
+      if (this.multiSelectIndices.size <= 1) {
+        this.exitMultiSelect()
+        if (index >= 0 && index < 81) {
+          this.gameState.selectCell(index)
+          updateHighlights(this.gameState.cells, this.gameState.selectedIndex)
+        }
+      }
+      // 否则保持多选模式，等待用户输入笔记
+    }
+  }
+
+  /**
+   * 切换某格的多选状态
+   */
+  private toggleMultiSelect(index: number): void {
+    const cell = this.gameState.cells[index]
+    if (cell.isGiven) return
+
+    if (this.multiSelectIndices.has(index)) {
+      this.multiSelectIndices.delete(index)
+      if (this.multiSelectIndices.size === 0) {
+        // 最后一个也取消了，退出多选模式
+        this.exitMultiSelect()
+        return
+      }
+    } else {
+      this.multiSelectIndices.add(index)
+    }
+
+    this.gameState.selectedIndex = index
+    this.updateMultiSelectFlags()
+  }
+
+  /**
+   * 更新多选状态的 flags 显示
+   */
+  private updateMultiSelectFlags(): void {
+    const cells = this.gameState.cells
+    // 清除所有 SELECTED / HIGHLIGHTED / MULTI_SELECTED
+    for (let i = 0; i < 81; i++) {
+      cells[i].flags = clearFlag(cells[i].flags, CellFlags.SELECTED)
+      cells[i].flags = clearFlag(cells[i].flags, CellFlags.HIGHLIGHTED)
+      cells[i].flags = clearFlag(cells[i].flags, CellFlags.MULTI_SELECTED)
+    }
+    // 设置多选标志
+    this.multiSelectIndices.forEach((idx) => {
+      cells[idx].flags = setFlag(cells[idx].flags, CellFlags.MULTI_SELECTED)
+    })
+    this.multiSelectCount = this.multiSelectIndices.size
+  }
+
+  /**
+   * 退出多选模式
+   */
+  private exitMultiSelect(): void {
+    const cells = this.gameState.cells
+    for (let i = 0; i < 81; i++) {
+      cells[i].flags = clearFlag(cells[i].flags, CellFlags.MULTI_SELECTED)
+    }
+    this.multiSelectIndices.clear()
+    this.isMultiSelectMode = false
+    this.multiSelectCount = 0
+    this.isMouseDragging = false
+    this.mouseDragStartIndex = -1
+    updateHighlights(cells, this.gameState.selectedIndex)
+  }
+
+  /**
+   * 鼠标拖拽多选处理
+   * 按下左键记录起始格，移动到其他格时进入多选模式，
+   * 释放后保持多选模式等待笔记输入。
+   * 如果没有拖到其他格就释放，视为普通点击（不进入多选）。
+   */
+  private onMouseDragSelect(index: number, action: string): void {
+    if (this.gameState.isPaused) return
+    if (this.gameState.isCompleted) return
+
+    const cell = this.gameState.cells[index]
+
+    if (action === 'start') {
+      // 鼠标按下：记录起始位置，暂不进入多选
+      this.isMouseDragging = true
+      this.mouseDragStartIndex = index
+    } else if (action === 'move' && this.isMouseDragging) {
+      // 拖拽中：鼠标滑入新格子
+      if (cell.isGiven) return
+      if (index === this.mouseDragStartIndex && !this.isMultiSelectMode) return
+
+      // 首次拖到不同格：进入多选模式，把起始格也加入
+      if (!this.isMultiSelectMode) {
+        const startCell = this.gameState.cells[this.mouseDragStartIndex]
+        this.isMultiSelectMode = true
+        this.multiSelectIndices.clear()
+        if (!startCell.isGiven && this.mouseDragStartIndex >= 0) {
+          this.multiSelectIndices.add(this.mouseDragStartIndex)
+        }
+      }
+
+      if (!this.multiSelectIndices.has(index)) {
+        this.multiSelectIndices.add(index)
+        this.updateMultiSelectFlags()
+      }
+    } else if (action === 'end') {
+      this.isMouseDragging = false
+      this.mouseDragStartIndex = -1
+      // 如果多选中只选了一个格子（几乎没拖动），退出多选
+      if (this.isMultiSelectMode && this.multiSelectIndices.size <= 1) {
+        this.exitMultiSelect()
+      }
+    }
   }
 
   /**
    * 手势键盘回调
    */
   private onGesture(digit: number, direction: GestureDirection): void {
+    if (this.gameState.isCompleted) return
+    if (this.gameState.isPaused) return
+
+    // 多选模式：对所有选中格子执行操作
+    if (this.isMultiSelectMode && this.multiSelectIndices.size > 0) {
+      this.onGestureMultiSelect(digit, direction)
+      return
+    }
+
     const cell = this.gameState.selectedCell
     if (cell === null) return
     if (cell.isGiven) return
-    if (this.gameState.isCompleted) return
-    if (this.gameState.isPaused) return
 
     // 记录操作前状态
     const snapshot = new CellSnapshot(
@@ -391,6 +637,60 @@ struct GamePage {
     }
 
     this.afterAction(filledIndex)
+  }
+
+  /**
+   * 多选模式下的手势操作 — 对所有选中格子批量执行
+   * 仅支持笔记相关操作（上滑笔记、右滑删除线、左滑擦除笔记），不支持填数
+   */
+  private onGestureMultiSelect(digit: number, direction: GestureDirection): void {
+    if (direction === GestureDirection.TAP) {
+      // 多选模式下点击数字 → 视为笔记操作（最常见的多选用途）
+      // 改为笔记模式
+    }
+
+    const actualDirection = direction === GestureDirection.TAP ? GestureDirection.UP : direction
+
+    let anyChanged = false
+    this.multiSelectIndices.forEach((idx) => {
+      const cell = this.gameState.cells[idx]
+      if (cell.isGiven) return
+
+      const snapshot = new CellSnapshot(
+        cell.index, cell.value, cell.value,
+        cell.notes, cell.notes, cell.flags, cell.flags
+      )
+
+      switch (actualDirection) {
+        case GestureDirection.UP:
+          this.handleToggleNote(cell, digit)
+          break
+        case GestureDirection.RIGHT:
+          this.handleToggleEliminated(cell, digit)
+          break
+        case GestureDirection.LEFT:
+          this.handleEraseNote(cell, digit)
+          break
+        default:
+          break
+      }
+
+      snapshot.newValue = cell.value
+      snapshot.newNotes = cell.notes
+      snapshot.newFlags = cell.flags
+
+      if (snapshot.oldValue !== snapshot.newValue ||
+        snapshot.oldNotes !== snapshot.newNotes) {
+        this.history.push(snapshot)
+        anyChanged = true
+      }
+    })
+
+    if (anyChanged) {
+      this.afterAction()
+      // 操作完成后重新更新多选标志（afterAction 会清除 flags）
+      this.updateMultiSelectFlags()
+    }
   }
 
   /**
@@ -902,11 +1202,40 @@ struct GamePage {
           onCellClick: (index: number) => {
             this.onCellClick(index)
           },
+          onMouseDragSelect: (index: number, action: string) => {
+            this.onMouseDragSelect(index, action)
+          },
+          onTouchDragSelect: (index: number, action: string) => {
+            this.onTouchDragSelect(index, action)
+          },
+          onKeyboardInput: (keyCode: number) => {
+            this.handleKeyboardInput(keyCode)
+          },
         })
           .margin({ top: 12 })
           .padding({ left: Sizes.gamePagePadding, right: Sizes.gamePagePadding })
           .scale({ x: this.boardScale * this.completionScale, y: this.boardScale * this.completionScale })
           .opacity(this.boardOpacity)
+
+        // 多选模式提示条
+        if (this.isMultiSelectMode) {
+          Row({ space: 8 }) {
+            Text(`🔲 ${this.getString('multi_select_hint')}（${this.multiSelectCount}）`)
+              .fontSize(13)
+              .fontColor(Colors.primaryBtn)
+            Text('✕')
+              .fontSize(14)
+              .fontColor(Colors.subtitleText)
+              .onClick(() => this.exitMultiSelect())
+          }
+          .width('100%')
+          .justifyContent(FlexAlign.Center)
+          .padding({ top: 4, bottom: 4 })
+          .margin({ top: 4 })
+          .backgroundColor('#E3F2FD')
+          .borderRadius(8)
+          .padding({ left: Sizes.gamePagePadding, right: Sizes.gamePagePadding })
+        }
 
         // 手势提示条
         GestureModeIndicator({

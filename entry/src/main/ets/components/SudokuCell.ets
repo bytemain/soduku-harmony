@@ -25,6 +25,8 @@ export struct SudokuCell {
   /** 全部 81 个格子的引用，用于笔记冲突检测 */
   allCells: CellData[] = []
   onCellClick: () => void = () => {}
+  /** 鼠标拖拽多选回调 action: 'start' | 'move' | 'end' */
+  onMouseDragSelect: (action: string) => void = () => {}
 
   // --- 动画状态 ---
   @State private fillScale: number = 1.0
@@ -40,6 +42,10 @@ export struct SudokuCell {
   private getCellBgColor(): ResourceColor {
     if (this.isHintTarget) {
       return $r('app.color.current_hint_bg')
+    }
+    // 0. 多选模式选中 → 浅紫
+    if (this.cellData.isMultiSelected) {
+      return $r('app.color.multi_select_bg')
     }
     // 1. 选中格 → 浅蓝
     if (this.cellData.isSelected) {
@@ -160,6 +166,17 @@ export struct SudokuCell {
     .height('100%')
     .onClick(() => {
       this.onCellClick()
+    })
+    .onMouse((event: MouseEvent) => {
+      if (event.button === MouseButton.Left || event.button === MouseButton.None) {
+        if (event.action === MouseAction.Press) {
+          this.onMouseDragSelect('start')
+        } else if (event.action === MouseAction.Move) {
+          this.onMouseDragSelect('move')
+        } else if (event.action === MouseAction.Release) {
+          this.onMouseDragSelect('end')
+        }
+      }
     })
     .onAppear(() => {
       this.lastValue = this.cellData.value

@@ -25,6 +25,7 @@ export interface CellFlagsConfig {
   SELECTED: number
   HIGHLIGHTED: number
   LOCKED: number
+  MULTI_SELECTED: number
 }
 
 export const CellFlags: CellFlagsConfig = {
@@ -38,6 +39,8 @@ export const CellFlags: CellFlagsConfig = {
   HIGHLIGHTED: 1 << 3,
   /** bit 4: 提示系统填入的（不可撤销） */
   LOCKED: 1 << 4,
+  /** bit 5: 多选模式下被选中 */
+  MULTI_SELECTED: 1 << 5,
 }
 
 // ============================================================
@@ -176,6 +179,10 @@ export class CellData {
 
   get isLocked(): boolean {
     return hasFlag(this.flags, CellFlags.LOCKED)
+  }
+
+  get isMultiSelected(): boolean {
+    return hasFlag(this.flags, CellFlags.MULTI_SELECTED)
   }
 
   /** 是否可编辑（非给定、非锁定） */

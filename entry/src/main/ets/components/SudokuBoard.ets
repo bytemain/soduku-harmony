@@ -17,8 +17,22 @@ export struct SudokuBoard {
   @Prop hintFocusIndex: number = -1
   @Prop showCoordinates: boolean = false
   onCellClick: (index: number) => void = () => {}
+  /** 鼠标拖拽多选：action = 'start' | 'move' | 'end' */
+  onMouseDragSelect: (index: number, action: string) => void = () => {}
+  /** 触摸长按拖拽多选：action = 'start' | 'move' | 'end' */
+  onTouchDragSelect: (index: number, action: string) => void = () => {}
+  onKeyboardInput: (keyCode: number) => void = () => {}
 
   @State private boardHeight: number = 0
+  @State private boardWidth: number = 0
+  /** 触摸长按计时器 */
+  private touchTimerId: number = -1
+  /** 是否已触发长按 */
+  private isTouchLongPressed: boolean = false
+  /** 触摸起始格索引 */
+  private touchStartIndex: number = -1
+  /** 上一次触摸命中的格索引（避免重复回调） */
+  private lastTouchCellIndex: number = -1
 
   build() {
     Column() {
@@ -76,10 +90,21 @@ export struct SudokuBoard {
         .borderColor(Colors.cellBorderBold)
         .onAreaChange((_old, newArea) => {
           this.boardHeight = newArea.height as number
+          this.boardWidth = newArea.width as number
+        })
+        .onTouch((event: TouchEvent) => {
+          this.handleBoardTouch(event)
         })
       }
     }
     .width('100%')
+    .focusable(true)
+    .defaultFocus(true)
+    .onKeyEvent((event: KeyEvent) => {
+      if (event.type === KeyType.Down) {
+        this.onKeyboardInput(event.keyCode)
+      }
+    })
   }
 
   @Builder
@@ -107,6 +132,13 @@ export struct SudokuBoard {
                 cellInBox
               ))
             },
+            onMouseDragSelect: (action: string) => {
+              this.onMouseDragSelect(this.getCellIndex(
+                Math.floor(boxIndex / BOX_SIZE) * BOX_SIZE,
+                (boxIndex % BOX_SIZE) * BOX_SIZE,
+                cellInBox
+              ), action)
+            },
           })
         }
         .borderWidth(Sizes.cellBorderThin)
@@ -127,6 +159,80 @@ export struct SudokuBoard {
     const r = boxRow + Math.floor(cellInBox / BOX_SIZE)
     const c = boxCol + (cellInBox % BOX_SIZE)
     return r * GRID_SIZE + c
+  }
+
+  /**
+   * 根据触摸坐标（相对于 Grid）计算命中的格子索引
+   * 返回 -1 表示超出棋盘范围
+   */
+  private hitTestCellIndex(x: number, y: number): number {
+    if (this.boardWidth <= 0 || this.boardHeight <= 0) return -1
+    const cellW = this.boardWidth / GRID_SIZE
+    const cellH = this.boardHeight / GRID_SIZE
+    const col = Math.floor(x / cellW)
+    const row = Math.floor(y / cellH)
+    if (row < 0 || row >= GRID_SIZE || col < 0 || col >= GRID_SIZE) return -1
+    return row * GRID_SIZE + col
+  }
+
+  /**
+   * 处理棋盘触摸事件 — 实现长按拖拽多选
+   * Down: 记录起始格，启动 400ms 长按计时
+   * Move: 长按触发后，经过的格子自动加入多选
+   * Up/Cancel: 清理状态
+   */
+  private handleBoardTouch(event: TouchEvent): void {
+    const touch = event.touches[0]
+    if (touch === undefined) return
+
+    if (event.type === TouchType.Down) {
+      const index = this.hitTestCellIndex(touch.x, touch.y)
+      this.touchStartIndex = index
+      this.lastTouchCellIndex = index
+      this.isTouchLongPressed = false
+
+      // 启动长按计时器
+      this.touchTimerId = setTimeout(() => {
+        this.isTouchLongPressed = true
+        if (this.touchStartIndex >= 0) {
+          this.onTouchDragSelect(this.touchStartIndex, 'start')
+          this.lastTouchCellIndex = this.touchStartIndex
+        }
+      }, 400) as number
+
+    } else if (event.type === TouchType.Move) {
+      const index = this.hitTestCellIndex(touch.x, touch.y)
+
+      if (!this.isTouchLongPressed) {
+        // 长按还没触发，如果移动距离太远就取消长按
+        if (index !== this.touchStartIndex) {
+          clearTimeout(this.touchTimerId)
+          this.touchTimerId = -1
+        }
+        return
+      }
+
+      // 长按已触发，滑动到新格子时加入多选
+      if (index >= 0 && index !== this.lastTouchCellIndex) {
+        this.lastTouchCellIndex = index
+        this.onTouchDragSelect(index, 'move')
+      }
+
+    } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+      // 清理计时器
+      if (this.touchTimerId !== -1) {
+        clearTimeout(this.touchTimerId)
+        this.touchTimerId = -1
+      }
+
+      if (this.isTouchLongPressed) {
+        this.onTouchDragSelect(this.lastTouchCellIndex, 'end')
+      }
+
+      this.isTouchLongPressed = false
+      this.touchStartIndex = -1
+      this.lastTouchCellIndex = -1
+    }
   }
 }
 

@@ -399,6 +399,10 @@
     {
       "name": "settings_validate_input_off_hint",
       "value": "只检测重复冲突"
+    },
+    {
+      "name": "multi_select_hint",
+      "value": "多选模式，点击数字添加笔记"
     }
   ]
 }
