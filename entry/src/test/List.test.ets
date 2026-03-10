@@ -8,6 +8,8 @@ import generatorTest from './SudokuGenerator.test'
 import gameStateTest from './GameState.test'
 import logicSolverTest from './LogicSolver.test'
 import sudokuFormatTest from './SudokuFormat.test'
+import variantConfigTest from './VariantConfig.test'
+import variantTopologyTest from './VariantTopology.test'
 
 export default function testsuite() {
   localUnitTest()
@@ -20,4 +22,6 @@ export default function testsuite() {
   gameStateTest()
   logicSolverTest()
   sudokuFormatTest()
+  variantConfigTest()
+  variantTopologyTest()
 }
