@@ -371,6 +371,34 @@
     {
       "name": "hint_error_erased",
       "value": "填入有误，已擦除"
+    },
+    {
+      "name": "settings_section_assistant",
+      "value": "助手"
+    },
+    {
+      "name": "settings_validate_input",
+      "value": "填入检测"
+    },
+    {
+      "name": "settings_validate_input_desc",
+      "value": "填错时立即标红提示，适合新手；关闭后只靠自己判断冲突"
+    },
+    {
+      "name": "settings_validate_input_on",
+      "value": "✅ 开启"
+    },
+    {
+      "name": "settings_validate_input_on_hint",
+      "value": "填错立即标红"
+    },
+    {
+      "name": "settings_validate_input_off",
+      "value": "⬜ 关闭"
+    },
+    {
+      "name": "settings_validate_input_off_hint",
+      "value": "只检测重复冲突"
     }
   ]
 }

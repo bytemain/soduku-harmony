@@ -16,6 +16,7 @@ const KEY_IS_LEFT_HAND = 'isLeftHand'
 const KEY_HAND_MODE_MANUAL = 'handModeManual'
 const KEY_GESTURE_GUIDE_SHOWN = 'gestureGuideShown'
 const KEY_SHOW_COORDINATES = 'showCoordinates'
+const KEY_VALIDATE_INPUT = 'validateInput'
 
 /**
  * 获取 preferences 实例
@@ -36,14 +37,16 @@ export function loadSettings(context: Context): void {
 
     const gestureGuideShown = store.getSync(KEY_GESTURE_GUIDE_SHOWN, false) as boolean
     const showCoordinates = store.getSync(KEY_SHOW_COORDINATES, false) as boolean
+    const validateInput = store.getSync(KEY_VALIDATE_INPUT, true) as boolean
 
     AppStorage.setOrCreate(KEY_IS_LEFT_HAND, isLeftHand)
     AppStorage.setOrCreate(KEY_HAND_MODE_MANUAL, handModeManual)
     AppStorage.setOrCreate(KEY_GESTURE_GUIDE_SHOWN, gestureGuideShown)
     AppStorage.setOrCreate(KEY_SHOW_COORDINATES, showCoordinates)
+    AppStorage.setOrCreate(KEY_VALIDATE_INPUT, validateInput)
 
-    hilog.info(DOMAIN, TAG, 'Loaded settings: isLeftHand=%{public}s, handModeManual=%{public}s, gestureGuideShown=%{public}s, showCoordinates=%{public}s',
-      isLeftHand.toString(), handModeManual.toString(), gestureGuideShown.toString(), showCoordinates.toString())
+    hilog.info(DOMAIN, TAG, 'Loaded settings: isLeftHand=%{public}s, handModeManual=%{public}s, gestureGuideShown=%{public}s, showCoordinates=%{public}s, validateInput=%{public}s',
+      isLeftHand.toString(), handModeManual.toString(), gestureGuideShown.toString(), showCoordinates.toString(), validateInput.toString())
   } catch (e) {
     hilog.warn(DOMAIN, TAG, 'Failed to load settings: %{public}s', JSON.stringify(e))
     // fallback: 使用默认值
@@ -51,6 +54,7 @@ export function loadSettings(context: Context): void {
     AppStorage.setOrCreate(KEY_HAND_MODE_MANUAL, false)
     AppStorage.setOrCreate(KEY_GESTURE_GUIDE_SHOWN, false)
     AppStorage.setOrCreate(KEY_SHOW_COORDINATES, false)
+    AppStorage.setOrCreate(KEY_VALIDATE_INPUT, true)
   }
 }
 
@@ -66,15 +70,17 @@ export async function saveSettings(context: Context): Promise<void> {
 
     const gestureGuideShown = AppStorage.get<boolean>(KEY_GESTURE_GUIDE_SHOWN) ?? false
     const showCoordinates = AppStorage.get<boolean>(KEY_SHOW_COORDINATES) ?? false
+    const validateInput = AppStorage.get<boolean>(KEY_VALIDATE_INPUT) ?? true
 
     store.putSync(KEY_IS_LEFT_HAND, isLeftHand)
     store.putSync(KEY_HAND_MODE_MANUAL, handModeManual)
     store.putSync(KEY_GESTURE_GUIDE_SHOWN, gestureGuideShown)
     store.putSync(KEY_SHOW_COORDINATES, showCoordinates)
+    store.putSync(KEY_VALIDATE_INPUT, validateInput)
     await store.flush()
 
-    hilog.info(DOMAIN, TAG, 'Saved settings: isLeftHand=%{public}s, handModeManual=%{public}s, gestureGuideShown=%{public}s, showCoordinates=%{public}s',
-      isLeftHand.toString(), handModeManual.toString(), gestureGuideShown.toString(), showCoordinates.toString())
+    hilog.info(DOMAIN, TAG, 'Saved settings: isLeftHand=%{public}s, handModeManual=%{public}s, gestureGuideShown=%{public}s, showCoordinates=%{public}s, validateInput=%{public}s',
+      isLeftHand.toString(), handModeManual.toString(), gestureGuideShown.toString(), showCoordinates.toString(), validateInput.toString())
   } catch (e) {
     hilog.error(DOMAIN, TAG, 'Failed to save settings: %{public}s', JSON.stringify(e))
   }

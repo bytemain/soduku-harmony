@@ -371,6 +371,34 @@
     {
       "name": "hint_error_erased",
       "value": "Wrong entry erased"
+    },
+    {
+      "name": "settings_section_assistant",
+      "value": "Assistant"
+    },
+    {
+      "name": "settings_validate_input",
+      "value": "Input Validation"
+    },
+    {
+      "name": "settings_validate_input_desc",
+      "value": "Highlight wrong entries in red instantly. Great for beginners; disable for a pure logic challenge"
+    },
+    {
+      "name": "settings_validate_input_on",
+      "value": "✅ On"
+    },
+    {
+      "name": "settings_validate_input_on_hint",
+      "value": "Wrong = red"
+    },
+    {
+      "name": "settings_validate_input_off",
+      "value": "⬜ Off"
+    },
+    {
+      "name": "settings_validate_input_off_hint",
+      "value": "Conflicts only"
     }
   ]
 }

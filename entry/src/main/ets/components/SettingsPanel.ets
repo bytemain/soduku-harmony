@@ -4,6 +4,7 @@
  * 游戏内和主页都可打开的设置面板。
  * 当前设置项：
  *   - 手动切换左/右手模式（覆盖自动检测）
+ *   - 助手：输入验证（填错立即标红）
  *
  * 参考：Doc 05 §6 左右手自适应
  */
@@ -17,10 +18,114 @@ export struct SettingsPanel {
   @StorageLink('isLeftHand') isLeftHand: boolean = false
   @StorageLink('handModeManual') handModeManual: boolean = false
   @StorageLink('showCoordinates') showCoordinates: boolean = false
+  @StorageLink('validateInput') validateInput: boolean = true
   @StorageProp('bottomRectHeight') bottomRectHeight: number = 0
   context?: common.UIAbilityContext
 
   onClose: () => void = () => {}
+
+  /**
+   * 迷你数独演示格——用于图示说明助手功能
+   * @param num 显示的数字
+   * @param isError 是否标红（错误状态）
+   * @param isGiven 是否为题目给定数字
+   */
+  @Builder
+  MiniCell(num: string, isError: boolean, isGiven: boolean) {
+    Text(num)
+      .width(22)
+      .height(22)
+      .textAlign(TextAlign.Center)
+      .fontSize(11)
+      .fontWeight(isGiven ? FontWeight.Bold : FontWeight.Normal)
+      .fontColor(isError ? Colors.textError : (isGiven ? Colors.textGiven : Colors.textUser))
+      .backgroundColor(isError ? Colors.cellError : Colors.cellDefault)
+      .border({ width: 0.5, color: Colors.cellBorderThin })
+  }
+
+  /**
+   * 助手功能图示——对比「开启」与「关闭」两种效果
+   */
+  @Builder
+  AssistantIllustration() {
+    Row({ space: 16 }) {
+      // --- 左侧：开启状态 ---
+      Column({ space: 4 }) {
+        Text($r('app.string.settings_validate_input_on'))
+          .fontSize(10)
+          .fontColor('#4CAF50')
+          .fontWeight(FontWeight.Medium)
+
+        // 3×3 mini grid：位置 (1,2) 填了错误的数字 7
+        Column() {
+          Row() {
+            this.MiniCell('5', false, true)
+            this.MiniCell('3', false, true)
+            this.MiniCell(' ', false, false)
+          }
+          Row() {
+            this.MiniCell('6', false, true)
+            this.MiniCell(' ', false, false)
+            this.MiniCell(' ', false, false)
+          }
+          Row() {
+            this.MiniCell(' ', false, false)
+            this.MiniCell('9', false, true)
+            this.MiniCell('7', true, false)  // 错误格（填错 7，标红）
+          }
+        }
+        .border({ width: 1, color: Colors.cellBorderBold, radius: 2 })
+
+        Text($r('app.string.settings_validate_input_on_hint'))
+          .fontSize(9)
+          .fontColor(Colors.subtitleText)
+          .textAlign(TextAlign.Center)
+          .width(72)
+      }
+      .alignItems(HorizontalAlign.Center)
+
+      // --- 右侧：关闭状态 ---
+      Column({ space: 4 }) {
+        Text($r('app.string.settings_validate_input_off'))
+          .fontSize(10)
+          .fontColor(Colors.subtitleText)
+          .fontWeight(FontWeight.Medium)
+
+        // 3×3 mini grid：同样填了 7，但不标红
+        Column() {
+          Row() {
+            this.MiniCell('5', false, true)
+            this.MiniCell('3', false, true)
+            this.MiniCell(' ', false, false)
+          }
+          Row() {
+            this.MiniCell('6', false, true)
+            this.MiniCell(' ', false, false)
+            this.MiniCell(' ', false, false)
+          }
+          Row() {
+            this.MiniCell(' ', false, false)
+            this.MiniCell('9', false, true)
+            this.MiniCell('7', false, false)  // 同样填了 7，但不标红
+          }
+        }
+        .border({ width: 1, color: Colors.cellBorderBold, radius: 2 })
+
+        Text($r('app.string.settings_validate_input_off_hint'))
+          .fontSize(9)
+          .fontColor(Colors.subtitleText)
+          .textAlign(TextAlign.Center)
+          .width(72)
+      }
+      .alignItems(HorizontalAlign.Center)
+    }
+    .width('100%')
+    .justifyContent(FlexAlign.Center)
+    .padding({ top: 12, bottom: 12 })
+    .backgroundColor(Colors.pageBg)
+    .borderRadius(8)
+    .margin({ top: 10 })
+  }
 
   build() {
     Column() {
@@ -182,6 +287,44 @@ export struct SettingsPanel {
         }
         .width('100%')
         .padding({ top: 12, bottom: 12 })
+
+        // ====== 助手设置 ======
+        Text($r('app.string.settings_section_assistant'))
+          .fontSize(13)
+          .fontColor(Colors.subtitleText)
+          .fontWeight(FontWeight.Medium)
+          .width('100%')
+          .margin({ top: 24, bottom: 8 })
+
+        // 输入验证开关
+        Row() {
+          Column() {
+            Text($r('app.string.settings_validate_input'))
+              .fontSize(16)
+              .fontColor(Colors.titleText)
+            Text($r('app.string.settings_validate_input_desc'))
+              .fontSize(12)
+              .fontColor(Colors.subtitleText)
+              .margin({ top: 2 })
+          }
+          .alignItems(HorizontalAlign.Start)
+          .layoutWeight(1)
+
+          Toggle({ type: ToggleType.Switch, isOn: this.validateInput })
+            .selectedColor(Colors.primaryBtn)
+            .onChange((isOn: boolean) => {
+              this.validateInput = isOn
+              hilog.info(0x0000, 'SettingsPanel', 'Validate input: %{public}s', isOn.toString())
+              if (this.context) {
+                saveSettings(this.context)
+              }
+            })
+        }
+        .width('100%')
+        .padding({ top: 12, bottom: 12 })
+
+        // 图示说明
+        this.AssistantIllustration()
       }
       .width('100%')
       .padding({ left: 24, right: 24, bottom: this.bottomRectHeight + 24 })
