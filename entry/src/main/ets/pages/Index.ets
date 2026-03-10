@@ -13,6 +13,10 @@ import { DifficultySegment } from '../components/DifficultySegment'
 import { SettingsPanel } from '../components/SettingsPanel'
 import { hasSavedGame, clearSave, loadGame, GameSaveData } from '../utils/GameStorage'
 import { Symmetry, decodeSeedId } from '../utils/SudokuGenerator'
+import { parseSudokuInput, ParseResult, countGivens, exportTo81String,
+  getFormatDisplayName, SudokuFormatType } from '../utils/SudokuFormat'
+import { evaluateDifficulty } from '../utils/DifficultyEvaluator'
+import { hilog } from '@kit.PerformanceAnalysisKit'
 
 class SymmetryOption {
   key: string = ''
@@ -47,6 +51,10 @@ struct Index {
   @State showSettings: boolean = false
   @State selectedSymmetry: string = 'auto'  // 'auto' | Symmetry values
   @State seedInput: string = ''
+  /** 导入解析结果 */
+  @State importResult: ParseResult | null = null
+  /** 当前选中的导入题索引（SDM 多题时） */
+  @State importSelectedIndex: number = 0
 
   onPageShow(): void {
     this.hasSave = hasSavedGame(getContext(this))
@@ -83,6 +91,76 @@ struct Index {
         this.showSettings = false
       },
     })
+  }
+
+  /**
+   * 尝试解析输入内容，更新 importResult 预览
+   */
+  private tryParseInput(value: string): void {
+    const trimmed = value.trim()
+    if (trimmed.length === 0) {
+      this.importResult = null
+      this.importSelectedIndex = 0
+      return
+    }
+
+    // 种子 ID 不走 import 预览流程
+    if (decodeSeedId(trimmed) !== null) {
+      this.importResult = null
+      return
+    }
+
+    try {
+      const result = parseSudokuInput(trimmed)
+      this.importResult = result
+      this.importSelectedIndex = 0
+      if (result.success) {
+        hilog.info(0x0000, 'Index', 'Import parsed: format=%{public}s, count=%{public}d',
+          result.format, result.puzzles.length)
+      }
+    } catch (e) {
+      this.importResult = {
+        success: false,
+        format: 'unknown',
+        puzzles: [],
+        error: String(e)
+      }
+    }
+  }
+
+  /**
+   * 迷你棋盘预览（9×9 缩略图）
+   */
+  @Builder
+  MiniPreview(board: number[][]) {
+    Column({ space: 0 }) {
+      ForEach([0, 1, 2, 3, 4, 5, 6, 7, 8], (r: number) => {
+        Row({ space: 0 }) {
+          ForEach([0, 1, 2, 3, 4, 5, 6, 7, 8], (c: number) => {
+            Text(board[r][c] > 0 ? board[r][c].toString() : '')
+              .width(16)
+              .height(16)
+              .fontSize(9)
+              .textAlign(TextAlign.Center)
+              .fontColor(Colors.titleText)
+              .fontWeight(FontWeight.Medium)
+              .backgroundColor(board[r][c] > 0 ? Colors.cellDefault : Colors.pageBg)
+              .border({
+                width: {
+                  left: c % 3 === 0 ? 1 : 0.3,
+                  top: r % 3 === 0 ? 1 : 0.3,
+                  right: c === 8 ? 1 : 0,
+                  bottom: r === 8 ? 1 : 0,
+                },
+                color: Colors.cellBorderBold,
+              })
+          })
+        }
+      })
+    }
+    .borderRadius(3)
+    .clip(true)
+    .alignSelf(ItemAlign.Center)
   }
 
   build() {
@@ -220,9 +298,9 @@ struct Index {
       .width('100%')
       .margin({ top: 8 })
 
-      // ==================== ③.6 种子输入 ====================
+      // ==================== ③.6 谜题输入（种子 / 导入） ====================
       Row({ space: 8 }) {
-        TextInput({ text: this.seedInput, placeholder: '输入种子 ID（如 3:rot180:12345）' })
+        TextInput({ text: this.seedInput, placeholder: $r('app.string.import_placeholder') })
           .fontSize(13)
           .fontColor(Colors.titleText)
           .placeholderColor(Colors.subtitleText)
@@ -234,6 +312,7 @@ struct Index {
           .padding({ left: 10, right: 10 })
           .onChange((value: string) => {
             this.seedInput = value
+            this.tryParseInput(value)
           })
 
         Text('📋')
@@ -244,6 +323,7 @@ struct Index {
             const text = data.getPrimaryText()
             if (text) {
               this.seedInput = text
+              this.tryParseInput(text)
             }
           })
 
@@ -253,11 +333,115 @@ struct Index {
             .fontColor(Colors.subtitleText)
             .onClick(() => {
               this.seedInput = ''
+              this.importResult = null
+              this.importSelectedIndex = 0
             })
         }
       }
       .width('100%')
       .margin({ top: 8 })
+
+      // ==================== 导入预览卡片 ====================
+      if (this.importResult !== null && this.importResult.success && this.importResult.format !== 'seed') {
+        Column({ space: 6 }) {
+          // 格式 + 题数信息
+          Row() {
+            Text(`✅ ${getFormatDisplayName(this.importResult.format)}`)
+              .fontSize(12)
+              .fontColor(Colors.primaryBtn)
+              .fontWeight(FontWeight.Medium)
+
+            if (this.importResult.puzzles.length > 1) {
+              Text(` · ${this.importResult.puzzles.length} 题`)
+                .fontSize(12)
+                .fontColor(Colors.subtitleText)
+            }
+
+            Blank()
+
+            // 给定数计数
+            if (this.importResult.puzzles.length > 0) {
+              Text(`${countGivens(this.importResult.puzzles[this.importSelectedIndex].board)} 个提示`)
+                .fontSize(11)
+                .fontColor(Colors.subtitleText)
+            }
+          }
+          .width('100%')
+
+          // SDM 多题选择器
+          if (this.importResult.puzzles.length > 1) {
+            Row({ space: 4 }) {
+              Text('◀')
+                .fontSize(14)
+                .fontColor(this.importSelectedIndex > 0 ? Colors.titleText : Colors.subtitleText)
+                .onClick(() => {
+                  if (this.importSelectedIndex > 0) this.importSelectedIndex--
+                })
+
+              Text(`#${this.importSelectedIndex + 1}`)
+                .fontSize(13)
+                .fontColor(Colors.titleText)
+                .fontWeight(FontWeight.Medium)
+
+              Text('▶')
+                .fontSize(14)
+                .fontColor(
+                  this.importResult !== null && this.importSelectedIndex < this.importResult.puzzles.length - 1
+                    ? Colors.titleText : Colors.subtitleText
+                )
+                .onClick(() => {
+                  if (this.importResult !== null && this.importSelectedIndex < this.importResult.puzzles.length - 1) {
+                    this.importSelectedIndex++
+                  }
+                })
+            }
+            .width('100%')
+            .justifyContent(FlexAlign.Center)
+          }
+
+          // 3x3 迷你预览
+          if (this.importResult.puzzles.length > 0) {
+            this.MiniPreview(this.importResult.puzzles[this.importSelectedIndex].board)
+          }
+
+          // 元数据显示
+          if (this.importResult.puzzles.length > 0 &&
+            this.importResult.puzzles[this.importSelectedIndex].metadata) {
+            Column({ space: 2 }) {
+              if (this.importResult.puzzles[this.importSelectedIndex].metadata?.description) {
+                Text(this.importResult.puzzles[this.importSelectedIndex].metadata!.description!)
+                  .fontSize(11)
+                  .fontColor(Colors.subtitleText)
+                  .maxLines(1)
+                  .textOverflow({ overflow: TextOverflow.Ellipsis })
+              }
+              if (this.importResult.puzzles[this.importSelectedIndex].metadata?.author) {
+                Text(`— ${this.importResult.puzzles[this.importSelectedIndex].metadata!.author!}`)
+                  .fontSize(10)
+                  .fontColor(Colors.subtitleText)
+                  .fontStyle(FontStyle.Italic)
+              }
+            }
+            .width('100%')
+          }
+        }
+        .width('100%')
+        .padding(12)
+        .backgroundColor(Colors.secondaryBtn)
+        .borderRadius(10)
+        .borderWidth(1)
+        .borderColor(Colors.secondaryBorder)
+        .margin({ top: 8 })
+      } else if (this.importResult !== null && !this.importResult.success) {
+        // 解析失败提示
+        if (this.seedInput.trim().length > 0 && !decodeSeedId(this.seedInput.trim())) {
+          Text(this.importResult.error ?? '格式无法识别')
+            .fontSize(11)
+            .fontColor(Colors.textError)
+            .width('100%')
+            .margin({ top: 4 })
+        }
+      }
 
       // ==================== ④ 开始游戏按钮 ====================
       Button(this.hasSave ? $r('app.string.btn_new_game') : $r('app.string.btn_start'))
@@ -278,21 +462,47 @@ struct Index {
         })
         .onClick(() => {
           if (this.seedInput.length > 0) {
-            // 种子模式
-            const decoded = decodeSeedId(this.seedInput.trim())
+            const trimmedInput = this.seedInput.trim()
+
+            // 先试种子 ID
+            const decoded = decodeSeedId(trimmedInput)
             if (decoded !== null) {
-              if (this.hasSave) {
-                clearSave(getContext(this))
-              }
+              if (this.hasSave) clearSave(getContext(this))
               router.pushUrl({
                 url: 'pages/GamePage',
                 params: {
                   difficulty: decoded.difficulty,
-                  seedId: this.seedInput.trim(),
+                  seedId: trimmedInput,
+                },
+              })
+              return
+            }
+
+            // 再试标准格式导入
+            const result = this.importResult
+            if (result && result.success && result.puzzles.length > 0) {
+              const puzzle = result.puzzles[this.importSelectedIndex]
+              const puzzle81 = exportTo81String(puzzle.board)
+
+              // 自动评估难度
+              let diff: Difficulty = this.selectedDifficulty
+              try {
+                const grade = evaluateDifficulty(puzzle.board)
+                diff = grade.difficulty
+              } catch (_e) {
+                // 评估失败时用选择的难度
+              }
+
+              if (this.hasSave) clearSave(getContext(this))
+              router.pushUrl({
+                url: 'pages/GamePage',
+                params: {
+                  importedPuzzle: puzzle81,
+                  importedDifficulty: diff,
                 },
               })
             } else {
-              promptAction.showToast({ message: '种子格式无效，请检查', duration: 2000 })
+              promptAction.showToast({ message: $r('app.string.import_invalid'), duration: 2000 })
             }
           } else {
             if (this.hasSave) {

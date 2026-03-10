@@ -427,6 +427,246 @@
     {
       "name": "settings_theme_dark",
       "value": "Dark"
+    },
+    {
+      "name": "import_placeholder",
+      "value": "Seed / Paste puzzle (81-char, SDK, SS, JSON)"
+    },
+    {
+      "name": "import_invalid",
+      "value": "Unrecognized format, please check input"
+    },
+    {
+      "name": "puzzle_copied",
+      "value": "Puzzle copied to clipboard"
+    },
+    {
+      "name": "technique_naked_single",
+      "value": "Naked Single"
+    },
+    {
+      "name": "technique_hidden_single",
+      "value": "Hidden Single"
+    },
+    {
+      "name": "technique_naked_pair",
+      "value": "Naked Pair"
+    },
+    {
+      "name": "technique_pointing_pair",
+      "value": "Pointing Pair"
+    },
+    {
+      "name": "technique_box_line_reduction",
+      "value": "Box/Line Reduction"
+    },
+    {
+      "name": "technique_x_wing",
+      "value": "X-Wing"
+    },
+    {
+      "name": "step_naked_single",
+      "value": "R%dC%d has only candidate %d — fill it in"
+    },
+    {
+      "name": "step_hidden_single",
+      "value": "Digit %d can only go at R%dC%d in its unit"
+    },
+    {
+      "name": "step_naked_pair",
+      "value": "R%dC%d and R%dC%d form a Naked Pair {%s}"
+    },
+    {
+      "name": "step_pointing_pair_row",
+      "value": "Digit %d in box %d is only in row %d → eliminate %d from rest of row"
+    },
+    {
+      "name": "step_pointing_pair_col",
+      "value": "Digit %d in box %d is only in col %d → eliminate %d from rest of col"
+    },
+    {
+      "name": "step_box_line_row",
+      "value": "Digit %d in row %d is only in box %d → eliminate %d from other rows in box"
+    },
+    {
+      "name": "step_box_line_col",
+      "value": "Digit %d in col %d is only in box %d → eliminate %d from other cols in box"
+    },
+    {
+      "name": "step_xwing_row",
+      "value": "Digit %d forms X-Wing in rows %d,%d (cols %d,%d)"
+    },
+    {
+      "name": "step_xwing_col",
+      "value": "Digit %d forms X-Wing in cols %d,%d (rows %d,%d)"
+    },
+    {
+      "name": "cell_label",
+      "value": "R%dC%d"
+    },
+    {
+      "name": "hint_fill",
+      "value": "fill"
+    },
+    {
+      "name": "puzzle_no_solution",
+      "value": "This puzzle has no solution"
+    },
+    {
+      "name": "import_failed",
+      "value": "Import failed: %s"
+    },
+    {
+      "name": "import_puzzle_count",
+      "value": " · %d puzzles"
+    },
+    {
+      "name": "import_givens_count",
+      "value": "%d givens"
+    },
+    {
+      "name": "import_format_unknown",
+      "value": "Unrecognized format"
+    },
+    {
+      "name": "seed_id_copied",
+      "value": "Seed ID copied"
+    },
+    {
+      "name": "coach_title",
+      "value": "🤖 Sudoku Coach"
+    },
+    {
+      "name": "coach_init_loading",
+      "value": "Initializing..."
+    },
+    {
+      "name": "coach_empty_title",
+      "value": "I'm your Sudoku Coach"
+    },
+    {
+      "name": "coach_empty_subtitle",
+      "value": "I'll guide your thinking, but won't give away answers"
+    },
+    {
+      "name": "coach_btn_analyze",
+      "value": "🔍 Analyze"
+    },
+    {
+      "name": "coach_prompt_analyze",
+      "value": "Help me analyze the current board"
+    },
+    {
+      "name": "coach_btn_next",
+      "value": "💡 Next Step"
+    },
+    {
+      "name": "coach_prompt_next",
+      "value": "I'm stuck, what's the next step?"
+    },
+    {
+      "name": "coach_btn_teach",
+      "value": "📚 Teach Me"
+    },
+    {
+      "name": "coach_prompt_teach",
+      "value": "Teach me a Sudoku solving technique"
+    },
+    {
+      "name": "coach_input_placeholder",
+      "value": "Ask a question..."
+    },
+    {
+      "name": "coach_send",
+      "value": "Send"
+    },
+    {
+      "name": "coach_busy",
+      "value": "Coach is thinking, please wait..."
+    },
+    {
+      "name": "coach_init_failed",
+      "value": "AI Coach initialization failed, this device may not support this feature"
+    },
+    {
+      "name": "coach_error",
+      "value": "Coach error (%d)"
+    },
+    {
+      "name": "coach_send_failed",
+      "value": "Send failed (%d)"
+    },
+    {
+      "name": "format_seed",
+      "value": "Seed ID"
+    },
+    {
+      "name": "format_81string",
+      "value": "81-char string"
+    },
+    {
+      "name": "format_sdm",
+      "value": "SDM Collection"
+    },
+    {
+      "name": "format_sdk",
+      "value": "SDK Format"
+    },
+    {
+      "name": "format_ss",
+      "value": "SS Format"
+    },
+    {
+      "name": "format_json",
+      "value": "JSON Format"
+    },
+    {
+      "name": "format_unknown",
+      "value": "Unknown format"
+    },
+    {
+      "name": "error_empty_input",
+      "value": "Input is empty"
+    },
+    {
+      "name": "error_parse_81",
+      "value": "Failed to parse 81-char string: %s"
+    },
+    {
+      "name": "error_unrecognized_format",
+      "value": "Unrecognized format (extracted %d digits, need 81)"
+    },
+    {
+      "name": "error_need_81_digits",
+      "value": "Need 81 digits, got %d"
+    },
+    {
+      "name": "error_board_rows",
+      "value": "Invalid board row count: %d"
+    },
+    {
+      "name": "error_row_cols",
+      "value": "Row %d has wrong column count: %d"
+    },
+    {
+      "name": "error_cell_value",
+      "value": "Invalid value at (%d,%d): %d"
+    },
+    {
+      "name": "error_row_duplicate",
+      "value": "Duplicate %d in row %d"
+    },
+    {
+      "name": "error_col_duplicate",
+      "value": "Duplicate %d in column %d"
+    },
+    {
+      "name": "error_box_duplicate",
+      "value": "Duplicate %d in box %d"
+    },
+    {
+      "name": "coach_system_prompt",
+      "value": "You are a Sudoku coach. Here is the current board state (. means empty):\n\n%s\n\nRules:\n1. Never tell the user the answer directly (which cell gets which number)\n2. Guide the user to discover it themselves — point out which technique to use and in which area (e.g. \"look at row 3\")\n3. Answer concisely in English\n4. Use R-row C-col notation for cell positions (e.g. R3C5 means row 3, column 5)\n\nUser question: %s"
     }
   ]
 }

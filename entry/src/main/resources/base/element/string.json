@@ -427,6 +427,246 @@
     {
       "name": "settings_theme_dark",
       "value": "深色"
+    },
+    {
+      "name": "import_placeholder",
+      "value": "输入种子 / 粘贴谜题（81字符、SDK、SS、JSON）"
+    },
+    {
+      "name": "import_invalid",
+      "value": "无法识别的格式，请检查输入"
+    },
+    {
+      "name": "puzzle_copied",
+      "value": "谜题已复制到剪贴板"
+    },
+    {
+      "name": "technique_naked_single",
+      "value": "裸单数"
+    },
+    {
+      "name": "technique_hidden_single",
+      "value": "隐性单数"
+    },
+    {
+      "name": "technique_naked_pair",
+      "value": "裸对"
+    },
+    {
+      "name": "technique_pointing_pair",
+      "value": "指向对"
+    },
+    {
+      "name": "technique_box_line_reduction",
+      "value": "宫行约简"
+    },
+    {
+      "name": "technique_x_wing",
+      "value": "X-Wing"
+    },
+    {
+      "name": "step_naked_single",
+      "value": "R%dC%d 只剩候选数 %d，直接填入"
+    },
+    {
+      "name": "step_hidden_single",
+      "value": "数字 %d 在其所在区域中只能放在 R%dC%d"
+    },
+    {
+      "name": "step_naked_pair",
+      "value": "R%dC%d 和 R%dC%d 形成裸对 {%s}"
+    },
+    {
+      "name": "step_pointing_pair_row",
+      "value": "宫%d 中数字 %d 只能在第 %d 行 → 该行其他位置排除 %d"
+    },
+    {
+      "name": "step_pointing_pair_col",
+      "value": "宫%d 中数字 %d 只能在第 %d 列 → 该列其他位置排除 %d"
+    },
+    {
+      "name": "step_box_line_row",
+      "value": "第 %d 行中数字 %d 只在宫%d → 宫内其他行排除 %d"
+    },
+    {
+      "name": "step_box_line_col",
+      "value": "第 %d 列中数字 %d 只在宫%d → 宫内其他列排除 %d"
+    },
+    {
+      "name": "step_xwing_row",
+      "value": "数字 %d 在第 %d,%d 行形成 X-Wing (列 %d,%d)"
+    },
+    {
+      "name": "step_xwing_col",
+      "value": "数字 %d 在第 %d,%d 列形成 X-Wing (行 %d,%d)"
+    },
+    {
+      "name": "cell_label",
+      "value": "第%d行第%d列"
+    },
+    {
+      "name": "hint_fill",
+      "value": "填入"
+    },
+    {
+      "name": "puzzle_no_solution",
+      "value": "此谜题无解"
+    },
+    {
+      "name": "import_failed",
+      "value": "导入失败: %s"
+    },
+    {
+      "name": "import_puzzle_count",
+      "value": " · %d 题"
+    },
+    {
+      "name": "import_givens_count",
+      "value": "%d 个提示"
+    },
+    {
+      "name": "import_format_unknown",
+      "value": "格式无法识别"
+    },
+    {
+      "name": "seed_id_copied",
+      "value": "已复制种子 ID"
+    },
+    {
+      "name": "coach_title",
+      "value": "🤖 数独教练"
+    },
+    {
+      "name": "coach_init_loading",
+      "value": "初始化中..."
+    },
+    {
+      "name": "coach_empty_title",
+      "value": "我是你的数独教练"
+    },
+    {
+      "name": "coach_empty_subtitle",
+      "value": "我会引导你思考，但不会直接告诉你答案"
+    },
+    {
+      "name": "coach_btn_analyze",
+      "value": "🔍 分析局面"
+    },
+    {
+      "name": "coach_prompt_analyze",
+      "value": "帮我分析一下当前局面"
+    },
+    {
+      "name": "coach_btn_next",
+      "value": "💡 下一步"
+    },
+    {
+      "name": "coach_prompt_next",
+      "value": "我卡住了，下一步怎么走？"
+    },
+    {
+      "name": "coach_btn_teach",
+      "value": "📚 教我技巧"
+    },
+    {
+      "name": "coach_prompt_teach",
+      "value": "教我一个数独解题技巧"
+    },
+    {
+      "name": "coach_input_placeholder",
+      "value": "输入你的问题..."
+    },
+    {
+      "name": "coach_send",
+      "value": "发送"
+    },
+    {
+      "name": "coach_busy",
+      "value": "教练正在思考中，请稍候..."
+    },
+    {
+      "name": "coach_init_failed",
+      "value": "AI 教练初始化失败，该设备可能不支持此功能"
+    },
+    {
+      "name": "coach_error",
+      "value": "教练出错了 (%d)"
+    },
+    {
+      "name": "coach_send_failed",
+      "value": "发送失败 (%d)"
+    },
+    {
+      "name": "format_seed",
+      "value": "种子 ID"
+    },
+    {
+      "name": "format_81string",
+      "value": "81字符串"
+    },
+    {
+      "name": "format_sdm",
+      "value": "SDM 题库"
+    },
+    {
+      "name": "format_sdk",
+      "value": "SDK 格式"
+    },
+    {
+      "name": "format_ss",
+      "value": "SS 格式"
+    },
+    {
+      "name": "format_json",
+      "value": "JSON 格式"
+    },
+    {
+      "name": "format_unknown",
+      "value": "未知格式"
+    },
+    {
+      "name": "error_empty_input",
+      "value": "输入为空"
+    },
+    {
+      "name": "error_parse_81",
+      "value": "81字符串解析失败: %s"
+    },
+    {
+      "name": "error_unrecognized_format",
+      "value": "无法识别的格式（提取到 %d 个数字，需要 81 个）"
+    },
+    {
+      "name": "error_need_81_digits",
+      "value": "需要 81 个数字，实际 %d 个"
+    },
+    {
+      "name": "error_board_rows",
+      "value": "棋盘行数错误: %d"
+    },
+    {
+      "name": "error_row_cols",
+      "value": "第 %d 行列数错误: %d"
+    },
+    {
+      "name": "error_cell_value",
+      "value": "位置 (%d,%d) 值非法: %d"
+    },
+    {
+      "name": "error_row_duplicate",
+      "value": "第 %d 行数字 %d 重复"
+    },
+    {
+      "name": "error_col_duplicate",
+      "value": "第 %d 列数字 %d 重复"
+    },
+    {
+      "name": "error_box_duplicate",
+      "value": "第 %d 宫数字 %d 重复"
+    },
+    {
+      "name": "coach_system_prompt",
+      "value": "你是一位数独教练。以下是当前棋盘状态（. 表示空格）：\n\n%s\n\n规则：\n1. 绝对不要直接告诉用户答案（哪个格子填什么数字）\n2. 引导用户自己发现——指出可以用什么技巧，在哪个区域（如\"看看第3行\"）\n3. 用简洁的中文回答\n4. 用 R行C列 标记格子位置（如 R3C5 表示第3行第5列）\n\n用户提问：%s"
     }
   ]
 }

@@ -116,23 +116,14 @@ export default function validatorTest() {
     })
 
     it('wrong_value_without_solution_not_flagged', 0, () => {
-      // Without solution, only peer-conflict detection applies
-      const sol = getCompleteSolution()
-      const flat: number[] = []
-      for (const row of sol) {
-        for (const v of row) flat.push(v)
-      }
+      // Without solution, only peer-conflict detection applies.
+      // Put a single wrong value on an otherwise empty board — no peers to conflict with.
       const cells = createEmptyBoard()
-      for (let i = 1; i < 81; i++) {
-        cells[i].value = flat[i]
-        cells[i].flags = setFlag(cells[i].flags, CellFlags.GIVEN)
-      }
-      const wrongVal = flat[0] === 9 ? 1 : 9
-      cells[0].value = wrongVal
+      cells[0].value = 5 // arbitrary non-zero value, no peers filled → no conflict
 
       // No solution provided — only peer conflicts matter
       const count = validateAllCells(cells)
-      // wrongVal doesn't appear in any peer → no error flagged
+      // No peer has the same value → no error flagged
       expect(cells[0].isError).assertFalse()
       expect(count).assertEqual(0)
     })

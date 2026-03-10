@@ -42,14 +42,14 @@ const TECHNIQUE_SCORE: Record<string, number> = {
   [Technique.X_WING]: 16,
 }
 
-/** 技巧的人类可读名称 */
-const TECHNIQUE_NAME: Record<string, string> = {
-  [Technique.NAKED_SINGLE]: '裸单数',
-  [Technique.HIDDEN_SINGLE]: '隐性单数',
-  [Technique.NAKED_PAIR]: '裸对',
-  [Technique.POINTING_PAIR]: '指向对',
-  [Technique.BOX_LINE_REDUCTION]: '宫行约简',
-  [Technique.X_WING]: 'X-Wing',
+/** 技巧的 i18n 资源 key（通过 resourceManager.getStringByNameSync 解析） */
+const TECHNIQUE_NAME_KEY: Record<string, string> = {
+  [Technique.NAKED_SINGLE]: 'technique_naked_single',
+  [Technique.HIDDEN_SINGLE]: 'technique_hidden_single',
+  [Technique.NAKED_PAIR]: 'technique_naked_pair',
+  [Technique.POINTING_PAIR]: 'technique_pointing_pair',
+  [Technique.BOX_LINE_REDUCTION]: 'technique_box_line_reduction',
+  [Technique.X_WING]: 'technique_x_wing',
 }
 
 // ============================================================
@@ -730,10 +730,10 @@ export function getNextHint(board: number[][]): SolveStep | null {
 }
 
 /**
- * 获取技巧的人类可读名称
+ * 获取技巧的 i18n 资源 key（用于 resourceManager.getStringByNameSync）
  */
-export function getTechniqueName(technique: Technique): string {
-  return TECHNIQUE_NAME[technique] || technique
+export function getTechniqueNameKey(technique: Technique): string {
+  return TECHNIQUE_NAME_KEY[technique] || technique
 }
 
 /**

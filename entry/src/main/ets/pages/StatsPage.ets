@@ -271,7 +271,7 @@ struct StatsPage {
           .onClick(() => {
             const pbData = pasteboard.createData(pasteboard.MIMETYPE_TEXT_PLAIN, record.seedId)
             pasteboard.getSystemPasteboard().setDataSync(pbData)
-            promptAction.showToast({ message: '已复制种子 ID', duration: 1500 })
+            promptAction.showToast({ message: getContext(this).resourceManager.getStringByNameSync('seed_id_copied'), duration: 1500 })
           })
 
         // 用时 + 步数 + 错误

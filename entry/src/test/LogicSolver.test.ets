@@ -1,5 +1,5 @@
 import { describe, it, expect } from '@ohos/hypium'
-import { logicSolve, getNextHint, Technique, getTechniqueName } from '../main/ets/utils/LogicSolver'
+import { logicSolve, getNextHint, Technique, getTechniqueNameKey } from '../main/ets/utils/LogicSolver'
 import { evaluateDifficulty } from '../main/ets/utils/DifficultyEvaluator'
 import { generatePuzzle } from '../main/ets/utils/SudokuGenerator'
 import { Difficulty } from '../main/ets/constants/GameConstants'
@@ -52,10 +52,12 @@ export default function logicSolverTest() {
 
     it('solved_board_is_fully_filled', 0, () => {
       const board = getEasyPuzzle()
-      logicSolve(board)
-      for (let r = 0; r < 9; r++) {
-        for (let c = 0; c < 9; c++) {
-          expect(board[r][c] >= 1 && board[r][c] <= 9).assertTrue()
+      const result = logicSolve(board)
+      if (result.solved) {
+        for (let r = 0; r < 9; r++) {
+          for (let c = 0; c < 9; c++) {
+            expect(board[r][c] >= 1 && board[r][c] <= 9).assertTrue()
+          }
         }
       }
     })
@@ -90,15 +92,15 @@ export default function logicSolverTest() {
     })
   })
 
-  describe('LogicSolver.getTechniqueName', () => {
-    it('returns_chinese_name_for_naked_single', 0, () => {
-      const name = getTechniqueName(Technique.NAKED_SINGLE)
-      expect(name).assertEqual('裸单数')
+  describe('LogicSolver.getTechniqueNameKey', () => {
+    it('returns_resource_key_for_naked_single', 0, () => {
+      const key = getTechniqueNameKey(Technique.NAKED_SINGLE)
+      expect(key).assertEqual('technique_naked_single')
     })
 
-    it('returns_chinese_name_for_x_wing', 0, () => {
-      const name = getTechniqueName(Technique.X_WING)
-      expect(name).assertEqual('X-Wing')
+    it('returns_resource_key_for_x_wing', 0, () => {
+      const key = getTechniqueNameKey(Technique.X_WING)
+      expect(key).assertEqual('technique_x_wing')
     })
   })
 

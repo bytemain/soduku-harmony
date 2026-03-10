@@ -25,7 +25,10 @@ import { GestureModeIndicator } from '../components/GestureModeIndicator'
 import { AuxButtonGrid } from '../components/AuxButtonGrid'
 import { SettingsPanel } from '../components/SettingsPanel'
 import { GestureGuideOverlay } from '../components/GestureGuideOverlay'
-import { getNextHint, getTechniqueName, SolveStep } from '../utils/LogicSolver'
+import { getNextHint, getTechniqueNameKey, SolveStep } from '../utils/LogicSolver'
+import { formatStr } from '../utils/I18nHelper'
+import { solve } from '../utils/SudokuSolver'
+import { parse81String, exportTo81String } from '../utils/SudokuFormat'
 import { saveGame, loadGame, clearSave, GameSaveData, CellSerialized } from '../utils/GameStorage'
 import { recordGameStarted, recordGameWon } from '../utils/StatsStorage'
 import { addGameRecord, GameRecord } from '../utils/HistoryStorage'
@@ -35,6 +38,10 @@ interface GamePageParams {
   difficulty?: Difficulty
   symmetry?: string
   seedId?: string
+  /** 导入的 81 字符串谜题 */
+  importedPuzzle?: string
+  /** 导入谜题的难度标签（来自元数据或自动评估） */
+  importedDifficulty?: Difficulty
 }
 
 @Entry
@@ -86,6 +93,40 @@ struct GamePage {
     const difficulty = params?.difficulty ?? Difficulty.EASY
     const symmetryParam = params?.symmetry as Symmetry | undefined
     const seedIdParam = params?.seedId
+    const importedPuzzle = params?.importedPuzzle
+    const importedDifficulty = params?.importedDifficulty
+
+    // 导入模式：直接从 81 字符串生成棋盘
+    if (importedPuzzle) {
+      this.isLoading = true
+      setTimeout(() => {
+        try {
+          const parsed = parse81String(importedPuzzle)
+          const puzzleBoard = parsed.board
+          // 求解获取完整答案
+          const solution = solve(puzzleBoard)
+          if (solution) {
+            const actualDiff = importedDifficulty ?? Difficulty.MEDIUM
+            this.gameState.initGame(puzzleBoard, solution, actualDiff)
+            this.gameState.seed = 0
+            this.gameState.symmetry = 'imported'
+            this.cellsWrapper = new ArrayWrapper(this.gameState.cells)
+            recordGameStarted(getContext(this), actualDiff)
+            this.gameStartRecorded = true
+            this.finishInit()
+          } else {
+            hilog.error(0x0000, 'GamePage', 'Imported puzzle has no solution')
+            promptAction.showToast({ message: this.getString('puzzle_no_solution'), duration: 2000 })
+            router.back()
+          }
+        } catch (e) {
+          hilog.error(0x0000, 'GamePage', 'Failed to parse imported puzzle: %{public}s', String(e))
+          promptAction.showToast({ message: formatStr(this.getString('import_failed'), String(e)), duration: 2000 })
+          router.back()
+        }
+      }, 20)
+      return
+    }
 
     // 尝试恢复存档（种子模式不恢复存档）
     const saved = !seedIdParam ? loadGame(getContext(this)) : null
@@ -264,6 +305,22 @@ struct GamePage {
       return '-'
     }
     return encodeSeedId(this.gameState.difficulty, this.gameState.symmetry as Symmetry, this.gameState.seed)
+  }
+
+  /**
+   * 获取当前谜题的 81 字符串（原始题面，不含玩家填入）
+   */
+  private getPuzzle81String(): string {
+    const board: number[][] = []
+    for (let r = 0; r < 9; r++) {
+      const row: number[] = []
+      for (let c = 0; c < 9; c++) {
+        const cell = this.gameState.cells[r * 9 + c]
+        row.push(cell.isGiven ? cell.value : 0)
+      }
+      board.push(row)
+    }
+    return exportTo81String(board)
   }
 
   private getCurrentDifficultyLabel(): string {
@@ -961,7 +1018,7 @@ struct GamePage {
   private formatCellLabel(index: number): string {
     const row = Math.floor(index / 9) + 1
     const col = (index % 9) + 1
-    return `第${row}行第${col}列`
+    return formatStr(this.getString('cell_label'), row, col)
   }
 
   private focusHintCell(index: number): void {
@@ -1018,7 +1075,7 @@ struct GamePage {
     const cell = this.gameState.cells[hint.cellIndex]
     if (cell.isGiven) return
 
-    const techniqueName = getTechniqueName(hint.technique)
+    const techniqueName = this.getString(getTechniqueNameKey(hint.technique))
 
     // 选中并高亮目标格子
     this.focusHintCell(hint.cellIndex)
@@ -1037,7 +1094,7 @@ struct GamePage {
     this.afterAction(cell.index)
 
     // 显示技巧名称的 Toast
-    this.showHintToast(`💡 ${techniqueName}：${this.formatCellLabel(hint.cellIndex)} 填入 ${hint.digit}`)
+    this.showHintToast(`💡 ${techniqueName}：${this.formatCellLabel(hint.cellIndex)} ${this.getString('hint_fill')} ${hint.digit}`)
   }
 
   /** 直接提示：填入正确答案（无逻辑步骤可用时的回退） */
@@ -1065,7 +1122,7 @@ struct GamePage {
     this.history.push(snapshot)
 
     this.afterAction(cell.index)
-    this.showHintToast(`💡 ${this.getString('hint_direct_algorithm')}：${this.formatCellLabel(cell.index)} 填入 ${correctValue}`)
+    this.showHintToast(`💡 ${this.getString('hint_direct_algorithm')}：${this.formatCellLabel(cell.index)} ${this.getString('hint_fill')} ${correctValue}`)
   }
 
   /** 显示提示 Toast */
@@ -1345,6 +1402,23 @@ struct GamePage {
                 clipboard.setData(pasteData)
                 promptAction.showToast({ message: this.getString('seed_copied'), duration: 1500 })
               }
+            })
+
+            // 导出 81 字符串
+            Row({ space: 4 }) {
+              Text(`81: ${this.getPuzzle81String().substring(0, 18)}...`)
+                .fontSize(13)
+                .fontColor(Colors.pauseOverlayText)
+                .maxLines(1)
+              Text('📋')
+                .fontSize(12)
+            }
+            .onClick(() => {
+              const puzzle81 = this.getPuzzle81String()
+              const pasteData = pasteboard.createData(pasteboard.MIMETYPE_TEXT_PLAIN, puzzle81)
+              const clipboard = pasteboard.getSystemPasteboard()
+              clipboard.setData(pasteData)
+              promptAction.showToast({ message: this.getString('puzzle_copied'), duration: 1500 })
             })
             Text(`${this.getString('pause_info_difficulty')}: ${this.getCurrentDifficultyLabel()}`)
               .fontSize(13)

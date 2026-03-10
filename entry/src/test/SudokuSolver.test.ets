@@ -157,24 +157,32 @@ export default function solverTest() {
     })
   })
 
-  describe('SudokuSolver.hasSolution.hasUniqueSolution', () => {
+  describe('SudokuSolver.hasSolution', () => {
     it('hasSolution_true_for_valid_puzzle', 0, () => {
-      expect(hasSolution(getTestPuzzle())).assertTrue()
+      const puzzle = getTestPuzzle()
+      const result = hasSolution(puzzle)
+      expect(result).assertEqual(true)
     })
 
     it('hasSolution_false_for_contradiction', 0, () => {
       const board = createEmptyGrid()
       board[0][0] = 5
       board[0][1] = 5
-      expect(hasSolution(board)).assertFalse()
+      const result = hasSolution(board)
+      expect(result).assertEqual(false)
     })
+  })
 
+  describe('SudokuSolver.hasUniqueSolution', () => {
     it('hasUniqueSolution_true_for_standard_puzzle', 0, () => {
-      expect(hasUniqueSolution(getTestPuzzle())).assertTrue()
+      const puzzle = getTestPuzzle()
+      const result = hasUniqueSolution(puzzle)
+      expect(result).assertEqual(true)
     })
 
     it('hasUniqueSolution_false_for_empty_board', 0, () => {
-      expect(hasUniqueSolution(createEmptyGrid())).assertFalse()
+      const result = hasUniqueSolution(createEmptyGrid())
+      expect(result).assertEqual(false)
     })
   })
 }
