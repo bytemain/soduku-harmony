@@ -125,6 +125,8 @@ export struct SudokuCell {
     if (state === NoteState.ELIMINATED) return Colors.textNoteElim
     // Check if this note conflicts with a peer's filled value
     if (this.isNoteConflicting(n)) return Colors.textError
+    // Highlight note digit matching the selected cell's value
+    if (this.selectedValue !== 0 && n === this.selectedValue) return Colors.textNoteHighlight
     return Colors.textNote
   }
 
