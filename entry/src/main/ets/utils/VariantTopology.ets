@@ -1,13 +1,13 @@
 /**
- * VariantTopology.ets — 变种数独动态拓扑构建器
+ * VariantTopology.ets — 数独拓扑构建器（统一抽象）
  *
  * 根据 VariantConfig 动态构建 units 和 peers。
  * 支持：标准宫 / 对角线 / 不规则宫 / 笼子（Killer）/ 任意尺寸。
  *
- * 与 Topology.ets 的关系：
- *   - Topology.ets 保持不变，提供标准 9×9 的全局常量（零改动）
- *   - 本模块在变种模式下使用，产出等价的 { allUnits, unitsOf, peers } 结构
- *   - Solver/Validator 可接受 VariantTopology 参数来支持变种
+ * 这是所有拓扑构建的唯一入口：
+ *   - 标准 9×9 拓扑由 Topology.ets 通过本模块预计算并导出全局常量
+ *   - 变种模式同样通过本模块构建，产出相同结构的 VariantTopology 实例
+ *   - Solver/Validator 统一依赖 peers/unitsOf 数据，无需关心变种类型
  *
  * 参考：Doc 07-变种数独数据结构方案 §四
  */
@@ -18,7 +18,8 @@ import { VariantConfig, getRegionMap } from '../models/VariantConfig'
 // ============================================================
 
 /**
- * 动态拓扑数据。与 Topology.ets 的全局常量结构一致。
+ * 拓扑数据容器。
+ * 标准 9×9 和所有变种共用同一结构，由 buildVariantTopology() 构建。
  */
 export class VariantTopology {
   /** 所有 units（行 + 列 + 区域 + 对角线 + 笼子） */

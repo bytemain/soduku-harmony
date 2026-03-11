@@ -4,7 +4,7 @@ import {
   GRID_4x4, GRID_6x6, GRID_9x9, GRID_12x12, GRID_16x16,
   createStandardConfig, createDiagonalConfig, createJigsawConfig,
   createKillerConfig, createSizedConfig,
-  STANDARD_CONFIG, buildStandardRegionMap, getRegionMap, isStandard9x9,
+  STANDARD_CONFIG, buildStandardRegionMap, getRegionMap,
 } from '../main/ets/models/VariantConfig'
 
 export default function variantConfigTest() {
@@ -207,29 +207,6 @@ export default function variantConfigTest() {
       for (let i = 0; i < 81; i++) {
         expect(map[i]).assertEqual(i % 9)
       }
-    })
-  })
-
-  describe('VariantConfig.IsStandard', () => {
-    it('STANDARD_CONFIG_is_standard', 0, () => {
-      expect(isStandard9x9(STANDARD_CONFIG)).assertTrue()
-    })
-
-    it('diagonal_is_not_standard', 0, () => {
-      expect(isStandard9x9(createDiagonalConfig())).assertFalse()
-    })
-
-    it('jigsaw_is_not_standard', 0, () => {
-      const map: number[] = new Array(81).fill(0)
-      expect(isStandard9x9(createJigsawConfig(map))).assertFalse()
-    })
-
-    it('killer_is_not_standard', 0, () => {
-      expect(isStandard9x9(createKillerConfig([]))).assertFalse()
-    })
-
-    it('sized_4x4_is_not_standard_9x9', 0, () => {
-      expect(isStandard9x9(createSizedConfig(4, 2, 2))).assertFalse()
     })
   })
 }

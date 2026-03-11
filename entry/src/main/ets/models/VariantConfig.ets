@@ -258,7 +258,7 @@ export function createSizedConfig(gridSize: number, boxRows: number, boxCols: nu
 }
 
 // ============================================================
-// 标准配置常量（向后兼容）
+// 标准配置常量
 // ============================================================
 
 /** 标准 9×9 配置（默认值） */
@@ -270,7 +270,7 @@ export const STANDARD_CONFIG: VariantConfig = createStandardConfig()
 
 /**
  * 为标准 box 分区生成 regionMap。
- * 用于 Topology 构建时将标准宫转为 regionMap 格式。
+ * 用于拓扑构建时将标准宫转为 regionMap 格式。
  */
 export function buildStandardRegionMap(grid: GridConfig): number[] {
   const map: number[] = []
@@ -294,16 +294,4 @@ export function getRegionMap(config: VariantConfig): number[] {
     return config.regions.regionMap
   }
   return buildStandardRegionMap(config.grid)
-}
-
-/**
- * 判断配置是否为标准 9×9（用于快速路径判断）。
- * 标准模式可以继续走现有的全局常量路径，避免额外开销。
- */
-export function isStandard9x9(config: VariantConfig): boolean {
-  return config.type === VariantType.STANDARD &&
-    config.grid.gridSize === 9 &&
-    !config.hasDiagonals &&
-    config.regions === null &&
-    config.cages === null
 }
