@@ -20,6 +20,7 @@ export struct SettingsPanel {
   @StorageLink('handModeManual') handModeManual: boolean = true
   @StorageLink('showCoordinates') showCoordinates: boolean = false
   @StorageLink('validateInput') validateInput: boolean = true
+  @StorageLink('showAutoNotes') showAutoNotes: boolean = false
   @StorageLink('themeMode') themeMode: string = 'system'
   @StorageProp('isDarkMode') isDarkMode: boolean = false
   @StorageProp('bottomRectHeight') bottomRectHeight: number = 0
@@ -433,6 +434,34 @@ export struct SettingsPanel {
 
         // 图示说明
         this.AssistantIllustration()
+
+        // 自动候选数开关
+        Row() {
+          Column() {
+            Text($r('app.string.settings_auto_notes'))
+              .fontSize(16)
+              .fontColor(Colors.titleText)
+            Text($r('app.string.settings_auto_notes_desc'))
+              .fontSize(12)
+              .fontColor(Colors.subtitleText)
+              .margin({ top: 2 })
+          }
+          .alignItems(HorizontalAlign.Start)
+          .layoutWeight(1)
+
+          Toggle({ type: ToggleType.Switch, isOn: this.showAutoNotes })
+            .selectedColor(Colors.primaryBtn)
+            .switchStyle({ unselectedColor: Colors.switchTrackOff })
+            .onChange((isOn: boolean) => {
+              this.showAutoNotes = isOn
+              hilog.info(0x0000, 'SettingsPanel', 'Show auto notes: %{public}s', isOn.toString())
+              if (this.context) {
+                saveSettings(this.context)
+              }
+            })
+        }
+        .width('100%')
+        .padding({ top: 12, bottom: 12 })
       }
       .width('100%')
       .padding({ left: 24, right: 24, bottom: this.bottomRectHeight + 24 })

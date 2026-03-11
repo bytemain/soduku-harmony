@@ -85,6 +85,10 @@
       "value": "设置"
     },
     {
+      "name": "aux_auto_notes",
+      "value": "候选"
+    },
+    {
       "name": "gesture_note",
       "value": "笔记"
     },
@@ -399,6 +403,14 @@
     {
       "name": "settings_validate_input_off_hint",
       "value": "只检测重复冲突"
+    },
+    {
+      "name": "settings_auto_notes",
+      "value": "自动候选数"
+    },
+    {
+      "name": "settings_auto_notes_desc",
+      "value": "启用后在操作区显示候选数按钮，一键填入所有空格的候选数字"
     },
     {
       "name": "multi_select_hint",
