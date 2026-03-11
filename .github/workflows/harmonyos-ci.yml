@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    container: ghcr.io/sanchuanhehe/harmony-next-pipeline-docker/harmonyos-ci-image:v5.0.4
+    container: ghcr.io/sanchuanhehe/harmony-next-pipeline-docker/harmonyos-ci-image:v6.0.0.418SP-rc1
 
     steps:
       # 1. 拉取代码
@@ -56,7 +56,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    container: ghcr.io/sanchuanhehe/harmony-next-pipeline-docker/harmonyos-ci-image:v5.0.4
+    container: ghcr.io/sanchuanhehe/harmony-next-pipeline-docker/harmonyos-ci-image:v6.0.0.418SP-rc1
     if: startsWith(github.ref, 'refs/tags/v')
     steps:
       # 1. 拉取代码
