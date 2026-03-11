@@ -5,7 +5,13 @@
  * 放到 Worker 线程执行，避免阻塞 UI 渲染（Loading 动画卡顿）。
  */
 import { ErrorEvent, MessageEvents, ThreadWorkerGlobalScope, worker } from '@kit.ArkTS'
-import { generatePuzzle, generatePuzzleFromSeed, decodeSeedId, Symmetry } from '../utils/SudokuGenerator'
+import {
+  decodeSeedId,
+  generatePuzzle,
+  generatePuzzleFromSeed,
+  GenerationProgressPhase,
+  Symmetry,
+} from '../utils/SudokuGenerator'
 import { solve } from '../utils/SudokuSolver'
 import { parse81String } from '../utils/SudokuFormat'
 import { evaluateDifficulty } from '../utils/DifficultyEvaluator'
@@ -13,18 +19,16 @@ import { Difficulty } from '../constants/GameConstants'
 
 const workerPort: ThreadWorkerGlobalScope = worker.workerPort
 
-/**
- * 消息类型定义：
- *
- * 1. 普通生成:
- *    { type: 'generate', difficulty: number, symmetry?: string }
- *
- * 2. 种子生成:
- *    { type: 'generateFromSeed', seedId: string }
- *
- * 3. 导入谜题:
- *    { type: 'import', puzzle81: string, difficulty?: number }
- */
+function postProgress(phase: string, progress: number, attempt?: number, totalAttempts?: number): void {
+  workerPort.postMessage({
+    type: 'progress',
+    phase: phase,
+    progress: progress,
+    attempt: attempt ?? null,
+    totalAttempts: totalAttempts ?? null,
+  })
+}
+
 workerPort.onmessage = (e: MessageEvents): void => {
   const msg = e.data as Record<string, Object>
   const type = msg['type'] as string
@@ -34,7 +38,14 @@ workerPort.onmessage = (e: MessageEvents): void => {
       const difficulty = msg['difficulty'] as number as Difficulty
       const symmetryStr = msg['symmetry'] as string | undefined
       const symmetry = symmetryStr ? symmetryStr as Symmetry : undefined
-      const result = generatePuzzle(difficulty, symmetry)
+      const result = generatePuzzle(difficulty, symmetry, (
+        phase: GenerationProgressPhase,
+        progress: number,
+        attempt?: number,
+        totalAttempts?: number,
+      ): void => {
+        postProgress(phase, progress, attempt, totalAttempts)
+      })
 
       workerPort.postMessage({
         type: 'result',
@@ -47,12 +58,19 @@ workerPort.onmessage = (e: MessageEvents): void => {
         score: result.score,
         difficulty: difficulty,
       })
-
     } else if (type === 'generateFromSeed') {
       const seedId = msg['seedId'] as string
       const decoded = decodeSeedId(seedId)
       if (decoded !== null) {
-        const result = generatePuzzleFromSeed(decoded.seed, decoded.difficulty, decoded.symmetry)
+        const result = generatePuzzleFromSeed(
+          decoded.seed,
+          decoded.difficulty,
+          decoded.symmetry,
+          (phase: GenerationProgressPhase, progress: number, attempt?: number, totalAttempts?: number): void => {
+            postProgress(phase, progress, attempt, totalAttempts)
+          },
+        )
+
         workerPort.postMessage({
           type: 'result',
           action: 'generateFromSeed',
@@ -67,18 +85,20 @@ workerPort.onmessage = (e: MessageEvents): void => {
       } else {
         workerPort.postMessage({ type: 'error', message: 'Invalid seed ID' })
       }
-
     } else if (type === 'import') {
       const puzzle81 = msg['puzzle81'] as string
+      postProgress('importing_puzzle', 15, 1, 1)
       const parsed = parse81String(puzzle81)
       const puzzleBoard = parsed.board
+
+      postProgress('solving_puzzle', 55, 1, 1)
       const solution = solve(puzzleBoard)
 
       if (solution) {
-        // 尝试评估难度
         let difficulty = msg['difficulty'] as number | undefined
         if (difficulty === undefined || difficulty === null) {
           try {
+            postProgress('evaluating_difficulty', 85, 1, 1)
             const grade = evaluateDifficulty(puzzleBoard)
             difficulty = grade.difficulty
           } catch (_e) {
@@ -86,6 +106,7 @@ workerPort.onmessage = (e: MessageEvents): void => {
           }
         }
 
+        postProgress('finalizing', 100, 1, 1)
         workerPort.postMessage({
           type: 'result',
           action: 'import',
@@ -96,7 +117,6 @@ workerPort.onmessage = (e: MessageEvents): void => {
       } else {
         workerPort.postMessage({ type: 'error', message: 'puzzle_no_solution' })
       }
-
     } else {
       workerPort.postMessage({ type: 'error', message: `Unknown message type: ${type}` })
     }
@@ -105,6 +125,5 @@ workerPort.onmessage = (e: MessageEvents): void => {
   }
 }
 
-workerPort.onerror = (e: ErrorEvent): void => {
-  // Worker 内部异常
+workerPort.onerror = (_e: ErrorEvent): void => {
 }

@@ -73,6 +73,9 @@ struct GamePage {
   @State private completionScale: number = 1.0
   @State private numPadHeight: number = 0
   @State private isLoading: boolean = true
+  @State private loadingTitle: string = ''
+  @State private loadingMessage: string = ''
+  @State private loadingProgress: number = 0
   @State private isMultiSelectMode: boolean = false
   @State private multiSelectCount: number = 0
   private multiSelectIndices: Set<number> = new Set()
@@ -106,7 +109,30 @@ struct GamePage {
     } else {
       // Worker 线程异步生成，不阻塞 UI（Loading 动画可流畅转动）
       this.isLoading = true
+      this.resetLoadingState(importedPuzzle !== undefined)
       this.startPuzzleWorker(difficulty, symmetryParam, seedIdParam, importedPuzzle, importedDifficulty)
+    }
+  }
+
+  private resetLoadingState(isImporting: boolean): void {
+    this.loadingTitle = this.getString('loading_title')
+    this.loadingMessage = this.getString(isImporting ? 'loading_importing_puzzle' : 'loading_prepare')
+    this.loadingProgress = isImporting ? 5 : 0
+  }
+
+  private getLoadingMessage(phase: string, attemptValue?: Object, totalAttemptsValue?: Object): string {
+    const attempt = attemptValue as number | null | undefined
+    const totalAttempts = totalAttemptsValue as number | null | undefined
+    if (phase === 'retrying_generation' && attempt !== null && attempt !== undefined &&
+      totalAttempts !== null && totalAttempts !== undefined) {
+      return formatStr(this.getString('loading_retrying_generation'), attempt, totalAttempts)
+    }
+
+    const key = `loading_${phase}`
+    try {
+      return this.getString(key)
+    } catch (_e) {
+      return this.getString('loading_prepare')
     }
   }
 
@@ -126,6 +152,15 @@ struct GamePage {
     w.onmessage = (e: MessageEvents): void => {
       const msg = e.data as Record<string, Object>
       const type = msg['type'] as string
+
+      if (type === 'progress') {
+        const phase = msg['phase'] as string
+        const progress = msg['progress'] as number
+        this.loadingTitle = this.getString('loading_title')
+        this.loadingMessage = this.getLoadingMessage(phase, msg['attempt'], msg['totalAttempts'])
+        this.loadingProgress = progress
+        return
+      }
 
       if (type === 'result') {
         const action = msg['action'] as string
@@ -150,6 +185,8 @@ struct GamePage {
 
         this.cellsWrapper = new ArrayWrapper(this.gameState.cells)
         recordGameStarted(getContext(this), this.gameState.difficulty)
+        this.loadingProgress = 100
+        this.loadingMessage = this.getString('loading_finalizing')
         this.finishInit()
       } else if (type === 'error') {
         const errorMsg = msg['message'] as string
@@ -1328,7 +1365,11 @@ struct GamePage {
   build() {
     Column() {
       if (this.isLoading) {
-        GameLoadingView()
+        GameLoadingView({
+          title: this.loadingTitle,
+          message: this.loadingMessage,
+          progress: this.loadingProgress,
+        })
       } else {
       // === 主游戏内容 ===
       GameMainContent({

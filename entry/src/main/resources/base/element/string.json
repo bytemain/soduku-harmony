@@ -9,6 +9,42 @@
       "value": "数独游戏"
     },
     {
+      "name": "loading_title",
+      "value": "正在准备游戏"
+    },
+    {
+      "name": "loading_prepare",
+      "value": "正在准备生成环境…"
+    },
+    {
+      "name": "loading_generating_solution",
+      "value": "正在生成完整终盘…"
+    },
+    {
+      "name": "loading_digging_holes",
+      "value": "正在挖空生成题面…"
+    },
+    {
+      "name": "loading_evaluating_difficulty",
+      "value": "正在评估题目难度…"
+    },
+    {
+      "name": "loading_importing_puzzle",
+      "value": "正在导入谜题…"
+    },
+    {
+      "name": "loading_solving_puzzle",
+      "value": "正在计算谜题答案…"
+    },
+    {
+      "name": "loading_retrying_generation",
+      "value": "正在调整难度匹配（第 %d/%d 次）…"
+    },
+    {
+      "name": "loading_finalizing",
+      "value": "正在完成初始化…"
+    },
+    {
       "name": "EntryAbility_label",
       "value": "数独"
     },

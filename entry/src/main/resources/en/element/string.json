@@ -9,6 +9,42 @@
       "value": "Sudoku Game"
     },
     {
+      "name": "loading_title",
+      "value": "Preparing Game"
+    },
+    {
+      "name": "loading_prepare",
+      "value": "Preparing generation environment..."
+    },
+    {
+      "name": "loading_generating_solution",
+      "value": "Generating full solution board..."
+    },
+    {
+      "name": "loading_digging_holes",
+      "value": "Carving puzzle holes..."
+    },
+    {
+      "name": "loading_evaluating_difficulty",
+      "value": "Evaluating puzzle difficulty..."
+    },
+    {
+      "name": "loading_importing_puzzle",
+      "value": "Importing puzzle..."
+    },
+    {
+      "name": "loading_solving_puzzle",
+      "value": "Solving puzzle..."
+    },
+    {
+      "name": "loading_retrying_generation",
+      "value": "Adjusting difficulty match (attempt %d/%d)..."
+    },
+    {
+      "name": "loading_finalizing",
+      "value": "Finalizing game setup..."
+    },
+    {
       "name": "EntryAbility_label",
       "value": "Sudoku"
     },
