@@ -58,6 +58,7 @@ export struct AuxButtonGrid {
   @Prop hintDisabled: boolean = false
   @Prop hintLoading: boolean = false
   @Prop autoNotesDisabled: boolean = false
+  @Prop autoNotesVisible: boolean = false
   @Prop gridHeight: number = 0
 
   build() {
@@ -84,7 +85,11 @@ export struct AuxButtonGrid {
         AuxButton({ icon: '⚙️', label: $r('app.string.aux_settings'), disabled: false, onTap: () => this.onSettings() })
       }
       GridItem() {
-        AuxButton({ icon: '✏️', label: $r('app.string.aux_auto_notes'), disabled: this.autoNotesDisabled, onTap: () => this.onAutoNotes() })
+        if (this.autoNotesVisible) {
+          AuxButton({ icon: '✏️', label: $r('app.string.aux_auto_notes'), disabled: this.autoNotesDisabled, onTap: () => this.onAutoNotes() })
+        } else {
+          AuxButton({ icon: '', label: '', disabled: true })
+        }
       }
     }
     .columnsTemplate('1fr 1fr')

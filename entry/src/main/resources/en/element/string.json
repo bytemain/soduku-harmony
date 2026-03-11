@@ -410,7 +410,7 @@
     },
     {
       "name": "settings_auto_notes_desc",
-      "value": "Fill all empty cells with possible candidate digits, excluding numbers in same row/column/box"
+      "value": "Show auto-candidates button in the toolbar to fill all empty cells with possible digits"
     },
     {
       "name": "multi_select_hint",

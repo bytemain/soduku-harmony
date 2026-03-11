@@ -20,13 +20,13 @@ export struct SettingsPanel {
   @StorageLink('handModeManual') handModeManual: boolean = true
   @StorageLink('showCoordinates') showCoordinates: boolean = false
   @StorageLink('validateInput') validateInput: boolean = true
+  @StorageLink('showAutoNotes') showAutoNotes: boolean = false
   @StorageLink('themeMode') themeMode: string = 'system'
   @StorageProp('isDarkMode') isDarkMode: boolean = false
   @StorageProp('bottomRectHeight') bottomRectHeight: number = 0
   context?: common.UIAbilityContext
 
   onClose: () => void = () => {}
-  onAutoNotes: () => void = () => {}
 
   /**
    * 切换主题模式
@@ -435,7 +435,7 @@ export struct SettingsPanel {
         // 图示说明
         this.AssistantIllustration()
 
-        // 自动候选数按钮
+        // 自动候选数开关
         Row() {
           Column() {
             Text($r('app.string.settings_auto_notes'))
@@ -449,15 +449,15 @@ export struct SettingsPanel {
           .alignItems(HorizontalAlign.Start)
           .layoutWeight(1)
 
-          Button($r('app.string.settings_auto_notes'))
-            .fontSize(13)
-            .fontColor(Colors.primaryText)
-            .backgroundColor(Colors.primaryBtn)
-            .height(34)
-            .borderRadius(17)
-            .onClick(() => {
-              this.onAutoNotes()
-              this.onClose()
+          Toggle({ type: ToggleType.Switch, isOn: this.showAutoNotes })
+            .selectedColor(Colors.primaryBtn)
+            .switchStyle({ unselectedColor: Colors.switchTrackOff })
+            .onChange((isOn: boolean) => {
+              this.showAutoNotes = isOn
+              hilog.info(0x0000, 'SettingsPanel', 'Show auto notes: %{public}s', isOn.toString())
+              if (this.context) {
+                saveSettings(this.context)
+              }
             })
         }
         .width('100%')

@@ -410,7 +410,7 @@
     },
     {
       "name": "settings_auto_notes_desc",
-      "value": "一键为所有空格填入可能的候选数字，排除同行/列/宫已有数字"
+      "value": "启用后在操作区显示候选数按钮，一键填入所有空格的候选数字"
     },
     {
       "name": "multi_select_hint",

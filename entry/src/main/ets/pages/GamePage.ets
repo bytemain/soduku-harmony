@@ -67,6 +67,7 @@ struct GamePage {
   @State private showGestureGuide: boolean = false
   @StorageProp('gestureGuideShown') gestureGuideShown: boolean = false
   @State private showCoordinates: boolean = false
+  @State private showAutoNotes: boolean = false
   @State private isHintLoading: boolean = false
   @State private hintFocusIndex: number = -1
   @State private boardScale: number = 0.92
@@ -89,6 +90,7 @@ struct GamePage {
 
   aboutToAppear(): void {
     this.showCoordinates = AppStorage.get<boolean>('showCoordinates') ?? false
+    this.showAutoNotes = AppStorage.get<boolean>('showAutoNotes') ?? false
     hilog.info(0x0000, 'GamePage', 'aboutToAppear: isLeftHand=%{public}s, handModeManual=%{public}s',
       String(this.isLeftHand), String(AppStorage.get<boolean>('handModeManual')))
     // 从路由参数获取难度
@@ -1294,9 +1296,9 @@ struct GamePage {
       context: getContext(this) as common.UIAbilityContext,
       onClose: () => {
         this.showCoordinates = AppStorage.get<boolean>('showCoordinates') ?? false
+        this.showAutoNotes = AppStorage.get<boolean>('showAutoNotes') ?? false
         this.showSettings = false
       },
-      onAutoNotes: () => { this.onAutoNotes() },
     })
   }
 
@@ -1397,6 +1399,7 @@ struct GamePage {
               hintDisabled: this.gameState.isCompleted,
               hintLoading: this.isHintLoading,
               autoNotesDisabled: this.gameState.isCompleted,
+              autoNotesVisible: this.showAutoNotes,
               gridHeight: this.numPadHeight,
             })
 
@@ -1438,6 +1441,7 @@ struct GamePage {
               hintDisabled: this.gameState.isCompleted,
               hintLoading: this.isHintLoading,
               autoNotesDisabled: this.gameState.isCompleted,
+              autoNotesVisible: this.showAutoNotes,
               gridHeight: this.numPadHeight,
             })
           }
@@ -1588,6 +1592,7 @@ struct GamePage {
       backgroundColor: Colors.boardBg,
       onDisappear: () => {
         this.showCoordinates = AppStorage.get<boolean>('showCoordinates') ?? false
+        this.showAutoNotes = AppStorage.get<boolean>('showAutoNotes') ?? false
       },
     })
 
