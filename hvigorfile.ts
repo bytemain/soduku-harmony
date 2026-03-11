@@ -42,7 +42,7 @@ function getSigningConfig() {
   const profileFile = process.env.SIGNING_PROFILE;
   const keyFile = process.env.SIGNING_KEY;
   const keyPwd = process.env.KEY_PASSWORD;
-  const keystorePwd = process.env.KEYSTORE_PASSWORD;
+  const storePassword = process.env.KEYSTORE_PASSWORD;
 
   if (certFile && profileFile && keyFile) {
     return {
@@ -51,10 +51,10 @@ function getSigningConfig() {
         certpath: certFile,
         profile: profileFile,
         keyAlias: "ide_demo_app",
-        keyPwd: keyPwd,
+        keyPwd,
         signAlg: "SHA256withECDSA",
         storeFile: keyFile,
-        storePassword: keystorePwd,
+        storePassword,
       },
     };
   }
