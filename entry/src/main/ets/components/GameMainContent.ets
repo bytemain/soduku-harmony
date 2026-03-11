@@ -11,10 +11,10 @@ import { GameActionPanel } from './GameActionPanel'
 @Component
 export struct GameMainContent {
   @Prop difficulty: Difficulty = Difficulty.EASY
-  formattedTime: string = '00:00'
+  @Prop formattedTime: string = '00:00'
   @Prop errorCount: number = 0
   @Prop isPaused: boolean = false
-  @Prop cells: ArrayWrapper = new ArrayWrapper([])
+  @ObjectLink cells: ArrayWrapper
   @Prop selectedValue: number = 0
   @Prop hintFocusIndex: number = -1
   @Prop showCoordinates: boolean = false
@@ -22,9 +22,9 @@ export struct GameMainContent {
   @Prop completionScale: number = 1
   @Prop boardOpacity: number = 1
   @Prop isMultiSelectMode: boolean = false
-  multiSelectHint: string = ''
+  @Prop multiSelectHint: string = ''
   @Prop multiSelectCount: number = 0
-  currentDirection: GestureDirection | null = null
+  @Prop currentDirection: GestureDirection | null = null
   @Prop isLeftHand: boolean = false
   @Prop remainingCounts: number[] = [0, 9, 9, 9, 9, 9, 9, 9, 9, 9]
   @Prop undoDisabled: boolean = true
