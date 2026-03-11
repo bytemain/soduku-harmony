@@ -15,21 +15,19 @@ import { CellData, CellFlags, setFlag, clearFlag,
   getNoteState, setNoteState, NoteState } from '../models/CellData'
 import { GameState } from '../models/GameState'
 import { GameHistory, CellSnapshot } from '../models/GameHistory'
-import { Colors, Sizes, Difficulty, GestureDirection, getDifficultyConfig } from '../constants/GameConstants'
+import { Colors, Difficulty, GestureDirection, getDifficultyConfig } from '../constants/GameConstants'
 import { decodeSeedId, Symmetry, encodeSeedId } from '../utils/SudokuGenerator'
 import { validateAllCells, updateHighlights, isGameCompleted } from '../utils/SudokuValidator'
 import { PEERS } from '../utils/Topology'
-import { SudokuBoard, ArrayWrapper } from '../components/SudokuBoard'
-import { TopBar } from '../components/TopBar'
-import { GestureNumberPad } from '../components/GestureNumberPad'
-import { GestureModeIndicator } from '../components/GestureModeIndicator'
-import { AuxButtonGrid } from '../components/AuxButtonGrid'
+import { ArrayWrapper } from '../components/SudokuBoard'
 import { SettingsPanel } from '../components/SettingsPanel'
 import { GestureGuideOverlay } from '../components/GestureGuideOverlay'
+import { GameLoadingView } from '../components/GameLoadingView'
+import { GameMainContent } from '../components/GameMainContent'
+import { PauseOverlay } from '../components/PauseOverlay'
 import { getNextHint, getTechniqueNameKey, SolveStep } from '../utils/LogicSolver'
 import { formatStr } from '../utils/I18nHelper'
-import { solve } from '../utils/SudokuSolver'
-import { parse81String, exportTo81String } from '../utils/SudokuFormat'
+import { exportTo81String } from '../utils/SudokuFormat'
 import { saveGame, loadGame, clearSave, GameSaveData, CellSerialized } from '../utils/GameStorage'
 import { recordGameStarted, recordGameWon } from '../utils/StatsStorage'
 import { addGameRecord, GameRecord } from '../utils/HistoryStorage'
@@ -84,7 +82,6 @@ struct GamePage {
   private mouseDragStartIndex: number = -1
   private timerId: number = -1
   private history: GameHistory = new GameHistory()
-  private gameStartRecorded: boolean = false
   /** Worker 线程实例（用于异步生成谜题） */
   private puzzleWorker: worker.ThreadWorker | null = null
 
@@ -105,7 +102,6 @@ struct GamePage {
     const saved = !seedIdParam ? loadGame(getContext(this)) : null
     if (saved && saved.cells.length === 81) {
       this.restoreFromSave(saved)
-      this.gameStartRecorded = true
       this.finishInit()
     } else {
       // Worker 线程异步生成，不阻塞 UI（Loading 动画可流畅转动）
@@ -154,7 +150,6 @@ struct GamePage {
 
         this.cellsWrapper = new ArrayWrapper(this.gameState.cells)
         recordGameStarted(getContext(this), this.gameState.difficulty)
-        this.gameStartRecorded = true
         this.finishInit()
       } else if (type === 'error') {
         const errorMsg = msg['message'] as string
@@ -439,6 +434,32 @@ struct GamePage {
     this.gameState.isPaused = false
     this.showPauseOverlay = false
     router.back()
+  }
+
+  private copySeedId(): void {
+    const seedId = this.getCurrentSeedId()
+    if (seedId === '-') {
+      return
+    }
+    const pasteData = pasteboard.createData(pasteboard.MIMETYPE_TEXT_PLAIN, seedId)
+    const clipboard = pasteboard.getSystemPasteboard()
+    clipboard.setData(pasteData)
+    promptAction.showToast({ message: this.getString('seed_copied'), duration: 1500 })
+  }
+
+  private copyPuzzle81(): void {
+    const puzzle81 = this.getPuzzle81String()
+    const pasteData = pasteboard.createData(pasteboard.MIMETYPE_TEXT_PLAIN, puzzle81)
+    const clipboard = pasteboard.getSystemPasteboard()
+    clipboard.setData(pasteData)
+    promptAction.showToast({ message: this.getString('puzzle_copied'), duration: 1500 })
+  }
+
+  private isEraseDisabled(): boolean {
+    const selectedCell = this.gameState.selectedCell
+    return selectedCell === null ||
+      selectedCell.isGiven ||
+      (selectedCell.isEmpty && selectedCell.notes === 0)
   }
 
   // ================================================================
@@ -1307,264 +1328,72 @@ struct GamePage {
   build() {
     Column() {
       if (this.isLoading) {
-        // 加载中
-        Column() {
-          LoadingProgress()
-            .width(48)
-            .height(48)
-            .color(Colors.primaryBtn)
-        }
-        .width('100%')
-        .layoutWeight(1)
-        .justifyContent(FlexAlign.Center)
-        .alignItems(HorizontalAlign.Center)
+        GameLoadingView()
       } else {
       // === 主游戏内容 ===
-      Column() {
-        // ① 顶部信息栏
-        TopBar({
-          difficulty: this.gameState.difficulty,
-          formattedTime: this.displayTime,
-          errorCount: this.displayErrors,
-          isPaused: this.gameState.isPaused,
-          onPause: () => this.togglePause(),
-        })
-
-        // ② 棋盘
-        SudokuBoard({
-          cells: this.cellsWrapper,
-          selectedValue: this.gameState.selectedCell?.value ?? 0,
-          hintFocusIndex: this.hintFocusIndex,
-          showCoordinates: this.showCoordinates,
-          onCellClick: (index: number) => {
-            this.onCellClick(index)
-          },
-          onMouseDragSelect: (index: number, action: string) => {
-            this.onMouseDragSelect(index, action)
-          },
-          onTouchDragSelect: (index: number, action: string) => {
-            this.onTouchDragSelect(index, action)
-          },
-          onKeyboardInput: (keyCode: number) => {
-            this.handleKeyboardInput(keyCode)
-          },
-        })
-          .margin({ top: 12 })
-          .padding({ left: Sizes.gamePagePadding, right: Sizes.gamePagePadding })
-          .scale({ x: this.boardScale * this.completionScale, y: this.boardScale * this.completionScale })
-          .opacity(this.boardOpacity)
-
-        // 多选模式提示条
-        if (this.isMultiSelectMode) {
-          Row({ space: 8 }) {
-            Text(`🔲 ${this.getString('multi_select_hint')}（${this.multiSelectCount}）`)
-              .fontSize(13)
-              .fontColor(Colors.primaryBtn)
-            Text('✕')
-              .fontSize(14)
-              .fontColor(Colors.subtitleText)
-              .onClick(() => this.exitMultiSelect())
-          }
-          .width('100%')
-          .justifyContent(FlexAlign.Center)
-          .padding({ top: 4, bottom: 4 })
-          .margin({ top: 4 })
-          .backgroundColor(Colors.multiSelectBar)
-          .borderRadius(8)
-          .padding({ left: Sizes.gamePagePadding, right: Sizes.gamePagePadding })
-        }
-
-        // 手势提示条
-        GestureModeIndicator({
-          currentDirection: this.gestureDirection,
-        })
-          .margin({ top: 8 })
-
-        // ③ 操作区（左右手模式镜像）
-        Row({ space: 8 }) {
-          if (!this.isLeftHand) {
-            // 右手模式：辅助按钮在左，键盘在右
-            AuxButtonGrid({
-              onUndo: () => { this.onUndo() },
-              onRedo: () => { this.onRedo() },
-              onErase: () => { this.onErase() },
-              onHint: () => { this.onHint() },
-              onSettings: () => { this.showSettings = true },
-              onAutoNotes: () => { this.onAutoNotes() },
-              undoDisabled: !this.canUndo,
-              redoDisabled: !this.canRedo,
-              eraseDisabled: this.gameState.selectedCell === null ||
-                this.gameState.selectedCell!.isGiven ||
-                (this.gameState.selectedCell!.isEmpty && this.gameState.selectedCell!.notes === 0),
-              hintDisabled: this.gameState.isCompleted,
-              hintLoading: this.isHintLoading,
-              autoNotesDisabled: this.gameState.isCompleted,
-              autoNotesVisible: this.showAutoNotes,
-              gridHeight: this.numPadHeight,
-            })
-
-            GestureNumberPad({
-              remainingCounts: this.remainingCounts,
-              onGesture: (digit: number, direction: GestureDirection) => {
-                this.onGesture(digit, direction)
-              },
-              onGestureDirectionChange: (direction: GestureDirection | null) => {
-                this.gestureDirection = direction
-              },
-              onHeightChange: (h: number) => { this.numPadHeight = h },
-            })
-          } else {
-            // 左手模式：键盘在左，辅助按钮在右
-            GestureNumberPad({
-              remainingCounts: this.remainingCounts,
-              onGesture: (digit: number, direction: GestureDirection) => {
-                this.onGesture(digit, direction)
-              },
-              onGestureDirectionChange: (direction: GestureDirection | null) => {
-                this.gestureDirection = direction
-              },
-              onHeightChange: (h: number) => { this.numPadHeight = h },
-            })
-
-            AuxButtonGrid({
-              onUndo: () => { this.onUndo() },
-              onRedo: () => { this.onRedo() },
-              onErase: () => { this.onErase() },
-              onHint: () => { this.onHint() },
-              onSettings: () => { this.showSettings = true },
-              onAutoNotes: () => { this.onAutoNotes() },
-              undoDisabled: !this.canUndo,
-              redoDisabled: !this.canRedo,
-              eraseDisabled: this.gameState.selectedCell === null ||
-                this.gameState.selectedCell!.isGiven ||
-                (this.gameState.selectedCell!.isEmpty && this.gameState.selectedCell!.notes === 0),
-              hintDisabled: this.gameState.isCompleted,
-              hintLoading: this.isHintLoading,
-              autoNotesDisabled: this.gameState.isCompleted,
-              autoNotesVisible: this.showAutoNotes,
-              gridHeight: this.numPadHeight,
-            })
-          }
-        }
-        .width('100%')
-        .layoutWeight(1)
-        .margin({ top: 8 })
-        .padding({ left: Sizes.gamePagePadding, right: Sizes.gamePagePadding })
-      }
-      .width('100%')
-      .height('100%')
+      GameMainContent({
+        difficulty: this.gameState.difficulty,
+        formattedTime: this.displayTime,
+        errorCount: this.displayErrors,
+        isPaused: this.gameState.isPaused,
+        cells: this.cellsWrapper,
+        selectedValue: this.gameState.selectedCell?.value ?? 0,
+        hintFocusIndex: this.hintFocusIndex,
+        showCoordinates: this.showCoordinates,
+        boardScale: this.boardScale,
+        completionScale: this.completionScale,
+        boardOpacity: this.boardOpacity,
+        isMultiSelectMode: this.isMultiSelectMode,
+        multiSelectHint: this.getString('multi_select_hint'),
+        multiSelectCount: this.multiSelectCount,
+        currentDirection: this.gestureDirection,
+        isLeftHand: this.isLeftHand,
+        remainingCounts: this.remainingCounts,
+        undoDisabled: !this.canUndo,
+        redoDisabled: !this.canRedo,
+        eraseDisabled: this.isEraseDisabled(),
+        hintDisabled: this.gameState.isCompleted,
+        hintLoading: this.isHintLoading,
+        autoNotesDisabled: this.gameState.isCompleted,
+        autoNotesVisible: this.showAutoNotes,
+        gridHeight: this.numPadHeight,
+        onPause: () => this.togglePause(),
+        onCellClick: (index: number) => { this.onCellClick(index) },
+        onMouseDragSelect: (index: number, action: string) => { this.onMouseDragSelect(index, action) },
+        onTouchDragSelect: (index: number, action: string) => { this.onTouchDragSelect(index, action) },
+        onKeyboardInput: (keyCode: number) => { this.handleKeyboardInput(keyCode) },
+        onExitMultiSelect: () => this.exitMultiSelect(),
+        onUndo: () => { this.onUndo() },
+        onRedo: () => { this.onRedo() },
+        onErase: () => { this.onErase() },
+        onHint: () => { this.onHint() },
+        onSettings: () => { this.showSettings = true },
+        onAutoNotes: () => { this.onAutoNotes() },
+        onGesture: (digit: number, direction: GestureDirection) => {
+          this.onGesture(digit, direction)
+        },
+        onGestureDirectionChange: (direction: GestureDirection | null) => {
+          this.gestureDirection = direction
+        },
+        onHeightChange: (h: number) => { this.numPadHeight = h },
+      })
 
       // === 暂停遮罩 ===
       if (this.showPauseOverlay) {
-        Column() {
-          Column()
-            .width('100%')
-            .height('100%')
-            .backgroundColor(Colors.pauseOverlayBg)
-            .opacity(0.6)
-        }
-        .width('100%')
-        .height('100%')
-        .position({ x: 0, y: 0 })
-        .justifyContent(FlexAlign.Center)
-
-        Column({ space: 16 }) {
-          Text($r('app.string.pause_title'))
-            .fontSize(24)
-            .fontColor(Colors.pauseOverlayText)
-            .fontWeight(FontWeight.Bold)
-            .margin({ bottom: 16 })
-
-          Column({ space: 8 }) {
-            Row({ space: 4 }) {
-              Text(`${this.getString('pause_info_seed')}: ${this.getCurrentSeedId()}`)
-                .fontSize(13)
-                .fontColor(Colors.pauseOverlayText)
-              Text('📋')
-                .fontSize(12)
-            }
-            .onClick(() => {
-              const seedId = this.getCurrentSeedId()
-              if (seedId !== '-') {
-                const pasteData = pasteboard.createData(pasteboard.MIMETYPE_TEXT_PLAIN, seedId)
-                const clipboard = pasteboard.getSystemPasteboard()
-                clipboard.setData(pasteData)
-                promptAction.showToast({ message: this.getString('seed_copied'), duration: 1500 })
-              }
-            })
-
-            // 导出 81 字符串
-            Row({ space: 4 }) {
-              Text(`81: ${this.getPuzzle81String().substring(0, 18)}...`)
-                .fontSize(13)
-                .fontColor(Colors.pauseOverlayText)
-                .maxLines(1)
-              Text('📋')
-                .fontSize(12)
-            }
-            .onClick(() => {
-              const puzzle81 = this.getPuzzle81String()
-              const pasteData = pasteboard.createData(pasteboard.MIMETYPE_TEXT_PLAIN, puzzle81)
-              const clipboard = pasteboard.getSystemPasteboard()
-              clipboard.setData(pasteData)
-              promptAction.showToast({ message: this.getString('puzzle_copied'), duration: 1500 })
-            })
-            Text(`${this.getString('pause_info_difficulty')}: ${this.getCurrentDifficultyLabel()}`)
-              .fontSize(13)
-              .fontColor(Colors.pauseOverlayText)
-            Text(`${this.getString('pause_info_symmetry')}: ${this.getCurrentSymmetryLabel()}`)
-              .fontSize(13)
-              .fontColor(Colors.pauseOverlayText)
-            Text(`${this.getString('pause_info_time')}: ${this.displayTime}`)
-              .fontSize(13)
-              .fontColor(Colors.pauseOverlayText)
-            Text(`${this.getString('pause_info_errors')}: ${this.displayErrors}/3`)
-              .fontSize(13)
-              .fontColor(Colors.pauseOverlayText)
-          }
-          .width(280)
-          .padding(16)
-          .borderRadius(16)
-          .backgroundColor(Colors.pauseInfoCardBg)
-          .margin({ bottom: 8 })
-
-          // 继续
-          Button($r('app.string.pause_resume'))
-            .type(ButtonType.Capsule)
-            .width(220)
-            .height(48)
-            .fontSize(16)
-            .fontWeight(FontWeight.Medium)
-            .backgroundColor(Colors.primaryBtn)
-            .fontColor(Colors.primaryText)
-            .onClick(() => this.togglePause())
-
-          // 重新开始
-          Button($r('app.string.pause_restart'))
-            .type(ButtonType.Capsule)
-            .width(220)
-            .height(48)
-            .fontSize(16)
-            .fontWeight(FontWeight.Medium)
-            .backgroundColor(Colors.pauseRestartBtn)
-            .fontColor(Colors.pauseOverlayText)
-            .onClick(() => this.restartGame())
-
-          // 退出
-          Button($r('app.string.pause_quit'))
-            .type(ButtonType.Capsule)
-            .width(220)
-            .height(48)
-            .fontSize(16)
-            .fontWeight(FontWeight.Medium)
-            .backgroundColor(Colors.pauseQuitBtn)
-            .fontColor(Colors.pauseOverlayText)
-            .onClick(() => this.quitGame())
-        }
-        .width('100%')
-        .height('100%')
-        .position({ x: 0, y: 0 })
-        .justifyContent(FlexAlign.Center)
+        PauseOverlay({
+          seedId: this.getCurrentSeedId(),
+          puzzle81: this.getPuzzle81String(),
+          difficultyLabel: this.getCurrentDifficultyLabel(),
+          symmetryLabel: this.getCurrentSymmetryLabel(),
+          displayTime: this.displayTime,
+          errorCount: this.displayErrors,
+          maxErrors: 3,
+          onCopySeed: () => this.copySeedId(),
+          onCopyPuzzle: () => this.copyPuzzle81(),
+          onResume: () => this.togglePause(),
+          onRestart: () => this.restartGame(),
+          onQuit: () => this.quitGame(),
+        })
       }
 
       // === 首次手势引导遮罩 ===
