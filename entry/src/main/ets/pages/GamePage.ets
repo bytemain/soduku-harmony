@@ -88,9 +88,22 @@ struct GamePage {
   /** Worker 线程实例（用于异步生成谜题） */
   private puzzleWorker: worker.ThreadWorker | null = null
 
-  aboutToAppear(): void {
+  private syncUiPreferencesFromStorage(): void {
     this.showCoordinates = AppStorage.get<boolean>('showCoordinates') ?? false
     this.showAutoNotes = AppStorage.get<boolean>('showAutoNotes') ?? false
+  }
+
+  private openSettingsSheet(): void {
+    this.showSettings = true
+  }
+
+  private closeSettingsSheet(): void {
+    this.syncUiPreferencesFromStorage()
+    this.showSettings = false
+  }
+
+  aboutToAppear(): void {
+    this.syncUiPreferencesFromStorage()
     hilog.info(0x0000, 'GamePage', 'aboutToAppear: isLeftHand=%{public}s, handModeManual=%{public}s',
       String(this.isLeftHand), String(AppStorage.get<boolean>('handModeManual')))
     // 从路由参数获取难度
@@ -108,13 +121,13 @@ struct GamePage {
       this.finishInit()
     } else {
       // Worker 线程异步生成，不阻塞 UI（Loading 动画可流畅转动）
-      this.isLoading = true
       this.resetLoadingState(importedPuzzle !== undefined)
       this.startPuzzleWorker(difficulty, symmetryParam, seedIdParam, importedPuzzle, importedDifficulty)
     }
   }
 
   private resetLoadingState(isImporting: boolean): void {
+    this.isLoading = true
     this.loadingTitle = this.getString('loading_title')
     this.loadingMessage = this.getString(isImporting ? 'loading_importing_puzzle' : 'loading_prepare')
     this.loadingProgress = isImporting ? 5 : 0
@@ -185,8 +198,8 @@ struct GamePage {
 
         this.cellsWrapper = new ArrayWrapper(this.gameState.cells)
         recordGameStarted(getContext(this), this.gameState.difficulty)
-        this.loadingProgress = 100
         this.loadingMessage = this.getString('loading_finalizing')
+        this.loadingProgress = 100
         this.finishInit()
       } else if (type === 'error') {
         const errorMsg = msg['message'] as string
@@ -1353,9 +1366,7 @@ struct GamePage {
     SettingsPanel({
       context: getContext(this) as common.UIAbilityContext,
       onClose: () => {
-        this.showCoordinates = AppStorage.get<boolean>('showCoordinates') ?? false
-        this.showAutoNotes = AppStorage.get<boolean>('showAutoNotes') ?? false
-        this.showSettings = false
+        this.closeSettingsSheet()
       },
     })
   }
@@ -1408,7 +1419,7 @@ struct GamePage {
         onRedo: () => { this.onRedo() },
         onErase: () => { this.onErase() },
         onHint: () => { this.onHint() },
-        onSettings: () => { this.showSettings = true },
+        onSettings: () => { this.openSettingsSheet() },
         onAutoNotes: () => { this.onAutoNotes() },
         onGesture: (digit: number, direction: GestureDirection) => {
           this.onGesture(digit, direction)
@@ -1461,8 +1472,7 @@ struct GamePage {
       showClose: false,
       backgroundColor: Colors.boardBg,
       onDisappear: () => {
-        this.showCoordinates = AppStorage.get<boolean>('showCoordinates') ?? false
-        this.showAutoNotes = AppStorage.get<boolean>('showAutoNotes') ?? false
+        this.closeSettingsSheet()
       },
     })
 
