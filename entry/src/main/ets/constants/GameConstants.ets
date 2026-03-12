@@ -84,6 +84,7 @@ export interface ColorsConfig {
   textNote: string
   textNoteHighlight: string
   textNoteElim: string
+  noteHighlightBg: string
   keyBg: string
   keyText: string
   keyDisabled: string
@@ -180,6 +181,7 @@ export const LightColors: ColorsConfig = {
   textNote: '#757575',
   textNoteHighlight: '#388E3C',
   textNoteElim: '#BDBDBD',
+  noteHighlightBg: '#C8E6C9',
 
   // === 手势键盘 ===
   keyBg: '#FFFFFF',
@@ -290,6 +292,7 @@ export const DarkColors: ColorsConfig = {
   textNote: '#9E9E9E',
   textNoteHighlight: '#81C784',
   textNoteElim: '#616161',
+  noteHighlightBg: '#1B3B2A',
 
   // === 手势键盘 ===
   keyBg: '#2A2A2A',
