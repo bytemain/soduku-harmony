@@ -536,6 +536,20 @@ struct GamePage {
   // ================================================================
 
   /**
+   * 点击棋盘外或键盘外的空白区域 → 取消选中态
+   */
+  private onBlankAreaClick(): void {
+    if (this.gameState.isPaused) return
+
+    if (this.isMultiSelectMode) {
+      this.exitMultiSelect()
+    }
+    this.keypadSelectedDigit = 0
+    this.gameState.clearSelection()
+    updateHighlights(this.gameState.cells, this.gameState.selectedIndex)
+  }
+
+  /**
    * 点击棋盘格子
    */
   private onCellClick(index: number): void {
@@ -1434,6 +1448,7 @@ struct GamePage {
         autoNotesDisabled: this.gameState.isCompleted,
         autoNotesVisible: this.showAutoNotes,
         gridHeight: this.numPadHeight,
+        onBlankAreaClick: () => { this.onBlankAreaClick() },
         onPause: () => this.togglePause(),
         onCellClick: (index: number) => { this.onCellClick(index) },
         onMouseDragSelect: (index: number, action: string) => { this.onMouseDragSelect(index, action) },
