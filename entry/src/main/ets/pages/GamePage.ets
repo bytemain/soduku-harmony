@@ -51,8 +51,10 @@ interface GamePageParams {
  */
 function migrateStack(raw: CellSnapshot[][] | CellSnapshot[] | Object[]): CellSnapshot[][] {
   if (raw.length === 0) return []
+  const first = raw[0]
   // 旧格式：第一个元素有 index 属性（是 CellSnapshot 对象），不是数组
-  if (!Array.isArray(raw[0]) && typeof (raw[0] as CellSnapshot).index === 'number') {
+  if (first !== undefined && first !== null &&
+    !Array.isArray(first) && typeof (first as CellSnapshot).index === 'number') {
     return (raw as CellSnapshot[]).map((snap: CellSnapshot): CellSnapshot[] => [snap])
   }
   return raw as CellSnapshot[][]
@@ -1081,9 +1083,6 @@ struct GamePage {
     // 选中最后一个操作的格子（组中第一个条目）
     const firstSnap = group[0]
     this.gameState.selectCell(firstSnap.index)
-    if (this.gameState.selectedIndex !== firstSnap.index) {
-      this.gameState.selectCell(firstSnap.index)
-    }
 
     this.afterAction()
   }
@@ -1106,9 +1105,6 @@ struct GamePage {
     // 选中最后一个操作的格子（组中最后一个条目）
     const lastSnap = group[group.length - 1]
     this.gameState.selectCell(lastSnap.index)
-    if (this.gameState.selectedIndex !== lastSnap.index) {
-      this.gameState.selectCell(lastSnap.index)
-    }
 
     this.afterAction()
   }
