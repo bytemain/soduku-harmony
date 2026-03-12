@@ -44,6 +44,10 @@ workerPort.onmessage = (e: MessageEvents): void => {
   const msg = e.data as Record<string, Object>
   const type = msg['type'] as string
 
+  // Reset throttle state for each new generation request
+  lastSentPhase = ''
+  lastSentProgress = -1
+
   try {
     if (type === 'generate') {
       const difficulty = msg['difficulty'] as number as Difficulty

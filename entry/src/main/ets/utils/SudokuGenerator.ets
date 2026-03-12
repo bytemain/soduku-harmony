@@ -298,7 +298,7 @@ export function generatePuzzle(
     phase: GenerationProgressPhase,
     progress: number,
     attempt?: number,
-    _totalAttempts?: number,
+    totalAttempts?: number,
   ): void => {
     const a = (attempt ?? 1) - 1
     const rangeStart = TOTAL_RANGE * (1 - Math.pow(DECAY, a))
@@ -311,7 +311,7 @@ export function generatePuzzle(
       globalProgress = maxProgressSent
     }
 
-    progressCallback!(phase, Math.max(0, Math.min(TOTAL_RANGE, Math.round(globalProgress))), attempt, _totalAttempts)
+    progressCallback!(phase, Math.max(0, Math.min(TOTAL_RANGE, Math.round(globalProgress))), attempt, totalAttempts)
   } : undefined
 
   let bestPuzzle: GeneratedPuzzle | null = null
