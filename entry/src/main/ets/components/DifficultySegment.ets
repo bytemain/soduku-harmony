@@ -86,13 +86,20 @@ export struct DifficultySegment {
     Column({ space: 0 }) {
       if (this.expanded) {
         // 展开状态：显示全部选项
-        ForEach(DIFFICULTY_CONFIGS, (config: DifficultyConfig) => {
+        ForEach(DIFFICULTY_CONFIGS, (config: DifficultyConfig, index: number) => {
           Row() {
             this.DifficultyRow(config, this.selectedDifficulty === config.level)
           }
+          .transition(
+            TransitionEffect.OPACITY
+              .combine(TransitionEffect.translate({ y: -10 }))
+              .animation({ duration: 250, curve: Curve.EaseInOut, delay: index * 30 })
+          )
           .onClick(() => {
-            this.selectedDifficulty = config.level
-            this.expanded = false
+            animateTo({ duration: 250, curve: Curve.EaseInOut }, () => {
+              this.selectedDifficulty = config.level
+              this.expanded = false
+            })
           })
         })
       } else {
@@ -100,8 +107,13 @@ export struct DifficultySegment {
         Row() {
           this.DifficultyRow(getDifficultyConfig(this.selectedDifficulty), true)
         }
+        .transition(
+          TransitionEffect.OPACITY.animation({ duration: 200, curve: Curve.EaseInOut })
+        )
         .onClick(() => {
-          this.expanded = true
+          animateTo({ duration: 250, curve: Curve.EaseInOut }, () => {
+            this.expanded = true
+          })
         })
       }
     }
@@ -109,6 +121,6 @@ export struct DifficultySegment {
     .backgroundColor(Colors.segmentBg)
     .borderRadius(16)
     .padding(4)
-    .animation({ duration: 200, curve: Curve.EaseInOut })
+    .animation({ duration: 250, curve: Curve.EaseInOut })
   }
 }
