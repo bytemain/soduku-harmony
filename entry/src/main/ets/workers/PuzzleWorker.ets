@@ -19,7 +19,18 @@ import { Difficulty } from '../constants/GameConstants'
 
 const workerPort: ThreadWorkerGlobalScope = worker.workerPort
 
+let lastSentPhase: string = ''
+let lastSentProgress: number = -1
+
 function postProgress(phase: string, progress: number, attempt?: number, totalAttempts?: number): void {
+  // Throttle: only send when phase changes or progress changes by >= 2 points
+  if (phase === lastSentPhase && Math.abs(progress - lastSentProgress) < 2) {
+    return
+  }
+
+  lastSentPhase = phase
+  lastSentProgress = progress
+
   workerPort.postMessage({
     type: 'progress',
     phase: phase,
