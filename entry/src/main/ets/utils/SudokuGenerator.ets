@@ -288,6 +288,32 @@ export function generatePuzzle(
   const config = getDifficultyConfig(difficulty)
   const maxAttempts = 20
 
+  // Wrap callback to produce globally monotonic progress across retries.
+  // Uses exponential decay so early attempts get more progress range.
+  const DECAY = 0.5
+  const TOTAL_RANGE = 95 // reserve 5% for finalizing
+  let maxProgressSent = 0
+
+  const globalCallback: GenerationProgressCallback | undefined = progressCallback ? (
+    phase: GenerationProgressPhase,
+    progress: number,
+    attempt?: number,
+    totalAttempts?: number,
+  ): void => {
+    const a = (attempt ?? 1) - 1
+    const rangeStart = TOTAL_RANGE * (1 - Math.pow(DECAY, a))
+    const rangeEnd = TOTAL_RANGE * (1 - Math.pow(DECAY, a + 1))
+    let globalProgress = rangeStart + (progress / 100) * (rangeEnd - rangeStart)
+
+    if (globalProgress > maxProgressSent) {
+      maxProgressSent = globalProgress
+    } else {
+      globalProgress = maxProgressSent
+    }
+
+    progressCallback!(phase, Math.max(0, Math.min(TOTAL_RANGE, Math.round(globalProgress))), attempt, totalAttempts)
+  } : undefined
+
   let bestPuzzle: GeneratedPuzzle | null = null
   let bestDiff = 999
 
@@ -296,14 +322,14 @@ export function generatePuzzle(
     const seed = randomSeed()
     const rng = new SeededRandom(seed)
 
-    reportProgress(progressCallback, 'generating_solution', 10, attemptNumber, maxAttempts)
+    reportProgress(globalCallback, 'generating_solution', 10, attemptNumber, maxAttempts)
     const solution = generateFullBoard(rng)
 
     const symmetry = preferredSymmetry ?? pickSymmetry(difficulty, rng)
-    reportProgress(progressCallback, 'digging_holes', 25, attemptNumber, maxAttempts)
-    const puzzle = digHoles(solution, config.holesToDig, symmetry, rng, progressCallback, attemptNumber, maxAttempts)
+    reportProgress(globalCallback, 'digging_holes', 25, attemptNumber, maxAttempts)
+    const puzzle = digHoles(solution, config.holesToDig, symmetry, rng, globalCallback, attemptNumber, maxAttempts)
 
-    reportProgress(progressCallback, 'evaluating_difficulty', 85, attemptNumber, maxAttempts)
+    reportProgress(globalCallback, 'evaluating_difficulty', 85, attemptNumber, maxAttempts)
     const grade = evaluateDifficulty(puzzle)
 
     const candidate: GeneratedPuzzle = {
@@ -326,7 +352,7 @@ export function generatePuzzle(
       bestPuzzle = candidate
     }
 
-    reportProgress(progressCallback, 'retrying_generation', 95, attemptNumber, maxAttempts)
+    reportProgress(globalCallback, 'retrying_generation', 95, attemptNumber, maxAttempts)
   }
 
   reportProgress(progressCallback, 'finalizing', 100, maxAttempts, maxAttempts)

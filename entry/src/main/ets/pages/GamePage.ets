@@ -173,7 +173,9 @@ struct GamePage {
         const progress = msg['progress'] as number
         this.loadingTitle = this.getString('loading_title')
         this.loadingMessage = this.getLoadingMessage(phase, msg['attempt'], msg['totalAttempts'])
-        this.loadingProgress = progress
+        if (progress >= this.loadingProgress) {
+          this.loadingProgress = progress
+        }
         return
       }
 
