@@ -12,7 +12,6 @@ export struct TopBar {
   @Prop difficulty: Difficulty = Difficulty.EASY
   @Prop formattedTime: string = '00:00'
   @Prop errorCount: number = 0
-  @Prop maxErrors: number = 3
   @Prop isPaused: boolean = false
   onPause: () => void = () => {}
 
@@ -51,7 +50,7 @@ export struct TopBar {
       .backgroundColor(this.isPaused ? Colors.topBarPausedBg : Color.Transparent)
 
       // 右：错误计数
-      Text(`✕ ${this.errorCount}/${this.maxErrors}`)
+      Text(`✕ ${this.errorCount}`)
         .fontSize(14)
         .fontColor(this.getErrorColor())
     }
