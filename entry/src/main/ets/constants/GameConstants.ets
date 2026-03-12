@@ -474,9 +474,12 @@ export const BOX_COUNT = GRID_SIZE / BOX_SIZE
 export const TOTAL_CELLS = GRID_SIZE * GRID_SIZE
 /** 有效数字 1-N */
 export const DIGITS: number[] = Array.from({ length: GRID_SIZE }, (_: void, i: number) => i + 1)
-/** 宫格索引 0..N-1 */
+/** 行/列索引 0..GRID_SIZE-1（用于 ForEach 遍历行/列） */
 export const GRID_INDICES: number[] = Array.from({ length: GRID_SIZE }, (_: void, i: number) => i)
-/** 宫格数量索引 0..BOX_SIZE*BOX_SIZE-1（等于 GRID_SIZE） */
+/**
+ * 宫内格子索引 0..BOX_SIZE*BOX_SIZE-1（用于 ForEach 遍历宫格内的格子和宫格本身）。
+ * 对标准 9×9 (BOX_SIZE=3)，等同于 GRID_INDICES (均为 [0..8])。
+ */
 export const BOX_INDICES: number[] = Array.from({ length: BOX_SIZE * BOX_SIZE }, (_: void, i: number) => i)
 
 /**

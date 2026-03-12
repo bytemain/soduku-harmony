@@ -13,7 +13,7 @@
  *
  * 参考：docs/09-数独标准格式与导入导出支持.md
  */
-import { GRID_SIZE, BOX_SIZE, TOTAL_CELLS } from '../constants/GameConstants'
+import { GRID_SIZE, BOX_SIZE, BOX_COUNT, TOTAL_CELLS } from '../constants/GameConstants'
 import { Difficulty } from '../constants/GameConstants'
 import { decodeSeedId } from './SudokuGenerator'
 
@@ -434,16 +434,15 @@ function validateBoard(board: number[][]): void {
       }
     }
   }
-  const boxCountPerRow = GRID_SIZE / BOX_SIZE
-  for (let br = 0; br < boxCountPerRow; br++) {
-    for (let bc = 0; bc < boxCountPerRow; bc++) {
+  for (let br = 0; br < BOX_COUNT; br++) {
+    for (let bc = 0; bc < BOX_COUNT; bc++) {
       const boxSeen: boolean[] = new Array(GRID_SIZE + 1).fill(false)
       for (let dr = 0; dr < BOX_SIZE; dr++) {
         for (let dc = 0; dc < BOX_SIZE; dc++) {
           const v = board[br * BOX_SIZE + dr][bc * BOX_SIZE + dc]
           if (v > 0) {
             if (boxSeen[v]) {
-              throw new Error(`error_box_duplicate:${br * boxCountPerRow + bc + 1}:${v}`)
+              throw new Error(`error_box_duplicate:${br * BOX_COUNT + bc + 1}:${v}`)
             }
             boxSeen[v] = true
           }
