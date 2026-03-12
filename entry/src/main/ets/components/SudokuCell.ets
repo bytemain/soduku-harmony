@@ -90,6 +90,10 @@ export struct SudokuCell {
             .fontColor(this.getNoteColor(n))
             .textAlign(TextAlign.Center)
             .decoration(this.getNoteDecoration(n))
+            .width('100%')
+            .height('100%')
+            .backgroundColor(this.getNoteBackgroundColor(n))
+            .borderRadius(2)
         }
       })
     }
@@ -136,6 +140,16 @@ export struct SudokuCell {
       return { type: TextDecorationType.LineThrough, color: Colors.textNoteElim }
     }
     return { type: TextDecorationType.None }
+  }
+
+  /**
+   * 笔记数字的背景色（同数字高亮用背景色更醒目）
+   */
+  private getNoteBackgroundColor(n: number): ResourceColor {
+    const state = getNoteState(this.cellData.notes, n)
+    if (state === NoteState.EMPTY) return Color.Transparent
+    if (this.selectedValue !== 0 && n === this.selectedValue) return Colors.noteHighlightBg
+    return Color.Transparent
   }
 
   build() {
