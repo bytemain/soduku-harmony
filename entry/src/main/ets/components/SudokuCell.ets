@@ -55,8 +55,8 @@ export struct SudokuCell {
     if (this.cellData.isError) {
       return Colors.cellError
     }
-    // 3. 同数字 → 浅绿（isHighlighted + value == selectedValue）
-    if (this.cellData.isHighlighted && this.cellData.value !== 0
+    // 3. 同数字 → 浅绿（棋盘上所有与 selectedValue 相同数字的格子）
+    if (this.cellData.value !== 0
       && this.selectedValue !== 0 && this.cellData.value === this.selectedValue) {
       return Colors.cellSameNumber
     }

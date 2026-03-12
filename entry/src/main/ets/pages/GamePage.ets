@@ -78,6 +78,8 @@ struct GamePage {
   @State private loadingProgress: number = 0
   @State private isMultiSelectMode: boolean = false
   @State private multiSelectCount: number = 0
+  /** 键盘点击选中的数字（用于高亮所有同数字格子） */
+  @State private keypadSelectedDigit: number = 0
   private multiSelectIndices: Set<number> = new Set()
   /** 鼠标是否正在拖拽选择 */
   private isMouseDragging: boolean = false
@@ -528,6 +530,7 @@ struct GamePage {
       return
     }
 
+    this.keypadSelectedDigit = 0
     this.gameState.selectCell(index)
     updateHighlights(this.gameState.cells, this.gameState.selectedIndex)
   }
@@ -759,6 +762,11 @@ struct GamePage {
     if (this.isMultiSelectMode && this.multiSelectIndices.size > 0) {
       this.onGestureMultiSelect(digit, direction)
       return
+    }
+
+    // 点击数字键时记录该数字，用于高亮所有同数字格子
+    if (direction === GestureDirection.TAP) {
+      this.keypadSelectedDigit = digit
     }
 
     const cell = this.gameState.selectedCell
@@ -1389,7 +1397,7 @@ struct GamePage {
         errorCount: this.displayErrors,
         isPaused: this.gameState.isPaused,
         cells: this.cellsWrapper,
-        selectedValue: this.gameState.selectedCell?.value ?? 0,
+        selectedValue: this.keypadSelectedDigit !== 0 ? this.keypadSelectedDigit : (this.gameState.selectedCell?.value ?? 0),
         hintFocusIndex: this.hintFocusIndex,
         showCoordinates: this.showCoordinates,
         boardScale: this.boardScale,
