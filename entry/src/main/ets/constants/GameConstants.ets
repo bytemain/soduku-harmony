@@ -117,6 +117,7 @@ export interface ColorsConfig {
   pauseOverlayBg: string
   pauseOverlayText: string
   pauseInfoCardBg: string
+  pauseInfoText: string
   pauseRestartBtn: string
   pauseQuitBtn: string
 
@@ -225,11 +226,12 @@ export const LightColors: ColorsConfig = {
   shadowColorLight: '#0D000000',
 
   // === 暂停遮罩 ===
-  pauseOverlayBg: '#000000',
+  pauseOverlayBg: '#1B2838',
   pauseOverlayText: '#FFFFFF',
-  pauseInfoCardBg: '#FFFFFF22',
-  pauseRestartBtn: '#FF9800',
-  pauseQuitBtn: '#424242',
+  pauseInfoCardBg: '#FFFFFF00',
+  pauseInfoText: '#B0BEC5',
+  pauseRestartBtn: '#FF7043',
+  pauseQuitBtn: '#546E7A',
 
   // === 多选提示条 ===
   multiSelectBar: '#E3F2FD',
@@ -336,11 +338,12 @@ export const DarkColors: ColorsConfig = {
   shadowColorLight: '#20000000',
 
   // === 暂停遮罩 ===
-  pauseOverlayBg: '#000000',
-  pauseOverlayText: '#E0E0E0',
-  pauseInfoCardBg: '#FFFFFF15',
-  pauseRestartBtn: '#E65100',
-  pauseQuitBtn: '#616161',
+  pauseOverlayBg: '#0D1117',
+  pauseOverlayText: '#E6EDF3',
+  pauseInfoCardBg: '#FFFFFF00',
+  pauseInfoText: '#8B949E',
+  pauseRestartBtn: '#D84315',
+  pauseQuitBtn: '#30363D',
 
   // === 多选提示条 ===
   multiSelectBar: '#1A2332',
