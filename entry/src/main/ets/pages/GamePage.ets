@@ -1461,8 +1461,6 @@ struct GamePage {
           difficultyLabel: this.getCurrentDifficultyLabel(),
           symmetryLabel: this.getCurrentSymmetryLabel(),
           displayTime: this.displayTime,
-          errorCount: this.displayErrors,
-          maxErrors: 3,
           onCopySeed: () => this.copySeedId(),
           onCopyPuzzle: () => this.copyPuzzle81(),
           onResume: () => this.togglePause(),

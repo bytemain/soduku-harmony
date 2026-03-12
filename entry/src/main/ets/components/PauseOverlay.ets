@@ -10,8 +10,6 @@ export struct PauseOverlay {
   difficultyLabel: string = '-'
   symmetryLabel: string = '-'
   displayTime: string = '00:00'
-  @Prop errorCount: number = 0
-  @Prop maxErrors: number = 3
 
   onCopySeed: () => void = () => {}
   onCopyPuzzle: () => void = () => {}
@@ -112,7 +110,7 @@ export struct PauseOverlay {
           Text(`${this.getString('pause_info_difficulty')}: ${this.difficultyLabel}  |  ${this.getString('pause_info_symmetry')}: ${this.symmetryLabel}`)
             .fontSize(12)
             .fontColor(Colors.pauseInfoText)
-          Text(`${this.getString('pause_info_time')}: ${this.displayTime}  |  ${this.getString('pause_info_errors')}: ${this.errorCount}/${this.maxErrors}`)
+          Text(`${this.getString('pause_info_time')}: ${this.displayTime}`)
             .fontSize(12)
             .fontColor(Colors.pauseInfoText)
         }
