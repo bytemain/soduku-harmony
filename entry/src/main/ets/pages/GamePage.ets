@@ -293,6 +293,21 @@ struct GamePage {
     }
   }
 
+  onBackPress(): boolean {
+    // 游戏已完成或正在加载，允许正常返回
+    if (this.gameState.isCompleted || this.isLoading) {
+      return false
+    }
+    // 已在暂停状态，执行退出（保存并返回主页）
+    if (this.showPauseOverlay) {
+      this.quitGame()
+      return true
+    }
+    // 游戏进行中，拦截返回键，显示暂停页面
+    this.togglePause()
+    return true
+  }
+
   aboutToDisappear(): void {
     this.terminateWorker()
     if (this.timerId !== -1) {
