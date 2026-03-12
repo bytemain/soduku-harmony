@@ -7,13 +7,13 @@
  * 参考：Doc 03 任务 1.2
  */
 import { CellData, createBoardFromArray, createEmptyBoard } from './CellData'
-import { Difficulty } from '../constants/GameConstants'
+import { Difficulty, GRID_SIZE, TOTAL_CELLS } from '../constants/GameConstants'
 
 @Observed
 export class GameState {
-  /** 81 个单元格（一维数组，index = row * 9 + col） */
+  /** TOTAL_CELLS 个单元格（一维数组，index = row * GRID_SIZE + col） */
   cells: CellData[]
-  /** 完整解答（81 个数字，用于验证和提示） */
+  /** 完整解答（TOTAL_CELLS 个数字，用于验证和提示） */
   solution: number[]
   /** 当前选中格的一维索引，-1 表示未选中 */
   selectedIndex: number
@@ -49,7 +49,7 @@ export class GameState {
 
   /** 获取当前选中的 CellData，没选中返回 null */
   get selectedCell(): CellData | null {
-    if (this.selectedIndex < 0 || this.selectedIndex >= 81) {
+    if (this.selectedIndex < 0 || this.selectedIndex >= TOTAL_CELLS) {
       return null
     }
     return this.cells[this.selectedIndex]
@@ -73,16 +73,16 @@ export class GameState {
 
   /**
    * 用生成的题目和答案初始化
-   * @param puzzle 谜题（9×9, 0 表示空格）
-   * @param solution 完整解答（9×9, 全部填满）
+   * @param puzzle 谜题（GRID_SIZE×GRID_SIZE, 0 表示空格）
+   * @param solution 完整解答（GRID_SIZE×GRID_SIZE, 全部填满）
    * @param difficulty 难度
    */
   initGame(puzzle: number[][], solution: number[][], difficulty: Difficulty): void {
     this.cells = createBoardFromArray(puzzle)
     // solution 二维 → 一维
     this.solution = []
-    for (let row = 0; row < 9; row++) {
-      for (let col = 0; col < 9; col++) {
+    for (let row = 0; row < GRID_SIZE; row++) {
+      for (let col = 0; col < GRID_SIZE; col++) {
         this.solution.push(solution[row][col])
       }
     }
@@ -137,8 +137,8 @@ export class GameState {
     return count
   }
 
-  /** 某个数字是否已填满 9 个 */
+  /** 某个数字是否已填满 GRID_SIZE 个 */
   isDigitComplete(digit: number): boolean {
-    return this.countDigit(digit) >= 9
+    return this.countDigit(digit) >= GRID_SIZE
   }
 }

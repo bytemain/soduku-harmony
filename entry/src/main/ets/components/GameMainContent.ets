@@ -1,7 +1,7 @@
 /**
  * GameMainContent.ets — 游戏页主内容区
  */
-import { Difficulty, GestureDirection, Sizes } from '../constants/GameConstants'
+import { Difficulty, GestureDirection, Sizes, createInitialRemainingCounts } from '../constants/GameConstants'
 import { ArrayWrapper, SudokuBoard } from './SudokuBoard'
 import { TopBar } from './TopBar'
 import { MultiSelectBanner } from './MultiSelectBanner'
@@ -26,7 +26,7 @@ export struct GameMainContent {
   @Prop multiSelectCount: number = 0
   @Prop currentDirection: GestureDirection | null = null
   @Prop isLeftHand: boolean = false
-  @Prop remainingCounts: number[] = [0, 9, 9, 9, 9, 9, 9, 9, 9, 9]
+  @Prop remainingCounts: number[] = createInitialRemainingCounts()
   @Prop undoDisabled: boolean = true
   @Prop redoDisabled: boolean = true
   @Prop eraseDisabled: boolean = true

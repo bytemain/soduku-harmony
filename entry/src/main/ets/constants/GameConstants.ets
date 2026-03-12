@@ -468,7 +468,25 @@ export const Sizes: SizesConfig = {
 export const GRID_SIZE = 9
 /** 宫格边长 */
 export const BOX_SIZE = 3
+/** 每行/列的宫格数 */
+export const BOX_COUNT = GRID_SIZE / BOX_SIZE
 /** 总格数 */
-export const TOTAL_CELLS = 81
-/** 有效数字 1-9 */
-export const DIGITS: number[] = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+export const TOTAL_CELLS = GRID_SIZE * GRID_SIZE
+/** 有效数字 1-N */
+export const DIGITS: number[] = Array.from({ length: GRID_SIZE }, (_: void, i: number) => i + 1)
+/** 宫格索引 0..N-1 */
+export const GRID_INDICES: number[] = Array.from({ length: GRID_SIZE }, (_: void, i: number) => i)
+/** 宫格数量索引 0..BOX_SIZE*BOX_SIZE-1（等于 GRID_SIZE） */
+export const BOX_INDICES: number[] = Array.from({ length: BOX_SIZE * BOX_SIZE }, (_: void, i: number) => i)
+
+/**
+ * 创建剩余计数初始数组。
+ * index 0 不用，index 1..GRID_SIZE 各为 GRID_SIZE。
+ */
+export function createInitialRemainingCounts(): number[] {
+  const counts: number[] = [0]
+  for (let i = 0; i < GRID_SIZE; i++) {
+    counts.push(GRID_SIZE)
+  }
+  return counts
+}

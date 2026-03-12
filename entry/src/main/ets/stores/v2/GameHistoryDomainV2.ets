@@ -1,3 +1,5 @@
+import { createInitialRemainingCounts } from '../../constants/GameConstants'
+
 export interface GameHistorySyncState {
   canUndo: boolean
   canRedo: boolean
@@ -8,7 +10,7 @@ export interface GameHistorySyncState {
 export class GameHistoryDomainV2 {
   @Trace canUndo: boolean = false
   @Trace canRedo: boolean = false
-  @Trace remainingCounts: number[] = [0, 9, 9, 9, 9, 9, 9, 9, 9, 9]
+  @Trace remainingCounts: number[] = createInitialRemainingCounts()
 
   sync(options: GameHistorySyncState): void {
     this.canUndo = options.canUndo
@@ -19,6 +21,6 @@ export class GameHistoryDomainV2 {
   reset(): void {
     this.canUndo = false
     this.canRedo = false
-    this.remainingCounts = [0, 9, 9, 9, 9, 9, 9, 9, 9, 9]
+    this.remainingCounts = createInitialRemainingCounts()
   }
 }

@@ -7,7 +7,7 @@
  * 参考：Doc 05 §② 棋盘
  */
 import { CellData } from '../models/CellData'
-import { Colors, Sizes, BOX_SIZE, GRID_SIZE } from '../constants/GameConstants'
+import { Colors, Sizes, BOX_SIZE, GRID_SIZE, DIGITS, GRID_INDICES, BOX_INDICES } from '../constants/GameConstants'
 import { SudokuCell } from './SudokuCell'
 
 @Component
@@ -36,11 +36,11 @@ export struct SudokuBoard {
 
   build() {
     Column() {
-      // 顶部列号（1-9）— 坐标轴开启时显示
+      // 顶部列号 — 坐标轴开启时显示
       if (this.showCoordinates) {
         Row() {
           Blank().width(18)
-          ForEach([1, 2, 3, 4, 5, 6, 7, 8, 9], (index: number) => {
+          ForEach(DIGITS, (index: number) => {
             Text(index.toString())
               .fontSize(11)
               .fontColor(Colors.subtitleText)
@@ -53,10 +53,10 @@ export struct SudokuBoard {
       }
 
       Row() {
-        // 左侧行号（1-9）
+        // 左侧行号
         if (this.showCoordinates) {
           Column() {
-            ForEach([1, 2, 3, 4, 5, 6, 7, 8, 9], (index: number) => {
+            ForEach(DIGITS, (index: number) => {
               Row() {
                 Text(index.toString())
                   .fontSize(11)
@@ -73,7 +73,7 @@ export struct SudokuBoard {
 
         // 棋盘主体
         Grid() {
-          ForEach([0, 1, 2, 3, 4, 5, 6, 7, 8], (boxIndex: number) => {
+          ForEach(BOX_INDICES, (boxIndex: number) => {
             GridItem() {
               this.BoxGrid(boxIndex)
             }
@@ -110,7 +110,7 @@ export struct SudokuBoard {
   @Builder
   BoxGrid(boxIndex: number) {
     Grid() {
-      ForEach([0, 1, 2, 3, 4, 5, 6, 7, 8], (cellInBox: number) => {
+      ForEach(BOX_INDICES, (cellInBox: number) => {
         GridItem() {
           SudokuCell({
             cellData: this.cells.data[this.getCellIndex(
