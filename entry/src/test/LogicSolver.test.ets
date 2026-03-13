@@ -35,6 +35,8 @@ export default function logicSolverTest() {
       for (const step of result.steps) {
         expect(step.technique.length > 0).assertTrue()
         expect(step.description.length > 0).assertTrue()
+        expect(step.descriptionKey.length > 0).assertTrue()
+        expect(step.descriptionKey.startsWith('step_')).assertTrue()
       }
     })
 
@@ -89,6 +91,15 @@ export default function logicSolverTest() {
       expect(hint !== null).assertTrue()
       expect(hint!.technique.length > 0).assertTrue()
       expect(hint!.description.length > 0).assertTrue()
+    })
+
+    it('hint_has_descriptionKey_and_params', 0, () => {
+      const board = getEasyPuzzle()
+      const hint = getNextHint(board)
+      expect(hint !== null).assertTrue()
+      expect(hint!.descriptionKey.length > 0).assertTrue()
+      expect(hint!.descriptionKey.startsWith('step_')).assertTrue()
+      expect(hint!.descriptionParams.length > 0).assertTrue()
     })
   })
 

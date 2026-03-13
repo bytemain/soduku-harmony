@@ -521,6 +521,18 @@
       "value": "数字 %d 在其所在区域中只能放在 R%dC%d"
     },
     {
+      "name": "step_hidden_single_row",
+      "value": "第%d行中，数字 %d 只能填在第%d列"
+    },
+    {
+      "name": "step_hidden_single_col",
+      "value": "第%d列中，数字 %d 只能填在第%d行"
+    },
+    {
+      "name": "step_hidden_single_box",
+      "value": "宫%d中，数字 %d 只能填在第%d行第%d列"
+    },
+    {
       "name": "step_naked_pair",
       "value": "R%dC%d 和 R%dC%d 形成裸对 {%s}"
     },

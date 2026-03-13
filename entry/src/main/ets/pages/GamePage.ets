@@ -1305,7 +1305,7 @@ struct GamePage {
     return board
   }
 
-  /** 应用逻辑提示：显示技巧名 + 高亮 + 填数 */
+  /** 应用逻辑提示：显示技巧名 + 推理原因 + 高亮 + 填数 */
   private applyLogicHint(hint: SolveStep): void {
     const cell = this.gameState.cells[hint.cellIndex]
     if (cell.isGiven) return
@@ -1328,8 +1328,17 @@ struct GamePage {
 
     this.afterAction(cell.index)
 
-    // 显示技巧名称的 Toast
-    this.showHintToast(`💡 ${techniqueName}：${this.formatCellLabel(hint.cellIndex)} ${this.getString('hint_fill')} ${hint.digit}`)
+    // 构建包含推理原因的描述
+    let reason: string
+    if (hint.descriptionKey.length > 0) {
+      const template = this.getString(hint.descriptionKey)
+      reason = formatStr(template, ...hint.descriptionParams)
+    } else {
+      reason = `${this.formatCellLabel(hint.cellIndex)} ${this.getString('hint_fill')} ${hint.digit}`
+    }
+
+    // 显示技巧名称 + 推理原因的 Toast
+    this.showHintToast(`💡 ${techniqueName}：${reason}`)
   }
 
   /** 直接提示：填入正确答案（无逻辑步骤可用时的回退） */

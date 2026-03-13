@@ -521,24 +521,36 @@
       "value": "Digit %d can only go at R%dC%d in its unit"
     },
     {
+      "name": "step_hidden_single_row",
+      "value": "In row %d, digit %d can only go in column %d"
+    },
+    {
+      "name": "step_hidden_single_col",
+      "value": "In column %d, digit %d can only go in row %d"
+    },
+    {
+      "name": "step_hidden_single_box",
+      "value": "In box %d, digit %d can only go at R%dC%d"
+    },
+    {
       "name": "step_naked_pair",
       "value": "R%dC%d and R%dC%d form a Naked Pair {%s}"
     },
     {
       "name": "step_pointing_pair_row",
-      "value": "Digit %d in box %d is only in row %d → eliminate %d from rest of row"
+      "value": "In box %d, digit %d is only in row %d → eliminate %d from rest of row"
     },
     {
       "name": "step_pointing_pair_col",
-      "value": "Digit %d in box %d is only in col %d → eliminate %d from rest of col"
+      "value": "In box %d, digit %d is only in col %d → eliminate %d from rest of col"
     },
     {
       "name": "step_box_line_row",
-      "value": "Digit %d in row %d is only in box %d → eliminate %d from other rows in box"
+      "value": "In row %d, digit %d is only in box %d → eliminate %d from other rows in box"
     },
     {
       "name": "step_box_line_col",
-      "value": "Digit %d in col %d is only in box %d → eliminate %d from other cols in box"
+      "value": "In col %d, digit %d is only in box %d → eliminate %d from other cols in box"
     },
     {
       "name": "step_xwing_row",
