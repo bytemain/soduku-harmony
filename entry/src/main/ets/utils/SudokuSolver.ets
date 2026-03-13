@@ -17,8 +17,10 @@ import { PEERS, UNITS_OF } from './Topology'
 // 位图候选集工具
 // ============================================================
 
-/** 全部候选：0b111111111 = 0x1FF = 511 */
-const ALL_CANDIDATES = (1 << GRID_SIZE) - 1
+/** 全部候选位图：根据当前 GRID_SIZE 动态计算，6×6 → 63，9×9 → 511 */
+function allCandidatesMask(): number {
+  return (1 << GRID_SIZE) - 1
+}
 
 /** 数字 n(1-9) 对应的 bit mask */
 function bitOf(n: number): number {
@@ -144,7 +146,7 @@ function fill(candidates: number[], s: number, d: number): boolean {
  */
 function initCandidates(board: number[][]): number[] | null {
   // 所有格子初始为全候选
-  const candidates: number[] = new Array(TOTAL_CELLS).fill(ALL_CANDIDATES)
+  const candidates: number[] = new Array(TOTAL_CELLS).fill(allCandidatesMask())
 
   for (let r = 0; r < GRID_SIZE; r++) {
     for (let c = 0; c < GRID_SIZE; c++) {

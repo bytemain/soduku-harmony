@@ -129,7 +129,10 @@ export class LogicSolveResult {
 // 位图工具（与 SudokuSolver 一致）
 // ============================================================
 
-const ALL_CANDIDATES = (1 << GRID_SIZE) - 1
+/** 全部候选位图：根据当前 GRID_SIZE 动态计算 */
+function allCandidatesMask(): number {
+  return (1 << GRID_SIZE) - 1
+}
 
 function bitOf(n: number): number {
   return 1 << (n - 1)
@@ -168,7 +171,7 @@ function lowestBit(bits: number): number {
 
 /** 从 9×9 棋盘初始化候选集（不做约束传播，保持原始候选） */
 function initCandidatesFromBoard(board: number[][]): number[] {
-  const candidates: number[] = new Array(TOTAL_CELLS).fill(ALL_CANDIDATES)
+  const candidates: number[] = new Array(TOTAL_CELLS).fill(allCandidatesMask())
 
   // 先标记已填数字
   for (let r = 0; r < GRID_SIZE; r++) {
