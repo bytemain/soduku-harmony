@@ -461,26 +461,75 @@ export const Sizes: SizesConfig = {
 }
 
 // ============================================================
-// 网格常量
+// 网格常量（可由 applyGridConfig 动态切换）
 // ============================================================
 
+import { GridConfig, GRID_9x9 } from '../models/VariantConfig'
+
 /** 数独边长 */
-export const GRID_SIZE = 9
-/** 宫格边长 */
-export const BOX_SIZE = 3
-/** 每行/列的宫格数 */
-export const BOX_COUNT = GRID_SIZE / BOX_SIZE
+export let GRID_SIZE = 9
+/** 宫格行数（每个宫格跨几行） */
+export let BOX_ROWS = 3
+/** 宫格列数（每个宫格跨几列） */
+export let BOX_COLS = 3
+/** 宫格边长（方形宫时 = BOX_ROWS = BOX_COLS；非方形宫取 BOX_ROWS） */
+export let BOX_SIZE = 3
+/** 水平方向宫格数 = GRID_SIZE / BOX_COLS */
+export let BOX_COUNT_COLS = 3
+/** 垂直方向宫格数 = GRID_SIZE / BOX_ROWS */
+export let BOX_COUNT_ROWS = 3
+/** 总宫格数 = GRID_SIZE（与之前 BOX_COUNT = GRID_SIZE/BOX_SIZE 兼容） */
+export let BOX_COUNT = 9
 /** 总格数 */
-export const TOTAL_CELLS = GRID_SIZE * GRID_SIZE
+export let TOTAL_CELLS = 81
 /** 有效数字 1-N */
-export const DIGITS: number[] = Array.from({ length: GRID_SIZE }, (_: void, i: number) => i + 1)
+export let DIGITS: number[] = [1, 2, 3, 4, 5, 6, 7, 8, 9]
 /** 行/列索引 0..GRID_SIZE-1（用于 ForEach 遍历行/列） */
-export const GRID_INDICES: number[] = Array.from({ length: GRID_SIZE }, (_: void, i: number) => i)
+export let GRID_INDICES: number[] = [0, 1, 2, 3, 4, 5, 6, 7, 8]
 /**
- * 宫内格子索引 0..BOX_SIZE*BOX_SIZE-1（用于 ForEach 遍历宫格内的格子和宫格本身）。
- * 对标准 9×9 (BOX_SIZE=3)，等同于 GRID_INDICES (均为 [0..8])。
+ * 宫格索引 0..BOX_COUNT-1（用于 ForEach 遍历宫格）。
+ * 对标准 9×9，为 [0..8]。对 6×6，为 [0..5]。
  */
-export const BOX_INDICES: number[] = Array.from({ length: BOX_SIZE * BOX_SIZE }, (_: void, i: number) => i)
+export let BOX_INDICES: number[] = [0, 1, 2, 3, 4, 5, 6, 7, 8]
+/**
+ * 宫内格子索引 0..BOX_ROWS*BOX_COLS-1（用于 ForEach 遍历宫格内的格子）。
+ * 对标准 9×9 (3×3 宫)，为 [0..8]。对 6×6 (2×3 宫)，为 [0..5]。
+ */
+export let BOX_CELL_INDICES: number[] = [0, 1, 2, 3, 4, 5, 6, 7, 8]
+
+/**
+ * 应用新的棋盘几何配置，更新所有网格常量。
+ * 与 applyTheme() 对颜色的切换方式一致。
+ *
+ * @param config 新的 GridConfig（如 GRID_6x6, GRID_9x9）
+ */
+export function applyGridConfig(config: GridConfig): void {
+  GRID_SIZE = config.gridSize
+  BOX_ROWS = config.boxRows
+  BOX_COLS = config.boxCols
+  BOX_SIZE = config.boxRows // 保持向后兼容
+  BOX_COUNT_COLS = config.gridSize / config.boxCols
+  BOX_COUNT_ROWS = config.gridSize / config.boxRows
+  BOX_COUNT = BOX_COUNT_COLS * BOX_COUNT_ROWS
+  TOTAL_CELLS = config.totalCells
+  DIGITS = config.digits.slice()
+  GRID_INDICES = Array.from({ length: config.gridSize }, (_: void, i: number) => i)
+  BOX_INDICES = Array.from({ length: BOX_COUNT }, (_: void, i: number) => i)
+  BOX_CELL_INDICES = Array.from({ length: config.boxRows * config.boxCols }, (_: void, i: number) => i)
+}
+
+/**
+ * 获取当前活跃的 GridConfig 对象。
+ */
+export function getActiveGridConfig(): GridConfig {
+  return {
+    gridSize: GRID_SIZE,
+    boxRows: BOX_ROWS,
+    boxCols: BOX_COLS,
+    totalCells: TOTAL_CELLS,
+    digits: DIGITS.slice(),
+  }
+}
 
 /**
  * 创建剩余计数初始数组。

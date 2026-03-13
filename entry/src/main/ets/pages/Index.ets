@@ -8,7 +8,7 @@
 import { router, promptAction } from '@kit.ArkUI'
 import { common } from '@kit.AbilityKit'
 import { pasteboard } from '@kit.BasicServicesKit'
-import { Colors, Sizes, Difficulty, getDifficultyConfig, GRID_INDICES, BOX_SIZE, GRID_SIZE } from '../constants/GameConstants'
+import { Colors, Sizes, Difficulty, getDifficultyConfig, GRID_INDICES, BOX_ROWS, BOX_COLS, GRID_SIZE } from '../constants/GameConstants'
 import { DifficultySegment } from '../components/DifficultySegment'
 import { SettingsPanel } from '../components/SettingsPanel'
 import { hasSavedGame, clearSave, loadGame, GameSaveData } from '../utils/GameStorage'
@@ -175,8 +175,8 @@ struct Index {
               .backgroundColor(board[r][c] > 0 ? Colors.cellDefault : Colors.pageBg)
               .border({
                 width: {
-                  left: c % BOX_SIZE === 0 ? 1 : 0.3,
-                  top: r % BOX_SIZE === 0 ? 1 : 0.3,
+                  left: c % BOX_COLS === 0 ? 1 : 0.3,
+                  top: r % BOX_ROWS === 0 ? 1 : 0.3,
                   right: c === GRID_SIZE - 1 ? 1 : 0,
                   bottom: r === GRID_SIZE - 1 ? 1 : 0,
                 },

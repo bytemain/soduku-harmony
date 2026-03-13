@@ -13,7 +13,7 @@
  *
  * 参考：docs/09-数独标准格式与导入导出支持.md
  */
-import { GRID_SIZE, BOX_SIZE, BOX_COUNT, TOTAL_CELLS } from '../constants/GameConstants'
+import { GRID_SIZE, BOX_ROWS, BOX_COLS, BOX_COUNT_ROWS, BOX_COUNT_COLS, TOTAL_CELLS } from '../constants/GameConstants'
 import { Difficulty } from '../constants/GameConstants'
 import { decodeSeedId } from './SudokuGenerator'
 
@@ -434,15 +434,15 @@ function validateBoard(board: number[][]): void {
       }
     }
   }
-  for (let br = 0; br < BOX_COUNT; br++) {
-    for (let bc = 0; bc < BOX_COUNT; bc++) {
+  for (let br = 0; br < BOX_COUNT_ROWS; br++) {
+    for (let bc = 0; bc < BOX_COUNT_COLS; bc++) {
       const boxSeen: boolean[] = new Array(GRID_SIZE + 1).fill(false)
-      for (let dr = 0; dr < BOX_SIZE; dr++) {
-        for (let dc = 0; dc < BOX_SIZE; dc++) {
-          const v = board[br * BOX_SIZE + dr][bc * BOX_SIZE + dc]
+      for (let dr = 0; dr < BOX_ROWS; dr++) {
+        for (let dc = 0; dc < BOX_COLS; dc++) {
+          const v = board[br * BOX_ROWS + dr][bc * BOX_COLS + dc]
           if (v > 0) {
             if (boxSeen[v]) {
-              throw new Error(`error_box_duplicate:${br * BOX_COUNT + bc + 1}:${v}`)
+              throw new Error(`error_box_duplicate:${br * BOX_COUNT_COLS + bc + 1}:${v}`)
             }
             boxSeen[v] = true
           }
@@ -519,14 +519,14 @@ export function exportToSs(board: number[][]): string {
     for (let c = 0; c < GRID_SIZE; c++) {
       const v = board[r][c]
       parts.push(v === 0 ? '.' : v.toString())
-      // 每 BOX_SIZE 列加一个额外空格
-      if ((c + 1) % BOX_SIZE === 0 && c < GRID_SIZE - 1) {
+      // 每 BOX_COLS 列加一个额外空格
+      if ((c + 1) % BOX_COLS === 0 && c < GRID_SIZE - 1) {
         parts.push('')
       }
     }
     lines.push(parts.join(' '))
-    // 每 BOX_SIZE 行加一个空行
-    if ((r + 1) % BOX_SIZE === 0 && r < GRID_SIZE - 1) {
+    // 每 BOX_ROWS 行加一个空行
+    if ((r + 1) % BOX_ROWS === 0 && r < GRID_SIZE - 1) {
       lines.push('')
     }
   }
