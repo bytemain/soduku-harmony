@@ -8,7 +8,8 @@
 import { router, promptAction } from '@kit.ArkUI'
 import { common } from '@kit.AbilityKit'
 import { pasteboard } from '@kit.BasicServicesKit'
-import { Colors, Sizes, Difficulty, getDifficultyConfig, GRID_INDICES, BOX_SIZE, GRID_SIZE } from '../constants/GameConstants'
+import { Colors, Sizes, Difficulty, getDifficultyConfig, GRID_INDICES,
+  BOX_ROWS, BOX_COLS, GRID_SIZE } from '../constants/GameConstants'
 import { DifficultySegment } from '../components/DifficultySegment'
 import { SettingsPanel } from '../components/SettingsPanel'
 import { hasSavedGame, clearSave, loadGame, GameSaveData } from '../utils/GameStorage'
@@ -17,6 +18,7 @@ import { parseSudokuInput, ParseResult, countGivens, exportTo81String,
   getFormatDisplayNameKey, SudokuFormatType } from '../utils/SudokuFormat'
 import { formatStr } from '../utils/I18nHelper'
 import { evaluateDifficulty } from '../utils/DifficultyEvaluator'
+import { GridConfig, GRID_4x4, GRID_6x6, GRID_9x9 } from '../models/VariantConfig'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 
 class SymmetryOption {
@@ -37,6 +39,22 @@ const SYMMETRY_OPTIONS: SymmetryOption[] = [
   new SymmetryOption(Symmetry.MIRROR, 'sym_mirror'),
 ]
 
+class GridSizeOption {
+  config: GridConfig
+  label: string = ''
+
+  constructor(config: GridConfig, label: string) {
+    this.config = config
+    this.label = label
+  }
+}
+
+const GRID_SIZE_OPTIONS: GridSizeOption[] = [
+  new GridSizeOption(GRID_4x4, 'grid_size_4x4'),
+  new GridSizeOption(GRID_6x6, 'grid_size_6x6'),
+  new GridSizeOption(GRID_9x9, 'grid_size_9x9'),
+]
+
 @Entry
 @Component
 struct Index {
@@ -51,6 +69,7 @@ struct Index {
   @State savedTime: string = '00:00'
   @State showSettings: boolean = false
   @State selectedSymmetry: string = 'auto'  // 'auto' | Symmetry values
+  @State selectedGridSize: number = 9      // 4 | 6 | 9
   @State seedInput: string = ''
   /** 导入解析结果 */
   @State importResult: ParseResult | null = null
@@ -175,8 +194,8 @@ struct Index {
               .backgroundColor(board[r][c] > 0 ? Colors.cellDefault : Colors.pageBg)
               .border({
                 width: {
-                  left: c % BOX_SIZE === 0 ? 1 : 0.3,
-                  top: r % BOX_SIZE === 0 ? 1 : 0.3,
+                  left: c % BOX_COLS === 0 ? 1 : 0.3,
+                  top: r % BOX_ROWS === 0 ? 1 : 0.3,
                   right: c === GRID_SIZE - 1 ? 1 : 0,
                   bottom: r === GRID_SIZE - 1 ? 1 : 0,
                 },
@@ -282,6 +301,49 @@ struct Index {
         selectedDifficulty: $selectedDifficulty,
       })
         .margin({ top: Sizes.btnGap })
+
+      // ==================== ③.2 棋盘大小选择 ====================
+      Column() {
+        Text($r('app.string.grid_size_section'))
+          .fontSize(12)
+          .fontColor(Colors.subtitleText)
+          .margin({ bottom: 6 })
+
+        Row({ space: 0 }) {
+          ForEach(GRID_SIZE_OPTIONS, (item: GridSizeOption) => {
+            Text(getContext(this).resourceManager.getStringByNameSync(item.label))
+              .fontSize(13)
+              .fontColor(
+                this.selectedGridSize === item.config.gridSize
+                  ? Colors.primaryText
+                  : Colors.subtitleText
+              )
+              .fontWeight(
+                this.selectedGridSize === item.config.gridSize
+                  ? FontWeight.Medium
+                  : FontWeight.Normal
+              )
+              .backgroundColor(
+                this.selectedGridSize === item.config.gridSize
+                  ? Colors.primaryBtn
+                  : 'transparent'
+              )
+              .borderRadius(8)
+              .padding({ left: 10, right: 10, top: 6, bottom: 6 })
+              .layoutWeight(1)
+              .textAlign(TextAlign.Center)
+              .onClick(() => {
+                this.selectedGridSize = item.config.gridSize
+              })
+          })
+        }
+        .width('100%')
+        .backgroundColor(Colors.segmentBg)
+        .borderRadius(12)
+        .padding(3)
+      }
+      .width('100%')
+      .margin({ top: 8 })
 
       // ==================== ③.5 对称模式选择 ====================
       Column() {
@@ -541,6 +603,7 @@ struct Index {
               params: {
                 difficulty: this.selectedDifficulty,
                 symmetry: this.selectedSymmetry === 'auto' ? undefined : this.selectedSymmetry,
+                gridSize: this.selectedGridSize,
               },
             })
           }

@@ -6,7 +6,7 @@
  *
  * 参考：Doc 01 §3, Doc 03 任务 1.4
  */
-import { GRID_SIZE, BOX_SIZE, DIGITS } from '../constants/GameConstants'
+import { GRID_SIZE, BOX_ROWS, BOX_COLS, DIGITS } from '../constants/GameConstants'
 
 // ============================================================
 // 可播种伪随机数生成器（Mulberry32）
@@ -153,10 +153,10 @@ export function isValidPlacement(board: number[][], row: number, col: number, nu
     if (board[r][col] === num) return false
   }
   // 检查宫
-  const br = Math.floor(row / BOX_SIZE) * BOX_SIZE
-  const bc = Math.floor(col / BOX_SIZE) * BOX_SIZE
-  for (let r = br; r < br + BOX_SIZE; r++) {
-    for (let c = bc; c < bc + BOX_SIZE; c++) {
+  const br = Math.floor(row / BOX_ROWS) * BOX_ROWS
+  const bc = Math.floor(col / BOX_COLS) * BOX_COLS
+  for (let r = br; r < br + BOX_ROWS; r++) {
+    for (let c = bc; c < bc + BOX_COLS; c++) {
       if (board[r][c] === num) return false
     }
   }

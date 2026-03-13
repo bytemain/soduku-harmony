@@ -16,7 +16,7 @@
  *
  * 参考：Doc 01 §5-6, Simon Tatham Solo 难度模型
  */
-import { GRID_SIZE, TOTAL_CELLS, BOX_SIZE, BOX_COUNT } from '../constants/GameConstants'
+import { GRID_SIZE, TOTAL_CELLS, BOX_ROWS, BOX_COLS, BOX_COUNT_ROWS, BOX_COUNT_COLS } from '../constants/GameConstants'
 import { PEERS, UNITS_OF, ALL_UNITS, rowOf, colOf, boxOf, indexOf } from './Topology'
 
 // ============================================================
@@ -221,11 +221,11 @@ function getColUnit(col: number): number[] {
 
 /** 宫 unit 索引 (0 .. GRID_SIZE-1) */
 function getBoxUnit(box: number): number[] {
-  const br = Math.floor(box / BOX_COUNT) * BOX_SIZE
-  const bc = (box % BOX_COUNT) * BOX_SIZE
+  const br = Math.floor(box / BOX_COUNT_COLS) * BOX_ROWS
+  const bc = (box % BOX_COUNT_COLS) * BOX_COLS
   const unit: number[] = []
-  for (let r = br; r < br + BOX_SIZE; r++) {
-    for (let c = bc; c < bc + BOX_SIZE; c++) {
+  for (let r = br; r < br + BOX_ROWS; r++) {
+    for (let c = bc; c < bc + BOX_COLS; c++) {
       unit.push(r * GRID_SIZE + c)
     }
   }

@@ -1,17 +1,19 @@
 /**
- * GestureNumberPad.ets — 3×3 手势键盘
+ * GestureNumberPad.ets — 手势键盘
  *
- * 包含 9 个 GestureKey，排列成 3×3 网格。
- * 每个键显示数字(1-9)和剩余计数。
+ * 包含 GRID_SIZE 个 GestureKey，排列成网格。
+ * 布局使用与宫格相同的 BOX_COLS × BOX_ROWS 排列（行列互换），
+ * 使数字键盘始终与棋盘宫格布局匹配。
  *
  * 参考：Doc 05 §3
  */
-import { GestureDirection, Sizes, DIGITS, createInitialRemainingCounts } from '../constants/GameConstants'
+import { GestureDirection, Sizes, DIGITS, BOX_COLS, BOX_ROWS,
+  createInitialRemainingCounts } from '../constants/GameConstants'
 import { GestureKey } from './GestureKey'
 
 @Component
 export struct GestureNumberPad {
-  /** 各数字剩余计数 [_, count1, count2, ..., count9]，index 0 不用 */
+  /** 各数字剩余计数 [_, count1, count2, ..., countN]，index 0 不用 */
   @Prop remainingCounts: number[] = createInitialRemainingCounts()
   onGesture: (digit: number, direction: GestureDirection) => void = () => {}
   onGestureDirectionChange: (direction: GestureDirection | null) => void = () => {}
@@ -33,8 +35,10 @@ export struct GestureNumberPad {
         .padding(3)
       })
     }
-    .columnsTemplate('1fr 1fr 1fr')
-    .rowsTemplate('1fr 1fr 1fr')
+    // 键盘布局使用 BOX_ROWS × BOX_COLS 的转置排列，
+    // 使键盘宽高比与宫格匹配（例如 6×6 的 2×3 宫 → 3列2行的键盘）
+    .columnsTemplate('1fr '.repeat(BOX_ROWS).trim())
+    .rowsTemplate('1fr '.repeat(BOX_COLS).trim())
     .aspectRatio(1)
     .layoutWeight(1)
     .onAreaChange((_oldArea, newArea) => {

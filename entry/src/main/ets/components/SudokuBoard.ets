@@ -7,7 +7,8 @@
  * 参考：Doc 05 §② 棋盘
  */
 import { CellData } from '../models/CellData'
-import { Colors, Sizes, BOX_SIZE, GRID_SIZE, DIGITS, GRID_INDICES, BOX_INDICES } from '../constants/GameConstants'
+import { Colors, Sizes, BOX_ROWS, BOX_COLS, BOX_COUNT_COLS, BOX_COUNT_ROWS,
+  GRID_SIZE, DIGITS, GRID_INDICES, BOX_INDICES, BOX_CELL_INDICES } from '../constants/GameConstants'
 import { SudokuCell } from './SudokuCell'
 
 @Component
@@ -81,8 +82,8 @@ export struct SudokuBoard {
             .borderColor(Colors.cellBorderBold)
           })
         }
-        .columnsTemplate('1fr 1fr 1fr')
-        .rowsTemplate('1fr 1fr 1fr')
+        .columnsTemplate('1fr '.repeat(BOX_COUNT_COLS).trim())
+        .rowsTemplate('1fr '.repeat(BOX_COUNT_ROWS).trim())
         .layoutWeight(1)
         .aspectRatio(1)
         .backgroundColor(Colors.cellBorderBold)
@@ -110,32 +111,32 @@ export struct SudokuBoard {
   @Builder
   BoxGrid(boxIndex: number) {
     Grid() {
-      ForEach(BOX_INDICES, (cellInBox: number) => {
+      ForEach(BOX_CELL_INDICES, (cellInBox: number) => {
         GridItem() {
           SudokuCell({
             cellData: this.cells.data[this.getCellIndex(
-              Math.floor(boxIndex / BOX_SIZE) * BOX_SIZE,
-              (boxIndex % BOX_SIZE) * BOX_SIZE,
+              Math.floor(boxIndex / BOX_COUNT_COLS) * BOX_ROWS,
+              (boxIndex % BOX_COUNT_COLS) * BOX_COLS,
               cellInBox
             )],
             selectedValue: this.selectedValue,
             isHintTarget: this.hintFocusIndex === this.getCellIndex(
-              Math.floor(boxIndex / BOX_SIZE) * BOX_SIZE,
-              (boxIndex % BOX_SIZE) * BOX_SIZE,
+              Math.floor(boxIndex / BOX_COUNT_COLS) * BOX_ROWS,
+              (boxIndex % BOX_COUNT_COLS) * BOX_COLS,
               cellInBox
             ),
             allCells: this.cells.data,
             onCellClick: () => {
               this.onCellClick(this.getCellIndex(
-                Math.floor(boxIndex / BOX_SIZE) * BOX_SIZE,
-                (boxIndex % BOX_SIZE) * BOX_SIZE,
+                Math.floor(boxIndex / BOX_COUNT_COLS) * BOX_ROWS,
+                (boxIndex % BOX_COUNT_COLS) * BOX_COLS,
                 cellInBox
               ))
             },
             onMouseDragSelect: (action: string) => {
               this.onMouseDragSelect(this.getCellIndex(
-                Math.floor(boxIndex / BOX_SIZE) * BOX_SIZE,
-                (boxIndex % BOX_SIZE) * BOX_SIZE,
+                Math.floor(boxIndex / BOX_COUNT_COLS) * BOX_ROWS,
+                (boxIndex % BOX_COUNT_COLS) * BOX_COLS,
                 cellInBox
               ), action)
             },
@@ -145,19 +146,19 @@ export struct SudokuBoard {
         .borderColor(Colors.cellBorderThin)
       })
     }
-    .columnsTemplate('1fr 1fr 1fr')
-    .rowsTemplate('1fr 1fr 1fr')
+    .columnsTemplate('1fr '.repeat(BOX_COLS).trim())
+    .rowsTemplate('1fr '.repeat(BOX_ROWS).trim())
     .width('100%')
     .height('100%')
     .backgroundColor(Colors.boardBg)
   }
 
   /**
-   * 由宫左上角 (boxRow, boxCol) + 宫内偏移 cellInBox(0-8) 算出一维索引
+   * 由宫左上角 (boxRow, boxCol) + 宫内偏移 cellInBox 算出一维索引
    */
   private getCellIndex(boxRow: number, boxCol: number, cellInBox: number): number {
-    const r = boxRow + Math.floor(cellInBox / BOX_SIZE)
-    const c = boxCol + (cellInBox % BOX_SIZE)
+    const r = boxRow + Math.floor(cellInBox / BOX_COLS)
+    const c = boxCol + (cellInBox % BOX_COLS)
     return r * GRID_SIZE + c
   }
 

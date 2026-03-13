@@ -6,7 +6,7 @@
  *
  * 参考：Doc 01 §2.2
  */
-import { GRID_SIZE, BOX_SIZE, BOX_COUNT } from '../constants/GameConstants'
+import { GRID_SIZE, BOX_ROWS, BOX_COLS, BOX_COUNT_COLS } from '../constants/GameConstants'
 
 // ============================================================
 // CellFlags — 状态标志位
@@ -152,7 +152,7 @@ export class CellData {
 
   /** 当前格的宫格编号 (0 .. GRID_SIZE-1) */
   get box(): number {
-    return Math.floor(this.row / BOX_SIZE) * BOX_COUNT + Math.floor(this.col / BOX_SIZE)
+    return Math.floor(this.row / BOX_ROWS) * BOX_COUNT_COLS + Math.floor(this.col / BOX_COLS)
   }
 
   /** 一维索引 (0 .. TOTAL_CELLS-1) */

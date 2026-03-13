@@ -12,7 +12,7 @@
  * 参考：Doc 05 §② 单元格
  */
 import { CellData, CellFlags, hasFlag, getNoteState, NoteState } from '../models/CellData'
-import { Colors, Sizes, DIGITS } from '../constants/GameConstants'
+import { Colors, Sizes, DIGITS, BOX_COLS, BOX_ROWS, GRID_SIZE } from '../constants/GameConstants'
 import { PEERS } from '../utils/Topology'
 
 @Component
@@ -97,8 +97,8 @@ export struct SudokuCell {
         }
       })
     }
-    .columnsTemplate('1fr 1fr 1fr')
-    .rowsTemplate('1fr 1fr 1fr')
+    .columnsTemplate('1fr '.repeat(BOX_COLS).trim())
+    .rowsTemplate('1fr '.repeat(BOX_ROWS).trim())
     .width('100%')
     .height('100%')
   }
