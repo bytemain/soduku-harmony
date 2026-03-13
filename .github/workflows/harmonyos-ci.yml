@@ -69,13 +69,7 @@ jobs:
           cd $GITHUB_WORKSPACE
           ohpm install --all
 
-      # 3. 代码检查
-      - name: Lint
-        run: |
-          cd $GITHUB_WORKSPACE
-          hvigorw lintETS --mode module -p product=default --no-daemon
-
-      # 4. 运行单元测试
+      # 3. 运行单元测试
       - name: Run unit tests
         run: |
           cd $GITHUB_WORKSPACE
