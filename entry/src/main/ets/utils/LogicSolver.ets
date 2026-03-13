@@ -68,19 +68,27 @@ export class SolveStep {
   eliminations: CandidateElimination[]
   /** 人类可读的描述 */
   description: string
+  /** 描述对应的 i18n 资源 key（用于本地化显示） */
+  descriptionKey: string
+  /** 描述模板中的参数列表（配合 formatStr 使用） */
+  descriptionParams: (number | string)[]
 
   constructor(
     technique: Technique,
     cellIndex: number,
     digit: number,
     eliminations: CandidateElimination[],
-    description: string
+    description: string,
+    descriptionKey: string = '',
+    descriptionParams: (number | string)[] = []
   ) {
     this.technique = technique
     this.cellIndex = cellIndex
     this.digit = digit
     this.eliminations = eliminations
     this.description = description
+    this.descriptionKey = descriptionKey
+    this.descriptionParams = descriptionParams
   }
 }
 
@@ -228,6 +236,21 @@ function getBoxUnit(box: number): number[] {
 // 技巧实现
 // ============================================================
 
+/** 判断一个 unit 的类型：行 / 列 / 宫 */
+function getUnitType(unit: number[]): string {
+  const firstRow = rowOf(unit[0])
+  const firstCol = colOf(unit[0])
+  let sameRow = true
+  let sameCol = true
+  for (let i = 1; i < unit.length; i++) {
+    if (rowOf(unit[i]) !== firstRow) sameRow = false
+    if (colOf(unit[i]) !== firstCol) sameCol = false
+  }
+  if (sameRow) return 'row'
+  if (sameCol) return 'col'
+  return 'box'
+}
+
 /**
  * Naked Single：候选只剩 1 个的格子
  * 返回找到的第一个 step，或 null
@@ -243,7 +266,9 @@ function findNakedSingle(candidates: number[]): SolveStep | null {
         i,
         d,
         [],
-        `R${r + 1}C${c + 1} only candidate ${d}, fill in`
+        `R${r + 1}C${c + 1} only candidate ${d}, fill in`,
+        'step_naked_single',
+        [r + 1, c + 1, d]
       )
     }
   }
@@ -271,12 +296,28 @@ function findHiddenSingle(candidates: number[]): SolveStep | null {
         if (countBits(candidates[place]) > 1) {
           const r = rowOf(place)
           const c = colOf(place)
+          // 判断 unit 类型以提供更精确的描述
+          const uType = getUnitType(unit)
+          let descKey: string
+          let descParams: (number | string)[]
+          if (uType === 'row') {
+            descKey = 'step_hidden_single_row'
+            descParams = [r + 1, d, c + 1]
+          } else if (uType === 'col') {
+            descKey = 'step_hidden_single_col'
+            descParams = [c + 1, d, r + 1]
+          } else {
+            descKey = 'step_hidden_single_box'
+            descParams = [boxOf(place) + 1, d, r + 1, c + 1]
+          }
           return new SolveStep(
             Technique.HIDDEN_SINGLE,
             place,
             d,
             [],
-            `Digit ${d} can only go at R${r + 1}C${c + 1} in its unit`
+            `Digit ${d} can only go at R${r + 1}C${c + 1} in its ${uType}`,
+            descKey,
+            descParams
           )
         }
       }
@@ -327,7 +368,9 @@ function findNakedPair(candidates: number[]): SolveStep | null {
               pairs[a],
               0,
               eliminations,
-              `R${r1 + 1}C${c1 + 1} and R${r2 + 1}C${c2 + 1} form Naked Pair {${digits.join(',')}}`
+              `R${r1 + 1}C${c1 + 1} and R${r2 + 1}C${c2 + 1} form Naked Pair {${digits.join(',')}}`,
+              'step_naked_pair',
+              [r1 + 1, c1 + 1, r2 + 1, c2 + 1, digits.join(',')]
             )
           }
         }
@@ -381,7 +424,9 @@ function findPointingPair(candidates: number[]): SolveStep | null {
             positions[0],
             0,
             eliminations,
-            `Box ${box + 1}: digit ${d} only in row ${row + 1} -> eliminate ${d} from rest of row`
+            `Box ${box + 1}: digit ${d} only in row ${row + 1} -> eliminate ${d} from rest of row`,
+            'step_pointing_pair_row',
+            [box + 1, d, row + 1, d]
           )
         }
       }
@@ -402,7 +447,9 @@ function findPointingPair(candidates: number[]): SolveStep | null {
             positions[0],
             0,
             eliminations,
-            `Box ${box + 1}: digit ${d} only in col ${col + 1} -> eliminate ${d} from rest of col`
+            `Box ${box + 1}: digit ${d} only in col ${col + 1} -> eliminate ${d} from rest of col`,
+            'step_pointing_pair_col',
+            [box + 1, d, col + 1, d]
           )
         }
       }
@@ -449,7 +496,9 @@ function findBoxLineReduction(candidates: number[]): SolveStep | null {
             positions[0],
             0,
             eliminations,
-            `Row ${row + 1}: digit ${d} only in box ${box + 1} -> eliminate ${d} from other rows in box`
+            `Row ${row + 1}: digit ${d} only in box ${box + 1} -> eliminate ${d} from other rows in box`,
+            'step_box_line_row',
+            [row + 1, d, box + 1, d]
           )
         }
       }
@@ -489,7 +538,9 @@ function findBoxLineReduction(candidates: number[]): SolveStep | null {
             positions[0],
             0,
             eliminations,
-            `Col ${col + 1}: digit ${d} only in box ${box + 1} -> eliminate ${d} from other cols in box`
+            `Col ${col + 1}: digit ${d} only in box ${box + 1} -> eliminate ${d} from other cols in box`,
+            'step_box_line_col',
+            [col + 1, d, box + 1, d]
           )
         }
       }
@@ -548,7 +599,9 @@ function findXWing(candidates: number[]): SolveStep | null {
               indexOf(r1, c1),
               0,
               eliminations,
-              `Digit ${d} forms X-Wing in rows ${r1 + 1},${r2 + 1} (cols ${c1 + 1},${c2 + 1})`
+              `Digit ${d} forms X-Wing in rows ${r1 + 1},${r2 + 1} (cols ${c1 + 1},${c2 + 1})`,
+              'step_xwing_row',
+              [d, r1 + 1, r2 + 1, c1 + 1, c2 + 1]
             )
           }
         }
@@ -593,7 +646,9 @@ function findXWing(candidates: number[]): SolveStep | null {
               indexOf(r1, c1),
               0,
               eliminations,
-              `Digit ${d} forms X-Wing in cols ${c1 + 1},${c2 + 1} (rows ${r1 + 1},${r2 + 1})`
+              `Digit ${d} forms X-Wing in cols ${c1 + 1},${c2 + 1} (rows ${r1 + 1},${r2 + 1})`,
+              'step_xwing_col',
+              [d, c1 + 1, c2 + 1, r1 + 1, r2 + 1]
             )
           }
         }
