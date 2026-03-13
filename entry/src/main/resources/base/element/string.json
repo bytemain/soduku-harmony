@@ -313,6 +313,14 @@
       "value": "暂无历史记录"
     },
     {
+      "name": "stats_replay",
+      "value": "重玩"
+    },
+    {
+      "name": "stats_history_symmetry",
+      "value": "对称"
+    },
+    {
       "name": "pause_title",
       "value": "游戏暂停"
     },

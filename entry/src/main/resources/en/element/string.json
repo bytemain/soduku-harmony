@@ -313,6 +313,14 @@
       "value": "No history yet"
     },
     {
+      "name": "stats_replay",
+      "value": "Replay"
+    },
+    {
+      "name": "stats_history_symmetry",
+      "value": "Symmetry"
+    },
+    {
       "name": "pause_title",
       "value": "Game Paused"
     },
