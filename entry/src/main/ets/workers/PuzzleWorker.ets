@@ -15,7 +15,9 @@ import {
 import { solve } from '../utils/SudokuSolver'
 import { parse81String } from '../utils/SudokuFormat'
 import { evaluateDifficulty } from '../utils/DifficultyEvaluator'
-import { Difficulty } from '../constants/GameConstants'
+import { Difficulty, applyGridConfig } from '../constants/GameConstants'
+import { GRID_4x4, GRID_6x6, GRID_9x9, GridConfig, createSizedConfig } from '../models/VariantConfig'
+import { applyTopology } from '../utils/Topology'
 
 const workerPort: ThreadWorkerGlobalScope = worker.workerPort
 
@@ -47,6 +49,19 @@ workerPort.onmessage = (e: MessageEvents): void => {
   // Reset throttle state for each new generation request
   lastSentPhase = ''
   lastSentProgress = -1
+
+  // Apply grid config if provided (for variant sizes)
+  const gridSize = msg['gridSize'] as number | undefined
+  if (gridSize !== undefined && gridSize !== null) {
+    const gridConfigMap: Record<string, GridConfig> = {
+      '4': GRID_4x4,
+      '6': GRID_6x6,
+      '9': GRID_9x9,
+    }
+    const cfg = gridConfigMap[gridSize.toString()] ?? GRID_9x9
+    applyGridConfig(cfg)
+    applyTopology(createSizedConfig(cfg.gridSize, cfg.boxRows, cfg.boxCols))
+  }
 
   try {
     if (type === 'generate') {

@@ -719,6 +719,22 @@
     {
       "name": "coach_system_prompt",
       "value": "你是一位数独教练。以下是当前棋盘状态（. 表示空格）：\n\n%s\n\n规则：\n1. 绝对不要直接告诉用户答案（哪个格子填什么数字）\n2. 引导用户自己发现——指出可以用什么技巧，在哪个区域（如\"看看第3行\"）\n3. 用简洁的中文回答\n4. 用 R行C列 标记格子位置（如 R3C5 表示第3行第5列）\n\n用户提问：%s"
+    },
+    {
+      "name": "grid_size_section",
+      "value": "棋盘大小"
+    },
+    {
+      "name": "grid_size_4x4",
+      "value": "4×4"
+    },
+    {
+      "name": "grid_size_6x6",
+      "value": "6×6"
+    },
+    {
+      "name": "grid_size_9x9",
+      "value": "9×9"
     }
   ]
 }

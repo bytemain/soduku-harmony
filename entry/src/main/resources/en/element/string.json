@@ -719,6 +719,22 @@
     {
       "name": "coach_system_prompt",
       "value": "You are a Sudoku coach. Here is the current board state (. means empty):\n\n%s\n\nRules:\n1. Never tell the user the answer directly (which cell gets which number)\n2. Guide the user to discover it themselves — point out which technique to use and in which area (e.g. \"look at row 3\")\n3. Answer concisely in English\n4. Use R-row C-col notation for cell positions (e.g. R3C5 means row 3, column 5)\n\nUser question: %s"
+    },
+    {
+      "name": "grid_size_section",
+      "value": "Grid Size"
+    },
+    {
+      "name": "grid_size_4x4",
+      "value": "4×4"
+    },
+    {
+      "name": "grid_size_6x6",
+      "value": "6×6"
+    },
+    {
+      "name": "grid_size_9x9",
+      "value": "9×9"
     }
   ]
 }

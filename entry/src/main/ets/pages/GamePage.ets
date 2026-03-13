@@ -16,10 +16,12 @@ import { CellData, CellFlags, setFlag, clearFlag,
 import { GameState } from '../models/GameState'
 import { GameHistory, CellSnapshot } from '../models/GameHistory'
 import { Colors, Difficulty, GestureDirection, getDifficultyConfig,
-  GRID_SIZE, TOTAL_CELLS, createInitialRemainingCounts } from '../constants/GameConstants'
+  GRID_SIZE, TOTAL_CELLS, createInitialRemainingCounts, applyGridConfig } from '../constants/GameConstants'
 import { decodeSeedId, Symmetry, encodeSeedId } from '../utils/SudokuGenerator'
 import { validateAllCells, updateHighlights, isGameCompleted } from '../utils/SudokuValidator'
 import { PEERS } from '../utils/Topology'
+import { applyTopology } from '../utils/Topology'
+import { GRID_4x4, GRID_6x6, GRID_9x9, GridConfig, createSizedConfig } from '../models/VariantConfig'
 import { ArrayWrapper } from '../components/SudokuBoard'
 import { SettingsPanel } from '../components/SettingsPanel'
 import { GestureGuideOverlay } from '../components/GestureGuideOverlay'
@@ -42,6 +44,8 @@ interface GamePageParams {
   importedPuzzle?: string
   /** 导入谜题的难度标签（来自元数据或自动评估） */
   importedDifficulty?: Difficulty
+  /** 棋盘大小 (4/6/9)，默认 9 */
+  gridSize?: number
 }
 
 /**
@@ -133,6 +137,17 @@ struct GamePage {
     const seedIdParam = params?.seedId
     const importedPuzzle = params?.importedPuzzle
     const importedDifficulty = params?.importedDifficulty
+    const gridSize = params?.gridSize ?? 9
+
+    // 应用棋盘大小配置
+    const gridConfigMap: Record<string, GridConfig> = {
+      '4': GRID_4x4,
+      '6': GRID_6x6,
+      '9': GRID_9x9,
+    }
+    const gridConfig = gridConfigMap[gridSize.toString()] ?? GRID_9x9
+    applyGridConfig(gridConfig)
+    applyTopology(createSizedConfig(gridConfig.gridSize, gridConfig.boxRows, gridConfig.boxCols))
 
     // 尝试恢复存档（种子模式不恢复存档）
     const saved = !seedIdParam ? loadGame(getContext(this)) : null
@@ -250,17 +265,20 @@ struct GamePage {
         type: 'import',
         puzzle81: importedPuzzle,
         difficulty: importedDifficulty ?? null,
+        gridSize: GRID_SIZE,
       })
     } else if (seedIdParam) {
       w.postMessage({
         type: 'generateFromSeed',
         seedId: seedIdParam,
+        gridSize: GRID_SIZE,
       })
     } else {
       w.postMessage({
         type: 'generate',
         difficulty: difficulty,
         symmetry: symmetryParam ?? null,
+        gridSize: GRID_SIZE,
       })
     }
   }
