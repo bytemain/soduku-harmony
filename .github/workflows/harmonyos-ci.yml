@@ -63,17 +63,24 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # 2. 安装项目依赖
+      # 2. 设置 Node.js 版本
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      # 3. 安装项目依赖
       - name: Install dependencies
         run: |
           cd $GITHUB_WORKSPACE
           ohpm install --all
 
-      # 3. 运行单元测试
+      # 4. 运行单元测试
       - name: Run unit tests
         run: |
           cd $GITHUB_WORKSPACE
-          hvigorw test --mode module -p product=default --no-daemon
+          node -v
+          hvigorw test --mode module -p product=default --no-daemon --stacktrace
 
   publish:
     needs: [build, test]
