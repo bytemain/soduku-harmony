@@ -220,7 +220,7 @@ struct StatsPage {
       }
       .scrollable(true)
       .barMode(BarMode.Fixed)
-      .barBackgroundColor(Colors.segmentBg)
+      .barBackgroundColor('transparent')
       .animationDuration(200)
       .onChange((index: number) => {
         this.activeTab = index
