@@ -43,6 +43,23 @@ interface GamePageParams {
   importedDifficulty?: Difficulty
 }
 
+/**
+ * 兼容旧版扁平历史栈格式。
+ * 旧格式为 CellSnapshot[]（每个元素是单个快照对象），
+ * 新格式为 CellSnapshot[][]（每个元素是一组快照）。
+ * 如果检测到旧格式，将每个快照包装为单元素数组。
+ */
+function migrateStack(raw: CellSnapshot[][] | CellSnapshot[] | Object[]): CellSnapshot[][] {
+  if (raw.length === 0) return []
+  const first = raw[0]
+  // 旧格式：第一个元素有 index 属性（是 CellSnapshot 对象），不是数组
+  if (first !== undefined && first !== null &&
+    !Array.isArray(first) && typeof (first as CellSnapshot).index === 'number') {
+    return (raw as CellSnapshot[]).map((snap: CellSnapshot): CellSnapshot[] => [snap])
+  }
+  return raw as CellSnapshot[][]
+}
+
 @Entry
 @Component
 struct GamePage {
@@ -360,9 +377,9 @@ struct GamePage {
 
     this.cellsWrapper = new ArrayWrapper(this.gameState.cells)
 
-    // 恢复历史
-    this.history.undoStack = saved.undoStack ?? []
-    this.history.redoStack = saved.redoStack ?? []
+    // 恢复历史（兼容旧版扁平格式：CellSnapshot[] → CellSnapshot[][]）
+    this.history.undoStack = migrateStack(saved.undoStack ?? [])
+    this.history.redoStack = migrateStack(saved.redoStack ?? [])
   }
 
   /**
@@ -860,6 +877,7 @@ struct GamePage {
     const actualDirection = direction === GestureDirection.TAP ? GestureDirection.UP : direction
 
     let anyChanged = false
+    const batch: CellSnapshot[] = []
     this.multiSelectIndices.forEach((idx) => {
       const cell = this.gameState.cells[idx]
       if (cell.isGiven) return
@@ -889,12 +907,13 @@ struct GamePage {
 
       if (snapshot.oldValue !== snapshot.newValue ||
         snapshot.oldNotes !== snapshot.newNotes) {
-        this.history.push(snapshot)
+        batch.push(snapshot)
         anyChanged = true
       }
     })
 
     if (anyChanged) {
+      this.history.pushBatch(batch)
       this.afterAction()
       // 操作完成后重新更新多选标志（afterAction 会清除 flags）
       this.updateMultiSelectFlags()
@@ -1066,17 +1085,20 @@ struct GamePage {
    * 撤销
    */
   private onUndo(): void {
-    const snap = this.history.popUndo()
-    if (snap === null) return
+    const group = this.history.popUndo()
+    if (group === null) return
 
-    const cell = this.gameState.cells[snap.index]
-    cell.value = snap.oldValue
-    cell.notes = snap.oldNotes
-
-    this.gameState.selectCell(snap.index)
-    if (this.gameState.selectedIndex !== snap.index) {
-      this.gameState.selectCell(snap.index)
+    // 逆序恢复：后修改的先恢复
+    for (let i = group.length - 1; i >= 0; i--) {
+      const snap = group[i]
+      const cell = this.gameState.cells[snap.index]
+      cell.value = snap.oldValue
+      cell.notes = snap.oldNotes
     }
+
+    // 选中最后一个操作的格子（组中第一个条目）
+    const firstSnap = group[0]
+    this.gameState.selectCell(firstSnap.index)
 
     this.afterAction()
   }
@@ -1085,17 +1107,20 @@ struct GamePage {
    * 前进（重做）
    */
   private onRedo(): void {
-    const snap = this.history.popRedo()
-    if (snap === null) return
+    const group = this.history.popRedo()
+    if (group === null) return
 
-    const cell = this.gameState.cells[snap.index]
-    cell.value = snap.newValue
-    cell.notes = snap.newNotes
-
-    this.gameState.selectCell(snap.index)
-    if (this.gameState.selectedIndex !== snap.index) {
-      this.gameState.selectCell(snap.index)
+    // 正序重放
+    for (let i = 0; i < group.length; i++) {
+      const snap = group[i]
+      const cell = this.gameState.cells[snap.index]
+      cell.value = snap.newValue
+      cell.notes = snap.newNotes
     }
+
+    // 选中最后一个操作的格子（组中最后一个条目）
+    const lastSnap = group[group.length - 1]
+    this.gameState.selectCell(lastSnap.index)
 
     this.afterAction()
   }
@@ -1140,6 +1165,8 @@ struct GamePage {
     if (this.gameState.isCompleted) return
 
     const cells = this.gameState.cells
+    const batch: CellSnapshot[] = []
+
     for (let i = 0; i < 81; i++) {
       const cell = cells[i]
       // 跳过已有数字的格子
@@ -1161,7 +1188,20 @@ struct GamePage {
           newNotes = setNoteState(newNotes, d, NoteState.ACTIVE)
         }
       }
-      cell.notes = newNotes
+
+      // 只有真正发生变化时才记录快照
+      if (cell.notes !== newNotes) {
+        batch.push(new CellSnapshot(
+          cell.index, cell.value, cell.value,
+          cell.notes, newNotes, cell.flags, cell.flags
+        ))
+        cell.notes = newNotes
+      }
+    }
+
+    // 整批作为一次操作入栈，撤销时整体回退
+    if (batch.length > 0) {
+      this.history.pushBatch(batch)
     }
 
     this.afterAction()

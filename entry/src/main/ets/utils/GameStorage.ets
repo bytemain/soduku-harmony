@@ -40,8 +40,8 @@ export class GameSaveData {
   elapsedSeconds: number = 0
   errorCount: number = 0
   selectedIndex: number = -1
-  undoStack: CellSnapshot[] = []
-  redoStack: CellSnapshot[] = []
+  undoStack: CellSnapshot[][] = []
+  redoStack: CellSnapshot[][] = []
   timestamp: number = 0
   seed: number = 0
   symmetry: string = ''
