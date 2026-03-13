@@ -102,6 +102,28 @@ export const GRID_16x16: GridConfig = {
   digits: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
 }
 
+/**
+ * 根据棋盘边长获取对应的预设 GridConfig。
+ * 集中管理 size → config 映射，避免各处硬编码。
+ *
+ * @param size 棋盘边长（4 / 6 / 9 / 12 / 16），默认返回 GRID_9x9
+ */
+export function getGridConfigBySize(size: number): GridConfig {
+  switch (size) {
+    case 4:
+      return GRID_4x4
+    case 6:
+      return GRID_6x6
+    case 12:
+      return GRID_12x12
+    case 16:
+      return GRID_16x16
+    case 9:
+    default:
+      return GRID_9x9
+  }
+}
+
 // ============================================================
 // RegionConfig — 区域定义（Jigsaw 用）
 // ============================================================

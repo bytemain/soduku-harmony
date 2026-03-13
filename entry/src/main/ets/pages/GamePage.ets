@@ -20,7 +20,7 @@ import { Colors, Difficulty, GestureDirection, getDifficultyConfig,
 import { decodeSeedId, Symmetry, encodeSeedId } from '../utils/SudokuGenerator'
 import { validateAllCells, updateHighlights, isGameCompleted } from '../utils/SudokuValidator'
 import { PEERS, applyTopology } from '../utils/Topology'
-import { GRID_4x4, GRID_6x6, GRID_9x9, GridConfig, createSizedConfig } from '../models/VariantConfig'
+import { getGridConfigBySize, createSizedConfig } from '../models/VariantConfig'
 import { ArrayWrapper } from '../components/SudokuBoard'
 import { SettingsPanel } from '../components/SettingsPanel'
 import { GestureGuideOverlay } from '../components/GestureGuideOverlay'
@@ -139,12 +139,7 @@ struct GamePage {
     const gridSize = params?.gridSize ?? 9
 
     // 应用棋盘大小配置
-    const gridConfigMap: Record<string, GridConfig> = {
-      '4': GRID_4x4,
-      '6': GRID_6x6,
-      '9': GRID_9x9,
-    }
-    const gridConfig = gridConfigMap[gridSize.toString()] ?? GRID_9x9
+    const gridConfig = getGridConfigBySize(gridSize)
     applyGridConfig(gridConfig)
     applyTopology(createSizedConfig(gridConfig.gridSize, gridConfig.boxRows, gridConfig.boxCols))
 
@@ -153,12 +148,7 @@ struct GamePage {
     if (saved && saved.cells.length > 0) {
       // 恢复存档时，先应用存档的棋盘大小配置
       const savedGridSize = saved.gridSize ?? 9
-      const savedGridConfigMap: Record<string, GridConfig> = {
-        '4': GRID_4x4,
-        '6': GRID_6x6,
-        '9': GRID_9x9,
-      }
-      const savedGridCfg = savedGridConfigMap[savedGridSize.toString()] ?? GRID_9x9
+      const savedGridCfg = getGridConfigBySize(savedGridSize)
       applyGridConfig(savedGridCfg)
       applyTopology(createSizedConfig(savedGridCfg.gridSize, savedGridCfg.boxRows, savedGridCfg.boxCols))
 
