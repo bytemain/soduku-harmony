@@ -6,6 +6,7 @@
  *
  * 参考：Doc 05 §三/四, Doc 01 §五
  */
+import { GridConfig } from '../models/VariantConfig'
 
 // ============================================================
 // 难度枚举 & 配置
@@ -463,8 +464,6 @@ export const Sizes: SizesConfig = {
 // ============================================================
 // 网格常量（可由 applyGridConfig 动态切换）
 // ============================================================
-
-import { GridConfig } from '../models/VariantConfig'
 
 /** 数独边长 */
 export let GRID_SIZE = 9
