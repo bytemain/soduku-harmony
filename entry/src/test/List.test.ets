@@ -10,6 +10,7 @@ import logicSolverTest from './LogicSolver.test'
 import sudokuFormatTest from './SudokuFormat.test'
 import variantConfigTest from './VariantConfig.test'
 import variantTopologyTest from './VariantTopology.test'
+import gameHistoryTest from './GameHistory.test'
 
 export default function testsuite() {
   localUnitTest()
@@ -24,4 +25,5 @@ export default function testsuite() {
   sudokuFormatTest()
   variantConfigTest()
   variantTopologyTest()
+  gameHistoryTest()
 }

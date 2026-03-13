@@ -36,6 +36,7 @@ export struct GameMainContent {
   @Prop autoNotesVisible: boolean = false
   @Prop gridHeight: number = 0
 
+  onBlankAreaClick: () => void = () => {}
   onPause: () => void = () => {}
   onCellClick: (index: number) => void = () => {}
   onMouseDragSelect: (index: number, action: string) => void = () => {}
@@ -131,5 +132,8 @@ export struct GameMainContent {
     }
     .width('100%')
     .height('100%')
+    .onClick(() => {
+      this.onBlankAreaClick()
+    })
   }
 }

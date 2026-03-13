@@ -38,8 +38,8 @@ export class GameRecord {
   won: boolean = false
   /** 完成时间戳 */
   timestamp: number = 0
-  /** 每一步操作快照（用于回放） */
-  steps: CellSnapshot[] = []
+  /** 每一步操作快照（用于回放），每个条目是一组快照 */
+  steps: CellSnapshot[][] = []
 
   constructor() {}
 }
