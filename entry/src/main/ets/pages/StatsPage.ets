@@ -1,7 +1,7 @@
 /**
  * StatsPage.ets — 统计页面
  *
- * 使用 Tabs 组件实现统计总览 + 历史记录两个 Tab，不可左右滑动。
+ * 使用 Tabs 组件实现统计总览 + 历史记录两个 Tab，支持左右滑动切换。
  * 统计：各难度的游戏次数、胜率、最佳/平均用时、连胜等。
  * 历史：最近完成的游戏，显示难度、对称、用时、步数、错误，支持重玩。
  */
@@ -120,7 +120,7 @@ struct StatsPage {
       .padding({ left: Sizes.pagePadding, right: Sizes.pagePadding })
       .alignItems(VerticalAlign.Center)
 
-      // 使用 Tabs 组件，禁用左右滑动
+      // 使用 Tabs 组件，支持左右滑动切换
       Tabs({ index: this.activeTab, barPosition: BarPosition.Start }) {
         // ==================== Tab 0: 统计总览 ====================
         TabContent() {
@@ -218,9 +218,9 @@ struct StatsPage {
         }
         .tabBar(this.TabBarItem($r('app.string.stats_tab_history'), 1))
       }
-      .scrollable(false)
+      .scrollable(true)
       .barMode(BarMode.Fixed)
-      .barBackgroundColor(Colors.segmentBg)
+      .barBackgroundColor('transparent')
       .animationDuration(200)
       .onChange((index: number) => {
         this.activeTab = index
@@ -297,7 +297,7 @@ struct StatsPage {
       // 分隔线
       Divider()
         .color(Colors.divider)
-        .margin({ top: 8, bottom: 8 })
+        .margin({ top: 4, bottom: 4 })
 
       // 详细信息行：用时 + 步数 + 错误 + 对称
       Row() {
@@ -351,7 +351,7 @@ struct StatsPage {
       .alignItems(VerticalAlign.Center)
     }
     .width('100%')
-    .padding(12)
+    .padding({ left: 12, right: 12, top: 8, bottom: 8 })
     .backgroundColor(Colors.cellDefault)
     .borderRadius(12)
     .shadow({
