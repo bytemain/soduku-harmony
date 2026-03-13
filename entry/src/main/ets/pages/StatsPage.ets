@@ -318,7 +318,7 @@ struct StatsPage {
         }
 
         if (record.symmetry) {
-          Text(`🔄 ${record.symmetry}`)
+          Text(`🔄 ${this.getSymmetryLabel(record.symmetry)}`)
             .fontSize(12)
             .fontColor(Colors.subtitleText)
             .margin({ left: 12 })
@@ -360,6 +360,15 @@ struct StatsPage {
       offsetX: 0,
       offsetY: 1,
     })
+  }
+
+  private getSymmetryLabel(symmetry: string): string {
+    const key = `sym_${symmetry}`
+    try {
+      return getContext(this).resourceManager.getStringByNameSync(key)
+    } catch (_e) {
+      return symmetry
+    }
   }
 
   private formatDate(timestamp: number): string {
