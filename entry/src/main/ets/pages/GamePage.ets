@@ -1330,7 +1330,7 @@ struct GamePage {
 
     // 构建包含推理原因的描述
     let reason: string
-    if (hint.descriptionKey) {
+    if (hint.descriptionKey.length > 0) {
       const template = this.getString(hint.descriptionKey)
       reason = formatStr(template, ...hint.descriptionParams)
     } else {

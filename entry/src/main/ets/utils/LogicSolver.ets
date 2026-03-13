@@ -245,6 +245,7 @@ function getUnitType(unit: number[]): string {
   for (let i = 1; i < unit.length; i++) {
     if (rowOf(unit[i]) !== firstRow) sameRow = false
     if (colOf(unit[i]) !== firstCol) sameCol = false
+    if (!sameRow && !sameCol) return 'box'
   }
   if (sameRow) return 'row'
   if (sameCol) return 'col'
