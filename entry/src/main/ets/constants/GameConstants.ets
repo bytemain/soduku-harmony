@@ -464,7 +464,7 @@ export const Sizes: SizesConfig = {
 // 网格常量（可由 applyGridConfig 动态切换）
 // ============================================================
 
-import { GridConfig, GRID_9x9 } from '../models/VariantConfig'
+import { GridConfig } from '../models/VariantConfig'
 
 /** 数独边长 */
 export let GRID_SIZE = 9

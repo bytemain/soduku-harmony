@@ -9,7 +9,7 @@ import { router, promptAction } from '@kit.ArkUI'
 import { common } from '@kit.AbilityKit'
 import { pasteboard } from '@kit.BasicServicesKit'
 import { Colors, Sizes, Difficulty, getDifficultyConfig, GRID_INDICES,
-  BOX_ROWS, BOX_COLS, GRID_SIZE, applyGridConfig } from '../constants/GameConstants'
+  BOX_ROWS, BOX_COLS, GRID_SIZE } from '../constants/GameConstants'
 import { DifficultySegment } from '../components/DifficultySegment'
 import { SettingsPanel } from '../components/SettingsPanel'
 import { hasSavedGame, clearSave, loadGame, GameSaveData } from '../utils/GameStorage'
@@ -19,8 +19,6 @@ import { parseSudokuInput, ParseResult, countGivens, exportTo81String,
 import { formatStr } from '../utils/I18nHelper'
 import { evaluateDifficulty } from '../utils/DifficultyEvaluator'
 import { GridConfig, GRID_4x4, GRID_6x6, GRID_9x9 } from '../models/VariantConfig'
-import { applyTopology } from '../utils/Topology'
-import { createSizedConfig } from '../models/VariantConfig'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 
 class SymmetryOption {

@@ -45,6 +45,8 @@ export class GameSaveData {
   timestamp: number = 0
   seed: number = 0
   symmetry: string = ''
+  /** 棋盘大小（4/6/9），默认 9 */
+  gridSize: number = 9
 
   constructor() {}
 }

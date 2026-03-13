@@ -12,15 +12,14 @@ import { pasteboard } from '@kit.BasicServicesKit'
 import { common } from '@kit.AbilityKit'
 import { worker, MessageEvents, ErrorEvent } from '@kit.ArkTS'
 import { CellData, CellFlags, setFlag, clearFlag,
-  getNoteState, setNoteState, NoteState } from '../models/CellData'
+  getNoteState, setNoteState, NoteState, createEmptyBoard } from '../models/CellData'
 import { GameState } from '../models/GameState'
 import { GameHistory, CellSnapshot } from '../models/GameHistory'
 import { Colors, Difficulty, GestureDirection, getDifficultyConfig,
   GRID_SIZE, TOTAL_CELLS, createInitialRemainingCounts, applyGridConfig } from '../constants/GameConstants'
 import { decodeSeedId, Symmetry, encodeSeedId } from '../utils/SudokuGenerator'
 import { validateAllCells, updateHighlights, isGameCompleted } from '../utils/SudokuValidator'
-import { PEERS } from '../utils/Topology'
-import { applyTopology } from '../utils/Topology'
+import { PEERS, applyTopology } from '../utils/Topology'
 import { GRID_4x4, GRID_6x6, GRID_9x9, GridConfig, createSizedConfig } from '../models/VariantConfig'
 import { ArrayWrapper } from '../components/SudokuBoard'
 import { SettingsPanel } from '../components/SettingsPanel'
@@ -151,9 +150,26 @@ struct GamePage {
 
     // 尝试恢复存档（种子模式不恢复存档）
     const saved = !seedIdParam ? loadGame(getContext(this)) : null
-    if (saved && saved.cells.length === TOTAL_CELLS) {
-      this.restoreFromSave(saved)
-      this.finishInit()
+    if (saved && saved.cells.length > 0) {
+      // 恢复存档时，先应用存档的棋盘大小配置
+      const savedGridSize = saved.gridSize ?? 9
+      const savedGridConfigMap: Record<string, GridConfig> = {
+        '4': GRID_4x4,
+        '6': GRID_6x6,
+        '9': GRID_9x9,
+      }
+      const savedGridCfg = savedGridConfigMap[savedGridSize.toString()] ?? GRID_9x9
+      applyGridConfig(savedGridCfg)
+      applyTopology(createSizedConfig(savedGridCfg.gridSize, savedGridCfg.boxRows, savedGridCfg.boxCols))
+
+      if (saved.cells.length === TOTAL_CELLS) {
+        this.restoreFromSave(saved)
+        this.finishInit()
+      } else {
+        // 存档尺寸不匹配，重新生成
+        this.resetLoadingState(importedPuzzle !== undefined)
+        this.startPuzzleWorker(difficulty, symmetryParam, seedIdParam, importedPuzzle, importedDifficulty)
+      }
     } else {
       // Worker 线程异步生成，不阻塞 UI（Loading 动画可流畅转动）
       this.resetLoadingState(importedPuzzle !== undefined)
@@ -372,7 +388,8 @@ struct GamePage {
    * 从存档恢复游戏
    */
   private restoreFromSave(saved: GameSaveData): void {
-    // 恢复 cells
+    // 重新创建匹配当前 GRID_SIZE 的空棋盘
+    this.gameState.cells = createEmptyBoard()
     const cells = this.gameState.cells
     for (let i = 0; i < TOTAL_CELLS; i++) {
       const s = saved.cells[i]
@@ -421,6 +438,7 @@ struct GamePage {
     data.timestamp = Date.now()
     data.seed = this.gameState.seed
     data.symmetry = this.gameState.symmetry
+    data.gridSize = GRID_SIZE
     saveGame(getContext(this), data)
   }
 
