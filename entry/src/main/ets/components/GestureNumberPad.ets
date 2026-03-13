@@ -35,6 +35,8 @@ export struct GestureNumberPad {
         .padding(3)
       })
     }
+    // 键盘布局使用 BOX_ROWS × BOX_COLS 的转置排列，
+    // 使键盘宽高比与宫格匹配（例如 6×6 的 2×3 宫 → 3列2行的键盘）
     .columnsTemplate('1fr '.repeat(BOX_ROWS).trim())
     .rowsTemplate('1fr '.repeat(BOX_COLS).trim())
     .aspectRatio(1)

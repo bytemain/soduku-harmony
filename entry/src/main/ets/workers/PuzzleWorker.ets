@@ -52,7 +52,7 @@ workerPort.onmessage = (e: MessageEvents): void => {
 
   // Apply grid config if provided (for variant sizes)
   const gridSize = msg['gridSize'] as number | undefined
-  if (gridSize !== undefined && gridSize !== null) {
+  if (gridSize !== undefined) {
     const gridConfigMap: Record<string, GridConfig> = {
       '4': GRID_4x4,
       '6': GRID_6x6,

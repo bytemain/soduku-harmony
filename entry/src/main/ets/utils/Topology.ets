@@ -29,10 +29,12 @@ export function colOf(index: number): number {
   return index % GRID_SIZE
 }
 
-/** 由一维索引得到宫号 */
+/** 由一维索引得到宫号（按阅读顺序编号：先行后列） */
 export function boxOf(index: number): number {
   const r = Math.floor(index / GRID_SIZE)
   const c = index % GRID_SIZE
+  // BOX_COUNT_COLS = 水平方向宫格数 = GRID_SIZE / BOX_COLS
+  // 例如 6×6 (2×3 宫)：BOX_COUNT_COLS=2，宫按 0-1 / 2-3 / 4-5 排列
   return Math.floor(r / BOX_ROWS) * BOX_COUNT_COLS + Math.floor(c / BOX_COLS)
 }
 

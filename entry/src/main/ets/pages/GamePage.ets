@@ -162,7 +162,7 @@ struct GamePage {
       applyGridConfig(savedGridCfg)
       applyTopology(createSizedConfig(savedGridCfg.gridSize, savedGridCfg.boxRows, savedGridCfg.boxCols))
 
-      if (saved.cells.length === TOTAL_CELLS) {
+      if (saved.cells.length === savedGridCfg.totalCells) {
         this.restoreFromSave(saved)
         this.finishInit()
       } else {
