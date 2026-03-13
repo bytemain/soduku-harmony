@@ -8,7 +8,7 @@
  *
  * 参考：Doc 01 §3, Simon Tatham Solo
  */
-import { GRID_SIZE } from '../constants/GameConstants'
+import { GRID_SIZE, DIGITS } from '../constants/GameConstants'
 import { Difficulty, getDifficultyConfig } from '../constants/GameConstants'
 import {
   cloneGrid,
@@ -59,7 +59,7 @@ function fillBoard(board: number[][], rng: SeededRandom): boolean {
   for (let row = 0; row < GRID_SIZE; row++) {
     for (let col = 0; col < GRID_SIZE; col++) {
       if (board[row][col] === 0) {
-        const numbers = seededShuffle([1, 2, 3, 4, 5, 6, 7, 8, 9], rng)
+        const numbers = seededShuffle([...DIGITS], rng)
         for (const num of numbers) {
           if (isValidPlacement(board, row, col, num)) {
             board[row][col] = num

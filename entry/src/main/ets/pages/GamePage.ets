@@ -15,7 +15,8 @@ import { CellData, CellFlags, setFlag, clearFlag,
   getNoteState, setNoteState, NoteState } from '../models/CellData'
 import { GameState } from '../models/GameState'
 import { GameHistory, CellSnapshot } from '../models/GameHistory'
-import { Colors, Difficulty, GestureDirection, getDifficultyConfig } from '../constants/GameConstants'
+import { Colors, Difficulty, GestureDirection, getDifficultyConfig,
+  GRID_SIZE, TOTAL_CELLS, createInitialRemainingCounts } from '../constants/GameConstants'
 import { decodeSeedId, Symmetry, encodeSeedId } from '../utils/SudokuGenerator'
 import { validateAllCells, updateHighlights, isGameCompleted } from '../utils/SudokuValidator'
 import { PEERS } from '../utils/Topology'
@@ -71,7 +72,7 @@ struct GamePage {
   @State private gameState: GameState = new GameState()
   @State private cellsWrapper: ArrayWrapper = new ArrayWrapper([])
   @State private gestureDirection: GestureDirection | null = null
-  @State private remainingCounts: number[] = [0, 9, 9, 9, 9, 9, 9, 9, 9, 9]
+  @State private remainingCounts: number[] = createInitialRemainingCounts()
   @State private displayTime: string = '00:00'
   @State private displayErrors: number = 0
   @State private canUndo: boolean = false
@@ -135,7 +136,7 @@ struct GamePage {
 
     // 尝试恢复存档（种子模式不恢复存档）
     const saved = !seedIdParam ? loadGame(getContext(this)) : null
-    if (saved && saved.cells.length === 81) {
+    if (saved && saved.cells.length === TOTAL_CELLS) {
       this.restoreFromSave(saved)
       this.finishInit()
     } else {
@@ -355,7 +356,7 @@ struct GamePage {
   private restoreFromSave(saved: GameSaveData): void {
     // 恢复 cells
     const cells = this.gameState.cells
-    for (let i = 0; i < 81; i++) {
+    for (let i = 0; i < TOTAL_CELLS; i++) {
       const s = saved.cells[i]
       cells[i].row = s.row
       cells[i].col = s.col
@@ -437,14 +438,14 @@ struct GamePage {
   }
 
   /**
-   * 获取当前谜题的 81 字符串（原始题面，不含玩家填入）
+   * 获取当前谜题的字符串（原始题面，不含玩家填入）
    */
   private getPuzzle81String(): string {
     const board: number[][] = []
-    for (let r = 0; r < 9; r++) {
+    for (let r = 0; r < GRID_SIZE; r++) {
       const row: number[] = []
-      for (let c = 0; c < 9; c++) {
-        const cell = this.gameState.cells[r * 9 + c]
+      for (let c = 0; c < GRID_SIZE; c++) {
+        const cell = this.gameState.cells[r * GRID_SIZE + c]
         row.push(cell.isGiven ? cell.value : 0)
       }
       board.push(row)
@@ -595,24 +596,26 @@ struct GamePage {
     // --- 方向键导航 ---
     if (keyCode === KeyCode.KEYCODE_DPAD_UP || keyCode === KeyCode.KEYCODE_DPAD_DOWN ||
       keyCode === KeyCode.KEYCODE_DPAD_LEFT || keyCode === KeyCode.KEYCODE_DPAD_RIGHT) {
-      // 如果当前无选中格，默认从中心 (4,4) 开始
-      let row = sel >= 0 ? Math.floor(sel / 9) : 4
-      let col = sel >= 0 ? sel % 9 : 4
+      // 如果当前无选中格，默认从中心开始
+      const center = Math.floor(GRID_SIZE / 2)
+      let row = sel >= 0 ? Math.floor(sel / GRID_SIZE) : center
+      let col = sel >= 0 ? sel % GRID_SIZE : center
+      const lastIdx = GRID_SIZE - 1
       switch (keyCode) {
         case KeyCode.KEYCODE_DPAD_UP:
-          row = row > 0 ? row - 1 : 8
+          row = row > 0 ? row - 1 : lastIdx
           break
         case KeyCode.KEYCODE_DPAD_DOWN:
-          row = row < 8 ? row + 1 : 0
+          row = row < lastIdx ? row + 1 : 0
           break
         case KeyCode.KEYCODE_DPAD_LEFT:
-          col = col > 0 ? col - 1 : 8
+          col = col > 0 ? col - 1 : lastIdx
           break
         case KeyCode.KEYCODE_DPAD_RIGHT:
-          col = col < 8 ? col + 1 : 0
+          col = col < lastIdx ? col + 1 : 0
           break
       }
-      const newIndex = row * 9 + col
+      const newIndex = row * GRID_SIZE + col
       // 退出多选模式（如果在多选中）
       if (this.isMultiSelectMode) {
         this.exitMultiSelect()
@@ -664,7 +667,7 @@ struct GamePage {
   private onTouchDragSelect(index: number, action: string): void {
     if (this.gameState.isPaused) return
     if (this.gameState.isCompleted) return
-    if (index < 0 || index >= 81) return
+    if (index < 0 || index >= TOTAL_CELLS) return
 
     const cell = this.gameState.cells[index]
 
@@ -689,7 +692,7 @@ struct GamePage {
       // 手指抬起：如果只选了一个格子，退出多选（视为普通长按选中）
       if (this.multiSelectIndices.size <= 1) {
         this.exitMultiSelect()
-        if (index >= 0 && index < 81) {
+        if (index >= 0 && index < TOTAL_CELLS) {
           this.gameState.selectCell(index)
           updateHighlights(this.gameState.cells, this.gameState.selectedIndex)
         }
@@ -726,7 +729,7 @@ struct GamePage {
   private updateMultiSelectFlags(): void {
     const cells = this.gameState.cells
     // 清除所有 SELECTED / HIGHLIGHTED / MULTI_SELECTED
-    for (let i = 0; i < 81; i++) {
+    for (let i = 0; i < TOTAL_CELLS; i++) {
       cells[i].flags = clearFlag(cells[i].flags, CellFlags.SELECTED)
       cells[i].flags = clearFlag(cells[i].flags, CellFlags.HIGHLIGHTED)
       cells[i].flags = clearFlag(cells[i].flags, CellFlags.MULTI_SELECTED)
@@ -743,7 +746,7 @@ struct GamePage {
    */
   private exitMultiSelect(): void {
     const cells = this.gameState.cells
-    for (let i = 0; i < 81; i++) {
+    for (let i = 0; i < TOTAL_CELLS; i++) {
       cells[i].flags = clearFlag(cells[i].flags, CellFlags.MULTI_SELECTED)
     }
     this.multiSelectIndices.clear()
@@ -1167,7 +1170,7 @@ struct GamePage {
     const cells = this.gameState.cells
     const batch: CellSnapshot[] = []
 
-    for (let i = 0; i < 81; i++) {
+    for (let i = 0; i < TOTAL_CELLS; i++) {
       const cell = cells[i]
       // 跳过已有数字的格子
       if (cell.value !== 0) continue
@@ -1183,7 +1186,7 @@ struct GamePage {
 
       // 设置候选笔记：不在 peers 中的数字标记为 ACTIVE
       let newNotes = 0
-      for (let d = 1; d <= 9; d++) {
+      for (let d = 1; d <= GRID_SIZE; d++) {
         if (!usedDigits.has(d)) {
           newNotes = setNoteState(newNotes, d, NoteState.ACTIVE)
         }
@@ -1248,8 +1251,8 @@ struct GamePage {
   }
 
   private formatCellLabel(index: number): string {
-    const row = Math.floor(index / 9) + 1
-    const col = (index % 9) + 1
+    const row = Math.floor(index / GRID_SIZE) + 1
+    const col = (index % GRID_SIZE) + 1
     return formatStr(this.getString('cell_label'), row, col)
   }
 
@@ -1284,10 +1287,10 @@ struct GamePage {
    */
   private buildCurrentBoard(): number[][] {
     const board: number[][] = []
-    for (let r = 0; r < 9; r++) {
+    for (let r = 0; r < GRID_SIZE; r++) {
       const row: number[] = []
-      for (let c = 0; c < 9; c++) {
-        const cell = this.gameState.cells[r * 9 + c]
+      for (let c = 0; c < GRID_SIZE; c++) {
+        const cell = this.gameState.cells[r * GRID_SIZE + c]
         // 跳过错误填入：用户填了但和答案不符的格子视为空
         if (cell.value !== 0 && !cell.isGiven &&
           this.gameState.solution.length > cell.index &&
@@ -1374,15 +1377,15 @@ struct GamePage {
    * 更新各数字剩余计数
    */
   private updateRemainingCounts(): void {
-    const counts: number[] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    const counts: number[] = new Array(GRID_SIZE + 1).fill(0)
     for (const cell of this.gameState.cells) {
-      if (cell.value >= 1 && cell.value <= 9) {
+      if (cell.value >= 1 && cell.value <= GRID_SIZE) {
         counts[cell.value]++
       }
     }
-    const remaining: number[] = [0, 9, 9, 9, 9, 9, 9, 9, 9, 9]
-    for (let d = 1; d <= 9; d++) {
-      remaining[d] = 9 - counts[d]
+    const remaining: number[] = createInitialRemainingCounts()
+    for (let d = 1; d <= GRID_SIZE; d++) {
+      remaining[d] = GRID_SIZE - counts[d]
     }
     this.remainingCounts = remaining
   }

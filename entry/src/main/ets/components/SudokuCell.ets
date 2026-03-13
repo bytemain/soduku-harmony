@@ -12,7 +12,7 @@
  * 参考：Doc 05 §② 单元格
  */
 import { CellData, CellFlags, hasFlag, getNoteState, NoteState } from '../models/CellData'
-import { Colors, Sizes } from '../constants/GameConstants'
+import { Colors, Sizes, DIGITS } from '../constants/GameConstants'
 import { PEERS } from '../utils/Topology'
 
 @Component
@@ -83,7 +83,7 @@ export struct SudokuCell {
   @Builder
   NotesGrid() {
     Grid() {
-      ForEach([1, 2, 3, 4, 5, 6, 7, 8, 9], (n: number) => {
+      ForEach(DIGITS, (n: number) => {
         GridItem() {
           Text(this.getNoteText(n))
             .fontSize(Sizes.noteFont)

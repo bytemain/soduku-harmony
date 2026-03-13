@@ -13,7 +13,7 @@
  *
  * 参考：docs/09-数独标准格式与导入导出支持.md
  */
-import { GRID_SIZE } from '../constants/GameConstants'
+import { GRID_SIZE, BOX_SIZE, BOX_COUNT, TOTAL_CELLS } from '../constants/GameConstants'
 import { Difficulty } from '../constants/GameConstants'
 import { decodeSeedId } from './SudokuGenerator'
 
@@ -129,7 +129,7 @@ export function parseSudokuInput(input: string): ParseResult {
 
   // 6. 81 字符串（最宽松的匹配）
   const digits = extractDigits(trimmed)
-  if (digits.length === 81) {
+  if (digits.length === TOTAL_CELLS) {
     try {
       const puzzle = parse81String(digits)
       return { success: true, format: '81string', puzzles: [puzzle] }
@@ -156,7 +156,7 @@ export function detectFormat(input: string): SudokuFormatType {
   if (hasSdkMetadata(trimmed)) return 'sdk'
   if (isSsFormat(trimmed)) return 'ss'
   if (extractSdmLines(trimmed).length > 1) return 'sdm'
-  if (extractDigits(trimmed).length === 81) return '81string'
+  if (extractDigits(trimmed).length === TOTAL_CELLS) return '81string'
   return 'unknown'
 }
 
@@ -195,11 +195,11 @@ function isSsFormat(input: string): boolean {
     const t = line.trim()
     // SS 行特征：包含空格分隔的数字或点，每行至少有 9 个有效字符
     const chars = t.replace(/\s+/g, '').split('').filter(c => /[0-9.]/.test(c))
-    if (chars.length === 9 && t.includes(' ')) {
+    if (chars.length === GRID_SIZE && t.includes(' ')) {
       dataLineCount++
     }
   }
-  return dataLineCount >= 9
+  return dataLineCount >= GRID_SIZE
 }
 
 /**
@@ -209,7 +209,7 @@ function extractSdmLines(input: string): string[] {
   return input.split('\n')
     .map(l => l.trim())
     .filter(l => l.length > 0 && !l.startsWith('#'))
-    .filter(l => extractDigits(l).length === 81)
+    .filter(l => extractDigits(l).length === TOTAL_CELLS)
 }
 
 /**
@@ -224,11 +224,11 @@ function extractDigits(input: string): string {
 // ============================================================
 
 /**
- * 解析 81 字符串为 9×9 棋盘
+ * 解析 81 字符串为 GRID_SIZE×GRID_SIZE 棋盘
  */
 export function parse81String(input: string): ParsedPuzzle {
   const digits = extractDigits(input)
-  if (digits.length !== 81) {
+  if (digits.length !== TOTAL_CELLS) {
     throw new Error(`error_need_81_digits:${digits.length}`)
   }
 
@@ -347,18 +347,18 @@ function parseJsonObject(obj: Record<string, Object>): ParsedPuzzle | null {
     board = parse81String(puzzleField as string).board
   } else if (Array.isArray(puzzleField)) {
     const arr = puzzleField as Object[]
-    if (arr.length === 9 && Array.isArray(arr[0])) {
+    if (arr.length === GRID_SIZE && Array.isArray(arr[0])) {
       // 二维数组
       board = (arr as number[][]).map(row =>
         row.map(v => typeof v === 'number' ? v : 0)
       )
-    } else if (arr.length === 81) {
+    } else if (arr.length === TOTAL_CELLS) {
       // 一维数组
       board = []
-      for (let r = 0; r < 9; r++) {
+      for (let r = 0; r < GRID_SIZE; r++) {
         const row: number[] = []
-        for (let c = 0; c < 9; c++) {
-          const v = arr[r * 9 + c]
+        for (let c = 0; c < GRID_SIZE; c++) {
+          const v = arr[r * GRID_SIZE + c]
           row.push(typeof v === 'number' ? v as number : 0)
         }
         board.push(row)
@@ -403,7 +403,7 @@ function validateBoard(board: number[][]): void {
     }
     for (let c = 0; c < GRID_SIZE; c++) {
       const v = board[r][c]
-      if (v < 0 || v > 9 || !Number.isInteger(v)) {
+      if (v < 0 || v > GRID_SIZE || !Number.isInteger(v)) {
         throw new Error(`error_cell_value:${r + 1}:${c + 1}:${v}`)
       }
     }
@@ -411,7 +411,7 @@ function validateBoard(board: number[][]): void {
 
   // 冲突检测：行、列、宫
   for (let r = 0; r < GRID_SIZE; r++) {
-    const rowSeen: boolean[] = new Array(10).fill(false)
+    const rowSeen: boolean[] = new Array(GRID_SIZE + 1).fill(false)
     for (let c = 0; c < GRID_SIZE; c++) {
       const v = board[r][c]
       if (v > 0) {
@@ -423,7 +423,7 @@ function validateBoard(board: number[][]): void {
     }
   }
   for (let c = 0; c < GRID_SIZE; c++) {
-    const colSeen: boolean[] = new Array(10).fill(false)
+    const colSeen: boolean[] = new Array(GRID_SIZE + 1).fill(false)
     for (let r = 0; r < GRID_SIZE; r++) {
       const v = board[r][c]
       if (v > 0) {
@@ -434,15 +434,15 @@ function validateBoard(board: number[][]): void {
       }
     }
   }
-  for (let br = 0; br < 3; br++) {
-    for (let bc = 0; bc < 3; bc++) {
-      const boxSeen: boolean[] = new Array(10).fill(false)
-      for (let dr = 0; dr < 3; dr++) {
-        for (let dc = 0; dc < 3; dc++) {
-          const v = board[br * 3 + dr][bc * 3 + dc]
+  for (let br = 0; br < BOX_COUNT; br++) {
+    for (let bc = 0; bc < BOX_COUNT; bc++) {
+      const boxSeen: boolean[] = new Array(GRID_SIZE + 1).fill(false)
+      for (let dr = 0; dr < BOX_SIZE; dr++) {
+        for (let dc = 0; dc < BOX_SIZE; dc++) {
+          const v = board[br * BOX_SIZE + dr][bc * BOX_SIZE + dc]
           if (v > 0) {
             if (boxSeen[v]) {
-              throw new Error(`error_box_duplicate:${br * 3 + bc + 1}:${v}`)
+              throw new Error(`error_box_duplicate:${br * BOX_COUNT + bc + 1}:${v}`)
             }
             boxSeen[v] = true
           }
@@ -481,7 +481,7 @@ export function initFormatSolver(countSolutions: (board: number[][], maxCount: n
 // ============================================================
 
 /**
- * 将 9×9 棋盘导出为 81 字符串
+ * 将棋盘导出为 81 字符串
  */
 export function exportTo81String(board: number[][]): string {
   let result = ''
@@ -494,7 +494,7 @@ export function exportTo81String(board: number[][]): string {
 }
 
 /**
- * 将 9×9 棋盘导出为 SDK 格式
+ * 将棋盘导出为 SDK 格式
  */
 export function exportToSdk(board: number[][], metadata?: PuzzleMetadata): string {
   let result = ''
@@ -510,7 +510,7 @@ export function exportToSdk(board: number[][], metadata?: PuzzleMetadata): strin
 }
 
 /**
- * 将 9×9 棋盘导出为 SS 格式（人类可读）
+ * 将棋盘导出为 SS 格式（人类可读）
  */
 export function exportToSs(board: number[][]): string {
   const lines: string[] = []
@@ -519,14 +519,14 @@ export function exportToSs(board: number[][]): string {
     for (let c = 0; c < GRID_SIZE; c++) {
       const v = board[r][c]
       parts.push(v === 0 ? '.' : v.toString())
-      // 每 3 列加一个额外空格
-      if (c === 2 || c === 5) {
+      // 每 BOX_SIZE 列加一个额外空格
+      if ((c + 1) % BOX_SIZE === 0 && c < GRID_SIZE - 1) {
         parts.push('')
       }
     }
     lines.push(parts.join(' '))
-    // 每 3 行加一个空行
-    if (r === 2 || r === 5) {
+    // 每 BOX_SIZE 行加一个空行
+    if ((r + 1) % BOX_SIZE === 0 && r < GRID_SIZE - 1) {
       lines.push('')
     }
   }
@@ -534,7 +534,7 @@ export function exportToSs(board: number[][]): string {
 }
 
 /**
- * 将 9×9 棋盘导出为 JSON 格式
+ * 将棋盘导出为 JSON 格式
  */
 export function exportToJson(board: number[][], metadata?: PuzzleMetadata): string {
   const obj = new Map<string, Object>()

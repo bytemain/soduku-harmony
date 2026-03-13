@@ -6,13 +6,13 @@
  *
  * 参考：Doc 05 §3
  */
-import { GestureDirection, Sizes } from '../constants/GameConstants'
+import { GestureDirection, Sizes, DIGITS, createInitialRemainingCounts } from '../constants/GameConstants'
 import { GestureKey } from './GestureKey'
 
 @Component
 export struct GestureNumberPad {
   /** 各数字剩余计数 [_, count1, count2, ..., count9]，index 0 不用 */
-  @Prop remainingCounts: number[] = [0, 9, 9, 9, 9, 9, 9, 9, 9, 9]
+  @Prop remainingCounts: number[] = createInitialRemainingCounts()
   onGesture: (digit: number, direction: GestureDirection) => void = () => {}
   onGestureDirectionChange: (direction: GestureDirection | null) => void = () => {}
   /** 高度变化回调，用于同步 AuxButtonGrid 高度 */
@@ -20,7 +20,7 @@ export struct GestureNumberPad {
 
   build() {
     Grid() {
-      ForEach([1, 2, 3, 4, 5, 6, 7, 8, 9], (digit: number) => {
+      ForEach(DIGITS, (digit: number) => {
         GridItem() {
           GestureKey({
             digit: digit,

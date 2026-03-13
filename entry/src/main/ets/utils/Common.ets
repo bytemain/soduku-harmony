@@ -6,7 +6,7 @@
  *
  * 参考：Doc 01 §3, Doc 03 任务 1.4
  */
-import { GRID_SIZE } from '../constants/GameConstants'
+import { GRID_SIZE, BOX_SIZE, DIGITS } from '../constants/GameConstants'
 
 // ============================================================
 // 可播种伪随机数生成器（Mulberry32）
@@ -85,7 +85,7 @@ export function seededShuffle<T>(arr: T[], rng: SeededRandom): T[] {
 // 棋盘操作
 // ============================================================
 
-/** 创建空的 9×9 棋盘（全 0） */
+/** 创建空的 GRID_SIZE×GRID_SIZE 棋盘（全 0） */
 export function createEmptyGrid(): number[][] {
   const grid: number[][] = []
   for (let r = 0; r < GRID_SIZE; r++) {
@@ -98,7 +98,7 @@ export function createEmptyGrid(): number[][] {
   return grid
 }
 
-/** 深拷贝 9×9 棋盘 */
+/** 深拷贝 GRID_SIZE×GRID_SIZE 棋盘 */
 export function cloneGrid(grid: number[][]): number[][] {
   const copy: number[][] = []
   for (let r = 0; r < GRID_SIZE; r++) {
@@ -111,7 +111,7 @@ export function cloneGrid(grid: number[][]): number[][] {
   return copy
 }
 
-/** 一维数组(81) → 二维数组(9×9) */
+/** 一维数组(TOTAL_CELLS) → 二维数组(GRID_SIZE×GRID_SIZE) */
 export function flatToGrid(flat: number[]): number[][] {
   const grid: number[][] = []
   for (let r = 0; r < GRID_SIZE; r++) {
@@ -124,7 +124,7 @@ export function flatToGrid(flat: number[]): number[][] {
   return grid
 }
 
-/** 二维数组(9×9) → 一维数组(81) */
+/** 二维数组(GRID_SIZE×GRID_SIZE) → 一维数组(TOTAL_CELLS) */
 export function gridToFlat(grid: number[][]): number[] {
   const flat: number[] = []
   for (let r = 0; r < GRID_SIZE; r++) {
@@ -153,10 +153,10 @@ export function isValidPlacement(board: number[][], row: number, col: number, nu
     if (board[r][col] === num) return false
   }
   // 检查宫
-  const br = Math.floor(row / 3) * 3
-  const bc = Math.floor(col / 3) * 3
-  for (let r = br; r < br + 3; r++) {
-    for (let c = bc; c < bc + 3; c++) {
+  const br = Math.floor(row / BOX_SIZE) * BOX_SIZE
+  const bc = Math.floor(col / BOX_SIZE) * BOX_SIZE
+  for (let r = br; r < br + BOX_SIZE; r++) {
+    for (let c = bc; c < bc + BOX_SIZE; c++) {
       if (board[r][c] === num) return false
     }
   }
@@ -167,9 +167,9 @@ export function isValidPlacement(board: number[][], row: number, col: number, nu
 // 数组工具
 // ============================================================
 
-/** 生成 [1, 2, ..., 9] */
+/** 生成 [1, 2, ..., GRID_SIZE] */
 export function digits1to9(): number[] {
-  return [1, 2, 3, 4, 5, 6, 7, 8, 9]
+  return [...DIGITS]
 }
 
 /** 获取所有已填数字位置的 [row, col] 列表 */

@@ -1,14 +1,14 @@
 /**
  * GameActionPanel.ets — 游戏页底部操作区
  */
-import { GestureDirection } from '../constants/GameConstants'
+import { GestureDirection, createInitialRemainingCounts } from '../constants/GameConstants'
 import { AuxButtonGrid } from './AuxButtonGrid'
 import { GestureNumberPad } from './GestureNumberPad'
 
 @Component
 export struct GameActionPanel {
   @Prop isLeftHand: boolean = false
-  @Prop remainingCounts: number[] = [0, 9, 9, 9, 9, 9, 9, 9, 9, 9]
+  @Prop remainingCounts: number[] = createInitialRemainingCounts()
   @Prop undoDisabled: boolean = true
   @Prop redoDisabled: boolean = true
   @Prop eraseDisabled: boolean = true

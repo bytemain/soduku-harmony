@@ -16,7 +16,7 @@
  *
  * 参考：Doc 01 §5-6, Simon Tatham Solo 难度模型
  */
-import { GRID_SIZE, TOTAL_CELLS } from '../constants/GameConstants'
+import { GRID_SIZE, TOTAL_CELLS, BOX_SIZE, BOX_COUNT } from '../constants/GameConstants'
 import { PEERS, UNITS_OF, ALL_UNITS, rowOf, colOf, boxOf, indexOf } from './Topology'
 
 // ============================================================
@@ -139,7 +139,7 @@ function countBits(bits: number): number {
 
 function getCandidates(bits: number): number[] {
   const result: number[] = []
-  for (let n = 1; n <= 9; n++) {
+  for (let n = 1; n <= GRID_SIZE; n++) {
     if ((bits & bitOf(n)) !== 0) {
       result.push(n)
     }
@@ -148,7 +148,7 @@ function getCandidates(bits: number): number[] {
 }
 
 function lowestBit(bits: number): number {
-  for (let n = 1; n <= 9; n++) {
+  for (let n = 1; n <= GRID_SIZE; n++) {
     if ((bits & bitOf(n)) !== 0) return n
   }
   return 0
@@ -211,13 +211,13 @@ function getColUnit(col: number): number[] {
   return unit
 }
 
-/** 宫 unit 索引 (0-8) */
+/** 宫 unit 索引 (0 .. GRID_SIZE-1) */
 function getBoxUnit(box: number): number[] {
-  const br = Math.floor(box / 3) * 3
-  const bc = (box % 3) * 3
+  const br = Math.floor(box / BOX_COUNT) * BOX_SIZE
+  const bc = (box % BOX_COUNT) * BOX_SIZE
   const unit: number[] = []
-  for (let r = br; r < br + 3; r++) {
-    for (let c = bc; c < bc + 3; c++) {
+  for (let r = br; r < br + BOX_SIZE; r++) {
+    for (let c = bc; c < bc + BOX_SIZE; c++) {
       unit.push(r * GRID_SIZE + c)
     }
   }
@@ -255,7 +255,7 @@ function findNakedSingle(candidates: number[]): SolveStep | null {
  */
 function findHiddenSingle(candidates: number[]): SolveStep | null {
   for (const unit of ALL_UNITS) {
-    for (let d = 1; d <= 9; d++) {
+    for (let d = 1; d <= GRID_SIZE; d++) {
       const bit = bitOf(d)
       let count = 0
       let place = -1
@@ -342,10 +342,10 @@ function findNakedPair(candidates: number[]): SolveStep | null {
  * → 该行/列的其他宫中消除该数字
  */
 function findPointingPair(candidates: number[]): SolveStep | null {
-  for (let box = 0; box < 9; box++) {
+  for (let box = 0; box < GRID_SIZE; box++) {
     const boxCells = getBoxUnit(box)
 
-    for (let d = 1; d <= 9; d++) {
+    for (let d = 1; d <= GRID_SIZE; d++) {
       const bit = bitOf(d)
       // 找出宫内所有能放 d 的位置
       const positions: number[] = []
@@ -418,7 +418,7 @@ function findPointingPair(candidates: number[]): SolveStep | null {
 function findBoxLineReduction(candidates: number[]): SolveStep | null {
   // 检查行
   for (let row = 0; row < GRID_SIZE; row++) {
-    for (let d = 1; d <= 9; d++) {
+    for (let d = 1; d <= GRID_SIZE; d++) {
       const bit = bitOf(d)
       const positions: number[] = []
       for (let c = 0; c < GRID_SIZE; c++) {
@@ -458,7 +458,7 @@ function findBoxLineReduction(candidates: number[]): SolveStep | null {
 
   // 检查列
   for (let col = 0; col < GRID_SIZE; col++) {
-    for (let d = 1; d <= 9; d++) {
+    for (let d = 1; d <= GRID_SIZE; d++) {
       const bit = bitOf(d)
       const positions: number[] = []
       for (let r = 0; r < GRID_SIZE; r++) {
@@ -504,7 +504,7 @@ function findBoxLineReduction(candidates: number[]): SolveStep | null {
  * → 这两列的其他行消除该数字
  */
 function findXWing(candidates: number[]): SolveStep | null {
-  for (let d = 1; d <= 9; d++) {
+  for (let d = 1; d <= GRID_SIZE; d++) {
     const bit = bitOf(d)
 
     // --- 行方向 X-Wing ---

@@ -98,7 +98,7 @@ export struct PauseOverlay {
           .onClick(() => this.onCopySeed())
 
           Row({ space: 4 }) {
-            Text(`81: ${this.getPuzzlePreview()}`)
+            Text(`${this.getString('format_81string')}: ${this.getPuzzlePreview()}`)
               .fontSize(12)
               .fontColor(Colors.pauseInfoText)
               .maxLines(1)

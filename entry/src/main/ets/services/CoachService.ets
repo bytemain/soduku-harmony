@@ -10,6 +10,7 @@ import { localChatModel } from '@kit.DataAugmentationKit'
 import { BusinessError } from '@kit.BasicServicesKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { CellData } from '../models/CellData'
+import { GRID_SIZE } from '../constants/GameConstants'
 import { formatStr } from '../utils/I18nHelper'
 
 const DOMAIN = 0x0000
@@ -34,10 +35,10 @@ export class ChatMessage {
  */
 function boardToString(cells: CellData[]): string {
   const lines: string[] = []
-  for (let r = 0; r < 9; r++) {
+  for (let r = 0; r < GRID_SIZE; r++) {
     const row: string[] = []
-    for (let c = 0; c < 9; c++) {
-      const cell = cells[r * 9 + c]
+    for (let c = 0; c < GRID_SIZE; c++) {
+      const cell = cells[r * GRID_SIZE + c]
       row.push(cell.value === 0 ? '.' : `${cell.value}`)
     }
     lines.push(`R${r + 1}: ${row.join(' ')}`)

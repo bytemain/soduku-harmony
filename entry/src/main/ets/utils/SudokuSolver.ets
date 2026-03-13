@@ -36,18 +36,18 @@ function countBits(bits: number): number {
   return count
 }
 
-/** 获取候选集中最小的候选数字 (1-9)，没有返回 0 */
+/** 获取候选集中最小的候选数字，没有返回 0 */
 function lowestBit(bits: number): number {
-  for (let n = 1; n <= 9; n++) {
+  for (let n = 1; n <= GRID_SIZE; n++) {
     if ((bits & bitOf(n)) !== 0) return n
   }
   return 0
 }
 
-/** 候选集迭代器：返回所有候选数字 (1-9) */
+/** 候选集迭代器：返回所有候选数字 */
 function getCandidates(bits: number): number[] {
   const result: number[] = []
-  for (let n = 1; n <= 9; n++) {
+  for (let n = 1; n <= GRID_SIZE; n++) {
     if ((bits & bitOf(n)) !== 0) {
       result.push(n)
     }

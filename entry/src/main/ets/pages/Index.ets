@@ -8,7 +8,7 @@
 import { router, promptAction } from '@kit.ArkUI'
 import { common } from '@kit.AbilityKit'
 import { pasteboard } from '@kit.BasicServicesKit'
-import { Colors, Sizes, Difficulty, getDifficultyConfig } from '../constants/GameConstants'
+import { Colors, Sizes, Difficulty, getDifficultyConfig, GRID_INDICES, BOX_SIZE, GRID_SIZE } from '../constants/GameConstants'
 import { DifficultySegment } from '../components/DifficultySegment'
 import { SettingsPanel } from '../components/SettingsPanel'
 import { hasSavedGame, clearSave, loadGame, GameSaveData } from '../utils/GameStorage'
@@ -162,9 +162,9 @@ struct Index {
   @Builder
   MiniPreview(board: number[][]) {
     Column({ space: 0 }) {
-      ForEach([0, 1, 2, 3, 4, 5, 6, 7, 8], (r: number) => {
+      ForEach(GRID_INDICES, (r: number) => {
         Row({ space: 0 }) {
-          ForEach([0, 1, 2, 3, 4, 5, 6, 7, 8], (c: number) => {
+          ForEach(GRID_INDICES, (c: number) => {
             Text(board[r][c] > 0 ? board[r][c].toString() : '')
               .width(16)
               .height(16)
@@ -175,10 +175,10 @@ struct Index {
               .backgroundColor(board[r][c] > 0 ? Colors.cellDefault : Colors.pageBg)
               .border({
                 width: {
-                  left: c % 3 === 0 ? 1 : 0.3,
-                  top: r % 3 === 0 ? 1 : 0.3,
-                  right: c === 8 ? 1 : 0,
-                  bottom: r === 8 ? 1 : 0,
+                  left: c % BOX_SIZE === 0 ? 1 : 0.3,
+                  top: r % BOX_SIZE === 0 ? 1 : 0.3,
+                  right: c === GRID_SIZE - 1 ? 1 : 0,
+                  bottom: r === GRID_SIZE - 1 ? 1 : 0,
                 },
                 color: Colors.cellBorderBold,
               })
