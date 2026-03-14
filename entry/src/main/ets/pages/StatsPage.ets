@@ -203,7 +203,7 @@ struct StatsPage {
             .height('100%')
           } else {
             Scroll() {
-              Column({ space: 8 }) {
+              Column({ space: 6 }) {
                 ForEach(this.history, (record: GameRecord, index: number) => {
                   this.HistoryCard(record, index as number)
                 })
@@ -252,38 +252,19 @@ struct StatsPage {
           )
 
         // 难度名 + 结果标记
-        Column({ space: 2 }) {
-          Row({ space: 6 }) {
-            Text(record.difficulty >= 1 && record.difficulty <= 5
-              ? getContext(this).resourceManager.getStringByNameSync(
-                getDifficultyConfig(record.difficulty as Difficulty).name)
-              : '?')
-              .fontSize(15)
-              .fontWeight(FontWeight.Medium)
-              .fontColor(Colors.titleText)
+        Row({ space: 6 }) {
+          Text(record.difficulty >= 1 && record.difficulty <= 5
+            ? getContext(this).resourceManager.getStringByNameSync(
+              getDifficultyConfig(record.difficulty as Difficulty).name)
+            : '?')
+            .fontSize(14)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(Colors.titleText)
 
-            Text(record.won ? '✅' : '❌')
-              .fontSize(13)
-          }
-
-          // 种子 ID（点击复制）
-          Text(`🔑 ${record.seedId}`)
-            .fontSize(11)
-            .fontColor(Colors.primaryBtn)
-            .maxLines(1)
-            .textOverflow({ overflow: TextOverflow.Ellipsis })
-            .decoration({ type: TextDecorationType.Underline, color: Colors.primaryBtn })
-            .onClick(() => {
-              const pbData = pasteboard.createData(pasteboard.MIMETYPE_TEXT_PLAIN, record.seedId)
-              pasteboard.getSystemPasteboard().setDataSync(pbData)
-              promptAction.showToast({
-                message: getContext(this).resourceManager.getStringByNameSync('seed_id_copied'),
-                duration: 1500
-              })
-            })
+          Text(record.won ? '✅' : '❌')
+            .fontSize(12)
         }
-        .margin({ left: 12 })
-        .alignItems(HorizontalAlign.Start)
+        .margin({ left: 8 })
         .layoutWeight(1)
 
         // 右侧日期
@@ -294,34 +275,45 @@ struct StatsPage {
       .width('100%')
       .alignItems(VerticalAlign.Center)
 
-      // 分隔线
-      Divider()
-        .color(Colors.divider)
-        .margin({ top: 4, bottom: 4 })
-
       // 详细信息行：用时 + 步数 + 错误 + 对称
       Row() {
         Text(`⏱ ${formatTime(record.timeSeconds)}`)
-          .fontSize(12)
+          .fontSize(11)
           .fontColor(Colors.subtitleText)
 
         Text(`📝 ${record.stepCount}`)
-          .fontSize(12)
+          .fontSize(11)
           .fontColor(Colors.subtitleText)
-          .margin({ left: 12 })
+          .margin({ left: 8 })
 
         if (record.errors > 0) {
           Text(`❌ ${record.errors}`)
-            .fontSize(12)
+            .fontSize(11)
             .fontColor(Colors.textError)
-            .margin({ left: 12 })
+            .margin({ left: 8 })
         }
 
         if (record.symmetry) {
           Text(`🔄 ${this.getSymmetryLabel(record.symmetry)}`)
-            .fontSize(12)
+            .fontSize(11)
             .fontColor(Colors.subtitleText)
-            .margin({ left: 12 })
+            .margin({ left: 8 })
+        }
+
+        // 种子 ID 复制按钮
+        if (record.seedId) {
+          Text('🔑')
+            .fontSize(11)
+            .fontColor(Colors.primaryBtn)
+            .margin({ left: 8 })
+            .onClick(() => {
+              const pbData = pasteboard.createData(pasteboard.MIMETYPE_TEXT_PLAIN, record.seedId)
+              pasteboard.getSystemPasteboard().setDataSync(pbData)
+              promptAction.showToast({
+                message: getContext(this).resourceManager.getStringByNameSync('seed_id_copied'),
+                duration: 1500
+              })
+            })
         }
 
         Blank()
@@ -329,11 +321,11 @@ struct StatsPage {
         // 重玩按钮
         if (record.seedId) {
           Text($r('app.string.stats_replay'))
-            .fontSize(12)
+            .fontSize(11)
             .fontWeight(FontWeight.Medium)
             .fontColor(Colors.primaryBtn)
-            .padding({ left: 12, right: 12, top: 4, bottom: 4 })
-            .borderRadius(12)
+            .padding({ left: 10, right: 10, top: 2, bottom: 2 })
+            .borderRadius(10)
             .borderWidth(1)
             .borderColor(Colors.primaryBtn)
             .onClick(() => {
@@ -349,13 +341,14 @@ struct StatsPage {
       }
       .width('100%')
       .alignItems(VerticalAlign.Center)
+      .margin({ top: 2 })
     }
     .width('100%')
-    .padding({ left: 12, right: 12, top: 8, bottom: 8 })
+    .padding({ left: 12, right: 12, top: 6, bottom: 6 })
     .backgroundColor(Colors.cellDefault)
-    .borderRadius(12)
+    .borderRadius(10)
     .shadow({
-      radius: 2,
+      radius: 1,
       color: Colors.shadowColorLight,
       offsetX: 0,
       offsetY: 1,
