@@ -65,15 +65,12 @@ export struct GameActionPanel {
   }
 
   build() {
+    // 使用 direction 切换左右手布局，避免 if/else 触发 ArkUI 默认滑入过渡效果
     Row({ space: 8 }) {
-      if (this.isLeftHand) {
-        this.buildNumberPad()
-        this.buildAuxButtons()
-      } else {
-        this.buildAuxButtons()
-        this.buildNumberPad()
-      }
+      this.buildAuxButtons()
+      this.buildNumberPad()
     }
     .width('100%')
+    .direction(this.isLeftHand ? Direction.Rtl : Direction.Ltr)
   }
 }

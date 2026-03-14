@@ -129,6 +129,8 @@ export struct GameMainContent {
       .layoutWeight(1)
       .margin({ top: 8 })
       .padding({ left: Sizes.gamePagePadding, right: Sizes.gamePagePadding })
+      .opacity(this.boardOpacity)
+      .scale({ x: this.boardScale, y: this.boardScale })
     }
     .width('100%')
     .height('100%')
