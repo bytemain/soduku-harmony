@@ -2,6 +2,7 @@ import { describe, it, expect } from '@ohos/hypium'
 import {
   createStandardConfig, createDiagonalConfig, createJigsawConfig,
   createKillerConfig, createSizedConfig, GRID_9x9, GRID_4x4,
+  KillerCage,
 } from '../main/ets/models/VariantConfig'
 import {
   buildVariantTopology, VariantTopology,
@@ -153,19 +154,17 @@ export default function variantTopologyTest() {
 
   describe('VariantTopology.Killer', () => {
     it('killer_cages_add_units', 0, () => {
-      const cages = [
-        { cells: [0, 1], sum: 10 },
-        { cells: [2, 3, 4], sum: 15 },
-      ]
+      const cage1: KillerCage = { cells: [0, 1], sum: 10 }
+      const cage2: KillerCage = { cells: [2, 3, 4], sum: 15 }
+      const cages: KillerCage[] = [cage1, cage2]
       const topo = buildVariantTopology(createKillerConfig(cages))
       // 27 standard + 2 cage units
       expect(topo.allUnits.length).assertEqual(29)
     })
 
     it('killer_cage_members_are_peers', 0, () => {
-      const cages = [
-        { cells: [0, 9], sum: 10 }, // (0,0) and (1,0)
-      ]
+      const cage1: KillerCage = { cells: [0, 9], sum: 10 } // (0,0) and (1,0)
+      const cages: KillerCage[] = [cage1]
       const topo = buildVariantTopology(createKillerConfig(cages))
 
       // Cell 0 and 9 are already peers (same column), but cage reinforces it
@@ -176,9 +175,8 @@ export default function variantTopologyTest() {
     it('killer_cage_creates_new_peer_relationship', 0, () => {
       // Cells 0 and 10 are peers (same box), but let's use non-peer cells
       // Cell (0,0)=0 and Cell (3,3)=30: not in same row/col/box
-      const cages = [
-        { cells: [0, 30], sum: 10 },
-      ]
+      const cage1: KillerCage = { cells: [0, 30], sum: 10 }
+      const cages: KillerCage[] = [cage1]
       const topo = buildVariantTopology(createKillerConfig(cages))
 
       // In standard topology, 0 and 30 are NOT peers

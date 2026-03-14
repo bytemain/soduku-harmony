@@ -51,8 +51,32 @@ jobs:
           name: build-output
           path: ${{ steps.get_build_output_path.outputs.output_path }}
 
-  publish:
+  test:
     needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    container: ghcr.io/bytemain/harmony-next-pipeline-docker/harmonyos-ci-image:v6.0.2.642
+
+    steps:
+      # 1. 拉取代码
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # 2. 安装项目依赖
+      - name: Install dependencies
+        run: |
+          cd $GITHUB_WORKSPACE
+          ohpm install --all
+
+      # 3. 编译单元测试（CI 环境自动跳过测试执行，仅验证编译，见 entry/hvigorfile.ts）
+      - name: Compile unit tests
+        run: |
+          cd $GITHUB_WORKSPACE
+          hvigorw test --mode module -p product=default --no-daemon
+
+  publish:
+    needs: [build, test]
     runs-on: ubuntu-latest
     permissions:
       contents: write

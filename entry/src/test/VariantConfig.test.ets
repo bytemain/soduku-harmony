@@ -1,6 +1,6 @@
 import { describe, it, expect } from '@ohos/hypium'
 import {
-  VariantType,
+  VariantType, KillerCage,
   GRID_4x4, GRID_6x6, GRID_9x9, GRID_12x12, GRID_16x16,
   createStandardConfig, createDiagonalConfig, createJigsawConfig,
   createKillerConfig, createSizedConfig,
@@ -107,10 +107,9 @@ export default function variantConfigTest() {
     })
 
     it('createKillerConfig_has_cages', 0, () => {
-      const cages = [
-        { cells: [0, 1], sum: 10 },
-        { cells: [2, 3, 4], sum: 15 },
-      ]
+      const cage1: KillerCage = { cells: [0, 1], sum: 10 }
+      const cage2: KillerCage = { cells: [2, 3, 4], sum: 15 }
+      const cages: KillerCage[] = [cage1, cage2]
       const config = createKillerConfig(cages)
       expect(config.type).assertEqual(VariantType.KILLER)
       expect(config.hasDiagonals).assertFalse()
