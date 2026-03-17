@@ -52,7 +52,9 @@ workerPort.onmessage = (e: MessageEvents): void => {
 
   // Apply grid config if provided (for variant sizes)
   const gridSize = msg['gridSize'] as number | undefined
-  const variantType = (msg['variantType'] as string | undefined) ?? VariantType.STANDARD
+  const variantTypeRaw = (msg['variantType'] as string | undefined) ?? VariantType.STANDARD
+  const variantType: VariantType = variantTypeRaw === VariantType.DIAGONAL
+    ? VariantType.DIAGONAL : VariantType.STANDARD
   if (gridSize !== undefined) {
     const cfg = getGridConfigBySize(gridSize)
     applyGridConfig(cfg)

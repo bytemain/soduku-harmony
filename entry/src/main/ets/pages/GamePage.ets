@@ -139,7 +139,9 @@ struct GamePage {
     const importedPuzzle = params?.importedPuzzle
     const importedDifficulty = params?.importedDifficulty
     const gridSize = params?.gridSize ?? 9
-    const variantType = (params?.variantType as VariantType) ?? VariantType.STANDARD
+    const variantTypeRaw = params?.variantType ?? VariantType.STANDARD
+    const variantType: VariantType = variantTypeRaw === VariantType.DIAGONAL
+      ? VariantType.DIAGONAL : VariantType.STANDARD
 
     // 应用棋盘大小配置
     const gridConfig = getGridConfigBySize(gridSize)
