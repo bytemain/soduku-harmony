@@ -224,20 +224,14 @@ struct Index {
   private toggleModifier(key: string): void {
     if (key === 'diagonal') {
       this.hasDiagonals = !this.hasDiagonals
-      // 对角线变种仅支持 9×9
-      if (this.hasDiagonals && this.selectedGridSize !== 9) {
-        this.selectedGridSize = 9
-      }
     } else if (key === 'jigsaw') {
       this.hasJigsaw = !this.hasJigsaw
-      if (this.hasJigsaw && this.selectedGridSize !== 9) {
-        this.selectedGridSize = 9
-      }
     } else if (key === 'killer') {
       this.hasKiller = !this.hasKiller
-      if (this.hasKiller && this.selectedGridSize !== 9) {
-        this.selectedGridSize = 9
-      }
+    }
+    // 变种修饰器仅支持 9×9
+    if (this.isModifierActive(key) && this.selectedGridSize !== 9) {
+      this.selectedGridSize = 9
     }
   }
 
