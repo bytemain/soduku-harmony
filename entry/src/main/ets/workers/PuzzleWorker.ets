@@ -16,7 +16,7 @@ import { solve } from '../utils/SudokuSolver'
 import { parse81String } from '../utils/SudokuFormat'
 import { evaluateDifficulty } from '../utils/DifficultyEvaluator'
 import { Difficulty, applyGridConfig } from '../constants/GameConstants'
-import { getGridConfigBySize, createSizedConfig } from '../models/VariantConfig'
+import { getGridConfigBySize, createSizedConfig, VariantType, createDiagonalConfig } from '../models/VariantConfig'
 import { applyTopology } from '../utils/Topology'
 
 const workerPort: ThreadWorkerGlobalScope = worker.workerPort
@@ -52,10 +52,16 @@ workerPort.onmessage = (e: MessageEvents): void => {
 
   // Apply grid config if provided (for variant sizes)
   const gridSize = msg['gridSize'] as number | undefined
+  const variantType = (msg['variantType'] as string | undefined) ?? VariantType.STANDARD
   if (gridSize !== undefined) {
     const cfg = getGridConfigBySize(gridSize)
     applyGridConfig(cfg)
-    applyTopology(createSizedConfig(cfg.gridSize, cfg.boxRows, cfg.boxCols))
+    // 根据变种类型构建拓扑
+    if (variantType === VariantType.DIAGONAL) {
+      applyTopology(createDiagonalConfig())
+    } else {
+      applyTopology(createSizedConfig(cfg.gridSize, cfg.boxRows, cfg.boxCols))
+    }
   }
 
   try {

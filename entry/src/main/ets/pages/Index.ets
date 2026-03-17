@@ -18,7 +18,7 @@ import { parseSudokuInput, ParseResult, countGivens, exportTo81String,
   getFormatDisplayNameKey, SudokuFormatType } from '../utils/SudokuFormat'
 import { formatStr } from '../utils/I18nHelper'
 import { evaluateDifficulty } from '../utils/DifficultyEvaluator'
-import { GridConfig, GRID_4x4, GRID_6x6, GRID_9x9 } from '../models/VariantConfig'
+import { GridConfig, GRID_4x4, GRID_6x6, GRID_9x9, VariantType } from '../models/VariantConfig'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 
 class SymmetryOption {
@@ -55,6 +55,29 @@ const GRID_SIZE_OPTIONS: GridSizeOption[] = [
   new GridSizeOption(GRID_9x9, 'grid_size_9x9'),
 ]
 
+class VariantOption {
+  type: VariantType = VariantType.STANDARD
+  icon: string = ''
+  nameKey: string = ''
+  descKey: string = ''
+  enabled: boolean = true
+
+  constructor(type: VariantType, icon: string, nameKey: string, descKey: string, enabled: boolean) {
+    this.type = type
+    this.icon = icon
+    this.nameKey = nameKey
+    this.descKey = descKey
+    this.enabled = enabled
+  }
+}
+
+const VARIANT_OPTIONS: VariantOption[] = [
+  new VariantOption(VariantType.STANDARD, '🔢', 'variant_standard', 'variant_standard_desc', true),
+  new VariantOption(VariantType.DIAGONAL, '╳', 'variant_diagonal', 'variant_diagonal_desc', true),
+  new VariantOption(VariantType.JIGSAW, '🧩', 'variant_jigsaw', 'variant_jigsaw_desc', false),
+  new VariantOption(VariantType.KILLER, '🗡️', 'variant_killer', 'variant_killer_desc', false),
+]
+
 @Entry
 @Component
 struct Index {
@@ -70,6 +93,7 @@ struct Index {
   @State showSettings: boolean = false
   @State selectedSymmetry: string = 'auto'  // 'auto' | Symmetry values
   @State selectedGridSize: number = 9      // 4 | 6 | 9
+  @State selectedVariant: VariantType = VariantType.STANDARD
   @State seedInput: string = ''
   /** 导入解析结果 */
   @State importResult: ParseResult | null = null
@@ -302,39 +326,68 @@ struct Index {
       })
         .margin({ top: Sizes.btnGap })
 
-      // ==================== ③.2 棋盘大小选择 ====================
+      // ==================== ③.1 变种模式选择 ====================
       Column() {
-        Text($r('app.string.grid_size_section'))
+        Text($r('app.string.variant_section'))
           .fontSize(12)
           .fontColor(Colors.subtitleText)
           .margin({ bottom: 6 })
 
-        Row({ space: 0 }) {
-          ForEach(GRID_SIZE_OPTIONS, (item: GridSizeOption) => {
-            Text(getContext(this).resourceManager.getStringByNameSync(item.label))
-              .fontSize(13)
-              .fontColor(
-                this.selectedGridSize === item.config.gridSize
-                  ? Colors.primaryText
-                  : Colors.subtitleText
-              )
-              .fontWeight(
-                this.selectedGridSize === item.config.gridSize
-                  ? FontWeight.Medium
-                  : FontWeight.Normal
-              )
-              .backgroundColor(
-                this.selectedGridSize === item.config.gridSize
+        Row({ space: 6 }) {
+          ForEach(VARIANT_OPTIONS, (item: VariantOption) => {
+            Column({ space: 2 }) {
+              Text(item.icon)
+                .fontSize(20)
+
+              Text(getContext(this).resourceManager.getStringByNameSync(item.nameKey))
+                .fontSize(12)
+                .fontColor(
+                  !item.enabled
+                    ? Colors.subtitleText
+                    : this.selectedVariant === item.type
+                      ? Colors.primaryText
+                      : Colors.titleText
+                )
+                .fontWeight(
+                  this.selectedVariant === item.type && item.enabled
+                    ? FontWeight.Medium
+                    : FontWeight.Normal
+                )
+
+              if (!item.enabled) {
+                Text(getContext(this).resourceManager.getStringByNameSync('variant_coming_soon'))
+                  .fontSize(8)
+                  .fontColor(Colors.subtitleText)
+              } else {
+                Text(getContext(this).resourceManager.getStringByNameSync(item.descKey))
+                  .fontSize(8)
+                  .fontColor(
+                    this.selectedVariant === item.type
+                      ? Colors.primaryText
+                      : Colors.subtitleText
+                  )
+              }
+            }
+            .layoutWeight(1)
+            .padding({ top: 8, bottom: 8 })
+            .borderRadius(12)
+            .backgroundColor(
+              !item.enabled
+                ? 'transparent'
+                : this.selectedVariant === item.type
                   ? Colors.primaryBtn
                   : 'transparent'
-              )
-              .borderRadius(8)
-              .padding({ left: 10, right: 10, top: 6, bottom: 6 })
-              .layoutWeight(1)
-              .textAlign(TextAlign.Center)
-              .onClick(() => {
-                this.selectedGridSize = item.config.gridSize
-              })
+            )
+            .opacity(item.enabled ? 1.0 : 0.5)
+            .onClick(() => {
+              if (item.enabled) {
+                this.selectedVariant = item.type
+                // 对角线仅支持 9×9
+                if (item.type === VariantType.DIAGONAL && this.selectedGridSize !== 9) {
+                  this.selectedGridSize = 9
+                }
+              }
+            })
           })
         }
         .width('100%')
@@ -344,6 +397,51 @@ struct Index {
       }
       .width('100%')
       .margin({ top: 8 })
+
+      // ==================== ③.2 棋盘大小选择（仅标准模式） ====================
+      if (this.selectedVariant === VariantType.STANDARD) {
+        Column() {
+          Text($r('app.string.grid_size_section'))
+            .fontSize(12)
+            .fontColor(Colors.subtitleText)
+            .margin({ bottom: 6 })
+
+          Row({ space: 0 }) {
+            ForEach(GRID_SIZE_OPTIONS, (item: GridSizeOption) => {
+              Text(getContext(this).resourceManager.getStringByNameSync(item.label))
+                .fontSize(13)
+                .fontColor(
+                  this.selectedGridSize === item.config.gridSize
+                    ? Colors.primaryText
+                    : Colors.subtitleText
+                )
+                .fontWeight(
+                  this.selectedGridSize === item.config.gridSize
+                    ? FontWeight.Medium
+                    : FontWeight.Normal
+                )
+                .backgroundColor(
+                  this.selectedGridSize === item.config.gridSize
+                    ? Colors.primaryBtn
+                    : 'transparent'
+                )
+                .borderRadius(8)
+                .padding({ left: 10, right: 10, top: 6, bottom: 6 })
+                .layoutWeight(1)
+                .textAlign(TextAlign.Center)
+                .onClick(() => {
+                  this.selectedGridSize = item.config.gridSize
+                })
+            })
+          }
+          .width('100%')
+          .backgroundColor(Colors.segmentBg)
+          .borderRadius(12)
+          .padding(3)
+        }
+        .width('100%')
+        .margin({ top: 8 })
+      }
 
       // ==================== ③.5 对称模式选择 ====================
       Column() {
@@ -604,6 +702,7 @@ struct Index {
                 difficulty: this.selectedDifficulty,
                 symmetry: this.selectedSymmetry === 'auto' ? undefined : this.selectedSymmetry,
                 gridSize: this.selectedGridSize,
+                variantType: this.selectedVariant,
               },
             })
           }

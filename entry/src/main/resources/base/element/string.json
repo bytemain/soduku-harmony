@@ -755,6 +755,46 @@
     {
       "name": "grid_size_9x9",
       "value": "9×9"
+    },
+    {
+      "name": "variant_section",
+      "value": "游戏模式"
+    },
+    {
+      "name": "variant_standard",
+      "value": "经典"
+    },
+    {
+      "name": "variant_standard_desc",
+      "value": "标准数独规则"
+    },
+    {
+      "name": "variant_diagonal",
+      "value": "对角线"
+    },
+    {
+      "name": "variant_diagonal_desc",
+      "value": "两条对角线也不能重复"
+    },
+    {
+      "name": "variant_jigsaw",
+      "value": "锯齿"
+    },
+    {
+      "name": "variant_jigsaw_desc",
+      "value": "不规则宫格形状"
+    },
+    {
+      "name": "variant_killer",
+      "value": "杀手"
+    },
+    {
+      "name": "variant_killer_desc",
+      "value": "笼内数字求和约束"
+    },
+    {
+      "name": "variant_coming_soon",
+      "value": "即将推出"
     }
   ]
 }
