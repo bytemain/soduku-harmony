@@ -147,7 +147,8 @@ export struct SudokuCell {
    */
   private getNoteBackgroundColor(n: number): ResourceColor {
     const state = getNoteState(this.cellData.notes, n)
-    if (state === NoteState.EMPTY) return Color.Transparent
+    // 只有 ACTIVE 笔记才需要背景高亮，ELIMINATED（划线划掉的）不需要
+    if (state !== NoteState.ACTIVE) return Color.Transparent
     if (this.selectedValue !== 0 && n === this.selectedValue) return Colors.noteHighlightBg
     return Color.Transparent
   }
