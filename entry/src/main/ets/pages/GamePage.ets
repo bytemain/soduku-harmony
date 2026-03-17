@@ -20,7 +20,7 @@ import { Colors, Difficulty, GestureDirection, getDifficultyConfig,
 import { decodeSeedId, Symmetry, encodeSeedId } from '../utils/SudokuGenerator'
 import { validateAllCells, updateHighlights, isGameCompleted } from '../utils/SudokuValidator'
 import { PEERS, applyTopology } from '../utils/Topology'
-import { getGridConfigBySize, createSizedConfig, VariantType, createDiagonalConfig } from '../models/VariantConfig'
+import { getGridConfigBySize, createSizedConfig } from '../models/VariantConfig'
 import { ArrayWrapper } from '../components/SudokuBoard'
 import { SettingsPanel } from '../components/SettingsPanel'
 import { GestureGuideOverlay } from '../components/GestureGuideOverlay'
@@ -45,8 +45,8 @@ interface GamePageParams {
   importedDifficulty?: Difficulty
   /** 棋盘大小 (4/6/9)，默认 9 */
   gridSize?: number
-  /** 变种类型 (standard/diagonal)，默认 standard */
-  variantType?: string
+  /** 是否启用对角线约束 */
+  hasDiagonals?: boolean
 }
 
 /**
@@ -139,19 +139,15 @@ struct GamePage {
     const importedPuzzle = params?.importedPuzzle
     const importedDifficulty = params?.importedDifficulty
     const gridSize = params?.gridSize ?? 9
-    const variantTypeRaw = params?.variantType ?? VariantType.STANDARD
-    const variantType: VariantType = variantTypeRaw === VariantType.DIAGONAL
-      ? VariantType.DIAGONAL : VariantType.STANDARD
+    const hasDiagonals = params?.hasDiagonals === true
 
     // 应用棋盘大小配置
     const gridConfig = getGridConfigBySize(gridSize)
     applyGridConfig(gridConfig)
-    // 根据变种类型构建拓扑
-    if (variantType === VariantType.DIAGONAL) {
-      applyTopology(createDiagonalConfig())
-    } else {
-      applyTopology(createSizedConfig(gridConfig.gridSize, gridConfig.boxRows, gridConfig.boxCols))
-    }
+    // 根据变种特性构建拓扑（组合式：各特性可叠加）
+    const variantConfig = createSizedConfig(gridConfig.gridSize, gridConfig.boxRows, gridConfig.boxCols)
+    variantConfig.hasDiagonals = hasDiagonals
+    applyTopology(variantConfig)
 
     // 尝试恢复存档（种子模式不恢复存档）
     const saved = !seedIdParam ? loadGame(getContext(this)) : null
@@ -168,12 +164,12 @@ struct GamePage {
       } else {
         // 存档尺寸不匹配，重新生成
         this.resetLoadingState(importedPuzzle !== undefined)
-        this.startPuzzleWorker(difficulty, symmetryParam, seedIdParam, importedPuzzle, importedDifficulty, variantType)
+        this.startPuzzleWorker(difficulty, symmetryParam, seedIdParam, importedPuzzle, importedDifficulty, hasDiagonals)
       }
     } else {
       // Worker 线程异步生成，不阻塞 UI（Loading 动画可流畅转动）
       this.resetLoadingState(importedPuzzle !== undefined)
-      this.startPuzzleWorker(difficulty, symmetryParam, seedIdParam, importedPuzzle, importedDifficulty, variantType)
+      this.startPuzzleWorker(difficulty, symmetryParam, seedIdParam, importedPuzzle, importedDifficulty, hasDiagonals)
     }
   }
 
@@ -209,7 +205,7 @@ struct GamePage {
     seedIdParam: string | undefined,
     importedPuzzle: string | undefined,
     importedDifficulty: Difficulty | undefined,
-    variantType: VariantType = VariantType.STANDARD,
+    hasDiagonals: boolean = false,
   ): void {
     const w = new worker.ThreadWorker('entry/ets/workers/PuzzleWorker.ets')
     this.puzzleWorker = w
@@ -283,14 +279,14 @@ struct GamePage {
         puzzle81: importedPuzzle,
         difficulty: importedDifficulty ?? null,
         gridSize: GRID_SIZE,
-        variantType: variantType,
+        hasDiagonals: hasDiagonals,
       })
     } else if (seedIdParam) {
       w.postMessage({
         type: 'generateFromSeed',
         seedId: seedIdParam,
         gridSize: GRID_SIZE,
-        variantType: variantType,
+        hasDiagonals: hasDiagonals,
       })
     } else {
       w.postMessage({
@@ -298,7 +294,7 @@ struct GamePage {
         difficulty: difficulty,
         symmetry: symmetryParam ?? null,
         gridSize: GRID_SIZE,
-        variantType: variantType,
+        hasDiagonals: hasDiagonals,
       })
     }
   }

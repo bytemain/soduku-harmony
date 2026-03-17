@@ -16,7 +16,7 @@ import { solve } from '../utils/SudokuSolver'
 import { parse81String } from '../utils/SudokuFormat'
 import { evaluateDifficulty } from '../utils/DifficultyEvaluator'
 import { Difficulty, applyGridConfig } from '../constants/GameConstants'
-import { getGridConfigBySize, createSizedConfig, VariantType, createDiagonalConfig } from '../models/VariantConfig'
+import { getGridConfigBySize, createSizedConfig } from '../models/VariantConfig'
 import { applyTopology } from '../utils/Topology'
 
 const workerPort: ThreadWorkerGlobalScope = worker.workerPort
@@ -52,18 +52,14 @@ workerPort.onmessage = (e: MessageEvents): void => {
 
   // Apply grid config if provided (for variant sizes)
   const gridSize = msg['gridSize'] as number | undefined
-  const variantTypeRaw = (msg['variantType'] as string | undefined) ?? VariantType.STANDARD
-  const variantType: VariantType = variantTypeRaw === VariantType.DIAGONAL
-    ? VariantType.DIAGONAL : VariantType.STANDARD
+  const hasDiagonals = (msg['hasDiagonals'] as boolean | undefined) === true
   if (gridSize !== undefined) {
     const cfg = getGridConfigBySize(gridSize)
     applyGridConfig(cfg)
-    // 根据变种类型构建拓扑
-    if (variantType === VariantType.DIAGONAL) {
-      applyTopology(createDiagonalConfig())
-    } else {
-      applyTopology(createSizedConfig(cfg.gridSize, cfg.boxRows, cfg.boxCols))
-    }
+    // 构建拓扑（组合式：各特性可叠加）
+    const variantConfig = createSizedConfig(cfg.gridSize, cfg.boxRows, cfg.boxCols)
+    variantConfig.hasDiagonals = hasDiagonals
+    applyTopology(variantConfig)
   }
 
   try {

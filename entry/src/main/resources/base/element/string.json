@@ -758,15 +758,7 @@
     },
     {
       "name": "variant_section",
-      "value": "游戏模式"
-    },
-    {
-      "name": "variant_standard",
-      "value": "经典"
-    },
-    {
-      "name": "variant_standard_desc",
-      "value": "标准数独规则"
+      "value": "变种规则（可叠加）"
     },
     {
       "name": "variant_diagonal",
