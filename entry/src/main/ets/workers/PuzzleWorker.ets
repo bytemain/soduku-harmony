@@ -58,12 +58,13 @@ workerPort.onmessage = (e: MessageEvents): void => {
   if (gridSize !== undefined) {
     const cfg = getGridConfigBySize(gridSize)
     applyGridConfig(cfg)
-    // 根据变种类型构建拓扑
-    if (variantType === VariantType.DIAGONAL) {
-      applyTopology(createDiagonalConfig())
-    } else {
-      applyTopology(createSizedConfig(cfg.gridSize, cfg.boxRows, cfg.boxCols))
-    }
+  }
+  // 根据变种类型构建拓扑（无论是否指定 gridSize 都需要应用）
+  if (variantType === VariantType.DIAGONAL) {
+    applyTopology(createDiagonalConfig())
+  } else if (gridSize !== undefined) {
+    const cfg = getGridConfigBySize(gridSize)
+    applyTopology(createSizedConfig(cfg.gridSize, cfg.boxRows, cfg.boxCols))
   }
 
   try {

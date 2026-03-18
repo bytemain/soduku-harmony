@@ -3,6 +3,8 @@ import {
   shuffle, createEmptyGrid, cloneGrid, flatToGrid, gridToFlat,
   isValidPlacement, digits1to9, getAllFilledPositions, findFirstEmpty
 } from '../main/ets/utils/Common'
+import { createDiagonalConfig, createStandardConfig } from '../main/ets/models/VariantConfig'
+import { applyTopology } from '../main/ets/utils/Topology'
 
 export default function commonTest() {
   describe('shuffle', () => {
@@ -127,6 +129,37 @@ export default function commonTest() {
       board[0][0] = 5
       expect(isValidPlacement(board, 3, 3, 5)).assertTrue() // 不同宫
       expect(isValidPlacement(board, 5, 5, 5)).assertTrue()
+    })
+
+    it('diagonal_same_main_diagonal_invalid', 0, () => {
+      applyTopology(createDiagonalConfig())
+      const board = createEmptyGrid()
+      board[0][0] = 5
+      // (3,3) 在主对角线上，与 (0,0) 是 peers
+      expect(isValidPlacement(board, 3, 3, 5)).assertFalse()
+      // (5,5) 在主对角线上，与 (0,0) 是 peers
+      expect(isValidPlacement(board, 5, 5, 5)).assertFalse()
+      applyTopology(createStandardConfig())
+    })
+
+    it('diagonal_same_anti_diagonal_invalid', 0, () => {
+      applyTopology(createDiagonalConfig())
+      const board = createEmptyGrid()
+      board[0][8] = 7
+      // (4,4) 在副对角线上，与 (0,8) 是 peers
+      expect(isValidPlacement(board, 4, 4, 7)).assertFalse()
+      // (8,0) 在副对角线上，与 (0,8) 是 peers
+      expect(isValidPlacement(board, 8, 0, 7)).assertFalse()
+      applyTopology(createStandardConfig())
+    })
+
+    it('diagonal_non_diagonal_cell_still_valid', 0, () => {
+      applyTopology(createDiagonalConfig())
+      const board = createEmptyGrid()
+      board[0][0] = 5
+      // (3,4) 不在对角线上，不同行/列/宫，应该合法
+      expect(isValidPlacement(board, 3, 4, 5)).assertTrue()
+      applyTopology(createStandardConfig())
     })
   })
 
