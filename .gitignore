@@ -19,5 +19,6 @@ data.json
 .arkui-x/android/app/src/main/assets/arkui-x/
 .arkui-x/android/gradlew
 .arkui-x/android/gradlew.bat
+.arkui-x/android/gradle/wrapper/gradle-wrapper.jar
 .arkui-x/ios/arkui-x/
 .arkui-x/ios/frameworks/
