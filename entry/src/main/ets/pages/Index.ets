@@ -18,7 +18,7 @@ import { parseSudokuInput, ParseResult, countGivens, exportTo81String,
   getFormatDisplayNameKey, SudokuFormatType } from '../utils/SudokuFormat'
 import { formatStr } from '../utils/I18nHelper'
 import { evaluateDifficulty } from '../utils/DifficultyEvaluator'
-import { GridConfig, GRID_4x4, GRID_6x6, GRID_9x9 } from '../models/VariantConfig'
+import { GridConfig, GRID_4x4, GRID_6x6, GRID_9x9, VariantType } from '../models/VariantConfig'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 
 class SymmetryOption {
@@ -56,18 +56,18 @@ const GRID_SIZE_OPTIONS: GridSizeOption[] = [
 ]
 
 /**
- * 变种修饰器选项（可叠加的特性开关）。
- * 标准模式是隐含的基础，各变种是可组合的额外约束。
+ * 变种模式选项（单选）。
+ * 用户从标准/对角线/锯齿/杀手中选择一种游戏模式。
  */
-class VariantModifier {
-  key: string = ''
+class VariantOption {
+  type: VariantType = VariantType.STANDARD
   icon: string = ''
   nameKey: string = ''
   descKey: string = ''
   enabled: boolean = true
 
-  constructor(key: string, icon: string, nameKey: string, descKey: string, enabled: boolean) {
-    this.key = key
+  constructor(type: VariantType, icon: string, nameKey: string, descKey: string, enabled: boolean) {
+    this.type = type
     this.icon = icon
     this.nameKey = nameKey
     this.descKey = descKey
@@ -75,10 +75,11 @@ class VariantModifier {
   }
 }
 
-const VARIANT_MODIFIERS: VariantModifier[] = [
-  new VariantModifier('diagonal', '╳', 'variant_diagonal', 'variant_diagonal_desc', true),
-  new VariantModifier('jigsaw', '🧩', 'variant_jigsaw', 'variant_jigsaw_desc', false),
-  new VariantModifier('killer', '🗡️', 'variant_killer', 'variant_killer_desc', false),
+const VARIANT_OPTIONS: VariantOption[] = [
+  new VariantOption(VariantType.STANDARD, '🔢', 'variant_standard', 'variant_standard_desc', true),
+  new VariantOption(VariantType.DIAGONAL, '╳', 'variant_diagonal', 'variant_diagonal_desc', true),
+  new VariantOption(VariantType.JIGSAW, '🧩', 'variant_jigsaw', 'variant_jigsaw_desc', false),
+  new VariantOption(VariantType.KILLER, '🗡️', 'variant_killer', 'variant_killer_desc', false),
 ]
 
 @Entry
@@ -96,10 +97,7 @@ struct Index {
   @State showSettings: boolean = false
   @State selectedSymmetry: string = 'auto'  // 'auto' | Symmetry values
   @State selectedGridSize: number = 9      // 4 | 6 | 9
-  /** 变种修饰器开关（可多选叠加） */
-  @State hasDiagonals: boolean = false
-  @State hasJigsaw: boolean = false
-  @State hasKiller: boolean = false
+  @State selectedVariant: VariantType = VariantType.STANDARD
   @State seedInput: string = ''
   /** 导入解析结果 */
   @State importResult: ParseResult | null = null
@@ -205,33 +203,6 @@ struct Index {
       return result
     } catch (_e) {
       return error // 回退到原始文本
-    }
-  }
-
-  /**
-   * 判断指定变种修饰器是否激活
-   */
-  private isModifierActive(key: string): boolean {
-    if (key === 'diagonal') return this.hasDiagonals
-    if (key === 'jigsaw') return this.hasJigsaw
-    if (key === 'killer') return this.hasKiller
-    return false
-  }
-
-  /**
-   * 切换指定变种修饰器开关
-   */
-  private toggleModifier(key: string): void {
-    if (key === 'diagonal') {
-      this.hasDiagonals = !this.hasDiagonals
-    } else if (key === 'jigsaw') {
-      this.hasJigsaw = !this.hasJigsaw
-    } else if (key === 'killer') {
-      this.hasKiller = !this.hasKiller
-    }
-    // 变种修饰器仅支持 9×9
-    if (this.isModifierActive(key) && this.selectedGridSize !== 9) {
-      this.selectedGridSize = 9
     }
   }
 
@@ -359,7 +330,7 @@ struct Index {
       })
         .margin({ top: Sizes.btnGap })
 
-      // ==================== ③.1 变种模式选择（多选叠加） ====================
+      // ==================== ③.1 变种模式选择（单选） ====================
       Column() {
         Text($r('app.string.variant_section'))
           .fontSize(12)
@@ -367,7 +338,7 @@ struct Index {
           .margin({ bottom: 6 })
 
         Row({ space: 6 }) {
-          ForEach(VARIANT_MODIFIERS, (item: VariantModifier) => {
+          ForEach(VARIANT_OPTIONS, (item: VariantOption) => {
             Column({ space: 2 }) {
               Text(item.icon)
                 .fontSize(20)
@@ -377,12 +348,12 @@ struct Index {
                 .fontColor(
                   !item.enabled
                     ? Colors.subtitleText
-                    : this.isModifierActive(item.key)
+                    : this.selectedVariant === item.type
                       ? Colors.primaryText
                       : Colors.titleText
                 )
                 .fontWeight(
-                  this.isModifierActive(item.key) && item.enabled
+                  this.selectedVariant === item.type && item.enabled
                     ? FontWeight.Medium
                     : FontWeight.Normal
                 )
@@ -395,7 +366,7 @@ struct Index {
                 Text(getContext(this).resourceManager.getStringByNameSync(item.descKey))
                   .fontSize(8)
                   .fontColor(
-                    this.isModifierActive(item.key)
+                    this.selectedVariant === item.type
                       ? Colors.primaryText
                       : Colors.subtitleText
                   )
@@ -407,14 +378,18 @@ struct Index {
             .backgroundColor(
               !item.enabled
                 ? 'transparent'
-                : this.isModifierActive(item.key)
+                : this.selectedVariant === item.type
                   ? Colors.primaryBtn
                   : 'transparent'
             )
             .opacity(item.enabled ? 1.0 : 0.5)
             .onClick(() => {
               if (item.enabled) {
-                this.toggleModifier(item.key)
+                this.selectedVariant = item.type
+                // 非标准变种仅支持 9×9
+                if (item.type !== VariantType.STANDARD && this.selectedGridSize !== 9) {
+                  this.selectedGridSize = 9
+                }
               }
             })
           })
@@ -427,8 +402,8 @@ struct Index {
       .width('100%')
       .margin({ top: 8 })
 
-      // ==================== ③.2 棋盘大小选择（无变种修饰器激活时可选） ====================
-      if (!this.hasDiagonals && !this.hasJigsaw && !this.hasKiller) {
+      // ==================== ③.2 棋盘大小选择（仅标准模式） ====================
+      if (this.selectedVariant === VariantType.STANDARD) {
         Column() {
           Text($r('app.string.grid_size_section'))
             .fontSize(12)
@@ -731,7 +706,7 @@ struct Index {
                 difficulty: this.selectedDifficulty,
                 symmetry: this.selectedSymmetry === 'auto' ? undefined : this.selectedSymmetry,
                 gridSize: this.selectedGridSize,
-                hasDiagonals: this.hasDiagonals,
+                variantType: this.selectedVariant,
               },
             })
           }

@@ -758,7 +758,15 @@
     },
     {
       "name": "variant_section",
-      "value": "Variant Rules (Stackable)"
+      "value": "Game Mode"
+    },
+    {
+      "name": "variant_standard",
+      "value": "Classic"
+    },
+    {
+      "name": "variant_standard_desc",
+      "value": "Standard Sudoku rules"
     },
     {
       "name": "variant_diagonal",
