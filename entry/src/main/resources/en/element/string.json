@@ -755,6 +755,46 @@
     {
       "name": "grid_size_9x9",
       "value": "9×9"
+    },
+    {
+      "name": "variant_section",
+      "value": "Game Mode"
+    },
+    {
+      "name": "variant_standard",
+      "value": "Classic"
+    },
+    {
+      "name": "variant_standard_desc",
+      "value": "Standard Sudoku rules"
+    },
+    {
+      "name": "variant_diagonal",
+      "value": "Diagonal"
+    },
+    {
+      "name": "variant_diagonal_desc",
+      "value": "Diagonals must also be unique"
+    },
+    {
+      "name": "variant_jigsaw",
+      "value": "Jigsaw"
+    },
+    {
+      "name": "variant_jigsaw_desc",
+      "value": "Irregular region shapes"
+    },
+    {
+      "name": "variant_killer",
+      "value": "Killer"
+    },
+    {
+      "name": "variant_killer_desc",
+      "value": "Cage sum constraints"
+    },
+    {
+      "name": "variant_coming_soon",
+      "value": "Coming Soon"
     }
   ]
 }
