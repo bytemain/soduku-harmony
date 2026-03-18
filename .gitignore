@@ -12,3 +12,12 @@
 /.appanalyzer
 
 data.json
+
+# ArkUI-X cross-platform build artifacts
+.arkui-x/android/.gradle/
+.arkui-x/android/app/libs/
+.arkui-x/android/app/src/main/assets/arkui-x/
+.arkui-x/android/gradlew
+.arkui-x/android/gradlew.bat
+.arkui-x/ios/arkui-x/
+.arkui-x/ios/frameworks/
