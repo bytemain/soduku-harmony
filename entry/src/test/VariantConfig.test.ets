@@ -6,6 +6,7 @@ import {
   createKillerConfig, createSizedConfig,
   STANDARD_CONFIG, buildStandardRegionMap, getRegionMap,
 } from '../main/ets/models/VariantConfig'
+import { buildKillerCagesFromSolution, createDefaultKillerLayout, normalizeVariantType } from '../main/ets/utils/KillerSudoku'
 
 export default function variantConfigTest() {
   describe('VariantConfig.GridPresets', () => {
@@ -206,6 +207,44 @@ export default function variantConfigTest() {
       for (let i = 0; i < 81; i++) {
         expect(map[i]).assertEqual(i % 9)
       }
+    })
+  })
+
+  describe('VariantConfig.KillerHelpers', () => {
+    it('normalizeVariantType_supports_killer', 0, () => {
+      expect(normalizeVariantType(VariantType.KILLER)).assertEqual(VariantType.KILLER)
+      expect(normalizeVariantType(VariantType.DIAGONAL)).assertEqual(VariantType.DIAGONAL)
+      expect(normalizeVariantType('unknown')).assertEqual(VariantType.STANDARD)
+    })
+
+    it('createDefaultKillerLayout_covers_all_81_cells', 0, () => {
+      const cages = createDefaultKillerLayout()
+      const hitCount: number[] = new Array(81).fill(0)
+      for (const cage of cages) {
+        for (const cellIndex of cage.cells) {
+          hitCount[cellIndex]++
+        }
+      }
+
+      expect(cages.length).assertEqual(27)
+      for (const count of hitCount) {
+        expect(count).assertEqual(1)
+      }
+    })
+
+    it('buildKillerCagesFromSolution_uses_solution_sum', 0, () => {
+      const solution: number[] = []
+      for (let row = 0; row < 9; row++) {
+        for (let col = 0; col < 9; col++) {
+          solution.push(((row * 3 + Math.floor(row / 3) + col) % 9) + 1)
+        }
+      }
+
+      const cages = buildKillerCagesFromSolution(solution)
+      expect(cages.length).assertEqual(27)
+      expect(cages[0].cells[0]).assertEqual(0)
+      expect(cages[0].cells[1]).assertEqual(1)
+      expect(cages[0].sum).assertEqual(solution[0] + solution[1])
     })
   })
 }

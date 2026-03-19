@@ -22,6 +22,11 @@ export struct SudokuCell {
   @Prop selectedValue: number = 0
   /** 是否为当前提示目标格 */
   @Prop isHintTarget: boolean = false
+  @Prop cageSumLabel: string = ''
+  @Prop killerBorderLeft: number = 0
+  @Prop killerBorderTop: number = 0
+  @Prop killerBorderRight: number = 0
+  @Prop killerBorderBottom: number = 0
   /** 全部 81 个格子的引用，用于笔记冲突检测 */
   allCells: CellData[] = []
   onCellClick: () => void = () => {}
@@ -162,6 +167,37 @@ export struct SudokuCell {
         .backgroundColor(this.getCellBgColor())
         .animation({ duration: 150 })
 
+      if (this.hasKillerBorder()) {
+        Column()
+          .width('100%')
+          .height('100%')
+          .border({
+            width: {
+              left: this.killerBorderLeft,
+              top: this.killerBorderTop,
+              right: this.killerBorderRight,
+              bottom: this.killerBorderBottom,
+            },
+            color: Colors.primaryBtn,
+          })
+      }
+
+      if (this.cageSumLabel.length > 0) {
+        Column() {
+          Row() {
+            Text(this.cageSumLabel)
+              .fontSize(8)
+              .fontColor(Colors.subtitleText)
+              .fontWeight(FontWeight.Medium)
+              .margin({ left: 2, top: 1 })
+            Blank()
+          }
+          Blank()
+        }
+        .width('100%')
+        .height('100%')
+      }
+
       if (this.cellData.value !== 0) {
         // 显示数字
         Text(this.cellData.value.toString())
@@ -199,6 +235,11 @@ export struct SudokuCell {
       this.lastValue = this.cellData.value
       this.lastError = this.cellData.isError
     })
+  }
+
+  private hasKillerBorder(): boolean {
+    return this.killerBorderLeft > 0 || this.killerBorderTop > 0 ||
+      this.killerBorderRight > 0 || this.killerBorderBottom > 0
   }
 
   /**

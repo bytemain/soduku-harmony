@@ -9,6 +9,7 @@
 import { CellData } from '../models/CellData'
 import { Colors, Sizes, BOX_ROWS, BOX_COLS, BOX_COUNT_COLS, BOX_COUNT_ROWS,
   GRID_SIZE, DIGITS, GRID_INDICES, BOX_INDICES, BOX_CELL_INDICES } from '../constants/GameConstants'
+import { KillerCage, VariantType } from '../models/VariantConfig'
 import { SudokuCell } from './SudokuCell'
 
 @Component
@@ -17,6 +18,8 @@ export struct SudokuBoard {
   @Prop selectedValue: number = 0
   @Prop hintFocusIndex: number = -1
   @Prop showCoordinates: boolean = false
+  @Prop variantType: VariantType = VariantType.STANDARD
+  @Prop killerCages: KillerCage[] = []
   onCellClick: (index: number) => void = () => {}
   /** 鼠标拖拽多选：action = 'start' | 'move' | 'end' */
   onMouseDragSelect: (index: number, action: string) => void = () => {}
@@ -114,31 +117,20 @@ export struct SudokuBoard {
       ForEach(BOX_CELL_INDICES, (cellInBox: number) => {
         GridItem() {
           SudokuCell({
-            cellData: this.cells.data[this.getCellIndex(
-              Math.floor(boxIndex / BOX_COUNT_COLS) * BOX_ROWS,
-              (boxIndex % BOX_COUNT_COLS) * BOX_COLS,
-              cellInBox
-            )],
+            cellData: this.cells.data[this.getBoxCellIndex(boxIndex, cellInBox)],
             selectedValue: this.selectedValue,
-            isHintTarget: this.hintFocusIndex === this.getCellIndex(
-              Math.floor(boxIndex / BOX_COUNT_COLS) * BOX_ROWS,
-              (boxIndex % BOX_COUNT_COLS) * BOX_COLS,
-              cellInBox
-            ),
+            isHintTarget: this.hintFocusIndex === this.getBoxCellIndex(boxIndex, cellInBox),
+            cageSumLabel: this.getKillerCageLabel(this.getBoxCellIndex(boxIndex, cellInBox)),
+            killerBorderLeft: this.getKillerBorderWidth(this.getBoxCellIndex(boxIndex, cellInBox), 'left'),
+            killerBorderTop: this.getKillerBorderWidth(this.getBoxCellIndex(boxIndex, cellInBox), 'top'),
+            killerBorderRight: this.getKillerBorderWidth(this.getBoxCellIndex(boxIndex, cellInBox), 'right'),
+            killerBorderBottom: this.getKillerBorderWidth(this.getBoxCellIndex(boxIndex, cellInBox), 'bottom'),
             allCells: this.cells.data,
             onCellClick: () => {
-              this.onCellClick(this.getCellIndex(
-                Math.floor(boxIndex / BOX_COUNT_COLS) * BOX_ROWS,
-                (boxIndex % BOX_COUNT_COLS) * BOX_COLS,
-                cellInBox
-              ))
+              this.onCellClick(this.getBoxCellIndex(boxIndex, cellInBox))
             },
             onMouseDragSelect: (action: string) => {
-              this.onMouseDragSelect(this.getCellIndex(
-                Math.floor(boxIndex / BOX_COUNT_COLS) * BOX_ROWS,
-                (boxIndex % BOX_COUNT_COLS) * BOX_COLS,
-                cellInBox
-              ), action)
+              this.onMouseDragSelect(this.getBoxCellIndex(boxIndex, cellInBox), action)
             },
           })
         }
@@ -160,6 +152,59 @@ export struct SudokuBoard {
     const r = boxRow + Math.floor(cellInBox / BOX_COLS)
     const c = boxCol + (cellInBox % BOX_COLS)
     return r * GRID_SIZE + c
+  }
+
+  private getBoxCellIndex(boxIndex: number, cellInBox: number): number {
+    return this.getCellIndex(
+      Math.floor(boxIndex / BOX_COUNT_COLS) * BOX_ROWS,
+      (boxIndex % BOX_COUNT_COLS) * BOX_COLS,
+      cellInBox
+    )
+  }
+
+  private getKillerCage(index: number): KillerCage | null {
+    if (this.variantType !== VariantType.KILLER || this.killerCages.length === 0) {
+      return null
+    }
+    for (const cage of this.killerCages) {
+      if (cage.cells.indexOf(index) >= 0) {
+        return cage
+      }
+    }
+    return null
+  }
+
+  private getKillerCageLabel(index: number): string {
+    const cage = this.getKillerCage(index)
+    if (cage === null || cage.cells.length === 0 || cage.cells[0] !== index || cage.sum <= 0) {
+      return ''
+    }
+    return cage.sum.toString()
+  }
+
+  private getKillerBorderWidth(index: number, side: string): number {
+    const cage = this.getKillerCage(index)
+    if (cage === null) {
+      return 0
+    }
+
+    const row = Math.floor(index / GRID_SIZE)
+    const col = index % GRID_SIZE
+    let neighborIndex = -1
+    if (side === 'left' && col > 0) {
+      neighborIndex = index - 1
+    } else if (side === 'top' && row > 0) {
+      neighborIndex = index - GRID_SIZE
+    } else if (side === 'right' && col < GRID_SIZE - 1) {
+      neighborIndex = index + 1
+    } else if (side === 'bottom' && row < GRID_SIZE - 1) {
+      neighborIndex = index + GRID_SIZE
+    }
+
+    if (neighborIndex >= 0 && cage.cells.indexOf(neighborIndex) >= 0) {
+      return 0
+    }
+    return 1.5
   }
 
   /**

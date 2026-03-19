@@ -2,6 +2,7 @@
  * GameMainContent.ets — 游戏页主内容区
  */
 import { Difficulty, GestureDirection, Sizes, createInitialRemainingCounts } from '../constants/GameConstants'
+import { KillerCage, VariantType } from '../models/VariantConfig'
 import { ArrayWrapper, SudokuBoard } from './SudokuBoard'
 import { TopBar } from './TopBar'
 import { MultiSelectBanner } from './MultiSelectBanner'
@@ -18,6 +19,8 @@ export struct GameMainContent {
   @Prop selectedValue: number = 0
   @Prop hintFocusIndex: number = -1
   @Prop showCoordinates: boolean = false
+  @Prop variantType: VariantType = VariantType.STANDARD
+  @Prop killerCages: KillerCage[] = []
   @Prop boardScale: number = 1
   @Prop completionScale: number = 1
   @Prop boardOpacity: number = 1
@@ -68,6 +71,8 @@ export struct GameMainContent {
         selectedValue: this.selectedValue,
         hintFocusIndex: this.hintFocusIndex,
         showCoordinates: this.showCoordinates,
+        variantType: this.variantType,
+        killerCages: this.killerCages,
         onCellClick: (index: number) => {
           this.onCellClick(index)
         },

@@ -16,7 +16,8 @@ import { solve } from '../utils/SudokuSolver'
 import { parse81String } from '../utils/SudokuFormat'
 import { evaluateDifficulty } from '../utils/DifficultyEvaluator'
 import { Difficulty, applyGridConfig } from '../constants/GameConstants'
-import { getGridConfigBySize, createSizedConfig, VariantType, createDiagonalConfig } from '../models/VariantConfig'
+import { getGridConfigBySize, createSizedConfig, VariantType, createDiagonalConfig, createKillerConfig } from '../models/VariantConfig'
+import { createDefaultKillerLayout, normalizeVariantType } from '../utils/KillerSudoku'
 import { applyTopology } from '../utils/Topology'
 
 const workerPort: ThreadWorkerGlobalScope = worker.workerPort
@@ -53,8 +54,7 @@ workerPort.onmessage = (e: MessageEvents): void => {
   // Apply grid config if provided (for variant sizes)
   const gridSize = msg['gridSize'] as number | undefined
   const variantTypeRaw = (msg['variantType'] as string | undefined) ?? VariantType.STANDARD
-  const variantType: VariantType = variantTypeRaw === VariantType.DIAGONAL
-    ? VariantType.DIAGONAL : VariantType.STANDARD
+  const variantType = normalizeVariantType(variantTypeRaw)
   if (gridSize !== undefined) {
     const cfg = getGridConfigBySize(gridSize)
     applyGridConfig(cfg)
@@ -62,6 +62,8 @@ workerPort.onmessage = (e: MessageEvents): void => {
   // 根据变种类型构建拓扑（无论是否指定 gridSize 都需要应用）
   if (variantType === VariantType.DIAGONAL) {
     applyTopology(createDiagonalConfig())
+  } else if (variantType === VariantType.KILLER) {
+    applyTopology(createKillerConfig(createDefaultKillerLayout(gridSize ?? 9)))
   } else if (gridSize !== undefined) {
     const cfg = getGridConfigBySize(gridSize)
     applyTopology(createSizedConfig(cfg.gridSize, cfg.boxRows, cfg.boxCols))
