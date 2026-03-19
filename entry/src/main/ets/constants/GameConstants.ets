@@ -101,6 +101,8 @@ export interface ColorsConfig {
   diffHard: string
   diffExpert: string
   diffEvil: string
+  killerCageBorder: string
+  killerCageLabel: string
   segmentBg: string
   segmentSelected: string
   segmentText: string
@@ -207,6 +209,8 @@ export const LightColors: ColorsConfig = {
   diffHard: '#FF9800',
   diffExpert: '#F57C00',
   diffEvil: '#F44336',
+  killerCageBorder: '#FF9800',
+  killerCageLabel: '#FF9800',
 
   // === 分段按钮 ===
   segmentBg: '#E8E8E8',
@@ -319,6 +323,8 @@ export const DarkColors: ColorsConfig = {
   diffHard: '#FFA726',
   diffExpert: '#FF9800',
   diffEvil: '#EF5350',
+  killerCageBorder: '#FFB74D',
+  killerCageLabel: '#FFCC80',
 
   // === 分段按钮 ===
   segmentBg: '#2A2A2A',
@@ -404,6 +410,7 @@ export interface SizesConfig {
   cellSize: number
   cellBorderBold: number
   cellBorderThin: number
+  killerCageInset: number
   givenFont: number
   userFont: number
   noteFont: number
@@ -440,6 +447,7 @@ export const Sizes: SizesConfig = {
   cellSize: 36,            // ≈ 328 / 9
   cellBorderBold: 2,
   cellBorderThin: 0.5,
+  killerCageInset: 1,
   givenFont: 22,
   userFont: 22,
   noteFont: 10,

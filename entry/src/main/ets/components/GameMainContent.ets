@@ -1,6 +1,7 @@
 /**
  * GameMainContent.ets — 游戏页主内容区
  */
+import { BoardCellDecoration, createEmptyBoardDecorations } from '../models/BoardDecoration'
 import { Difficulty, GestureDirection, Sizes, createInitialRemainingCounts } from '../constants/GameConstants'
 import { ArrayWrapper, SudokuBoard } from './SudokuBoard'
 import { TopBar } from './TopBar'
@@ -18,6 +19,7 @@ export struct GameMainContent {
   @Prop selectedValue: number = 0
   @Prop hintFocusIndex: number = -1
   @Prop showCoordinates: boolean = false
+  @Prop boardDecorations: BoardCellDecoration[] = createEmptyBoardDecorations()
   @Prop boardScale: number = 1
   @Prop completionScale: number = 1
   @Prop boardOpacity: number = 1
@@ -68,6 +70,7 @@ export struct GameMainContent {
         selectedValue: this.selectedValue,
         hintFocusIndex: this.hintFocusIndex,
         showCoordinates: this.showCoordinates,
+        boardDecorations: this.boardDecorations,
         onCellClick: (index: number) => {
           this.onCellClick(index)
         },

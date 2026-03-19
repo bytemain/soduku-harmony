@@ -13,6 +13,7 @@ import { common } from '@kit.AbilityKit'
 import { worker, MessageEvents, ErrorEvent } from '@kit.ArkTS'
 import { CellData, CellFlags, setFlag, clearFlag,
   getNoteState, setNoteState, NoteState, createEmptyBoard } from '../models/CellData'
+import { BoardCellDecoration, buildKillerBoardDecorations, createEmptyBoardDecorations } from '../models/BoardDecoration'
 import { GameState } from '../models/GameState'
 import { GameHistory, CellSnapshot } from '../models/GameHistory'
 import { Colors, Difficulty, GestureDirection, getDifficultyConfig,
@@ -20,7 +21,8 @@ import { Colors, Difficulty, GestureDirection, getDifficultyConfig,
 import { decodeSeedId, Symmetry, encodeSeedId } from '../utils/SudokuGenerator'
 import { validateAllCells, updateHighlights, isGameCompleted } from '../utils/SudokuValidator'
 import { PEERS, applyTopology } from '../utils/Topology'
-import { getGridConfigBySize, createSizedConfig, VariantType, createDiagonalConfig } from '../models/VariantConfig'
+import { getGridConfigBySize, createSizedConfig, VariantType, createDiagonalConfig,
+  GridConfig, KillerCage } from '../models/VariantConfig'
 import { ArrayWrapper } from '../components/SudokuBoard'
 import { SettingsPanel } from '../components/SettingsPanel'
 import { GestureGuideOverlay } from '../components/GestureGuideOverlay'
@@ -33,6 +35,7 @@ import { exportTo81String } from '../utils/SudokuFormat'
 import { saveGame, loadGame, clearSave, GameSaveData, CellSerialized } from '../utils/GameStorage'
 import { recordGameStarted, recordGameWon } from '../utils/StatsStorage'
 import { addGameRecord, GameRecord } from '../utils/HistoryStorage'
+import { buildKillerCagesFromSolution, createDefaultKillerLayout, normalizeVariantType } from '../utils/KillerSudoku'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 
 interface GamePageParams {
@@ -96,6 +99,9 @@ struct GamePage {
   @State private completionScale: number = 1.0
   @State private numPadHeight: number = 0
   @State private isLoading: boolean = true
+  @State private boardDecorations: BoardCellDecoration[] = createEmptyBoardDecorations()
+  @State private currentVariantType: VariantType = VariantType.STANDARD
+  @State private killerCages: KillerCage[] = []
   @State private loadingTitle: string = ''
   @State private loadingMessage: string = ''
   @State private loadingProgress: number = 0
@@ -127,6 +133,67 @@ struct GamePage {
     this.showSettings = false
   }
 
+  /**
+   * 刷新棋盘装饰策略产物。
+   * 当前标准/对角线使用空装饰，Killer 通过专用装饰子类生成边界与和数。
+   */
+  private refreshBoardDecorations(): void {
+    if (this.currentVariantType === VariantType.KILLER && this.killerCages.length > 0) {
+      this.boardDecorations = buildKillerBoardDecorations(this.killerCages)
+      return
+    }
+    this.boardDecorations = createEmptyBoardDecorations()
+  }
+
+  /**
+   * 按当前变种应用拓扑，并同步更新棋盘展示所需的 Killer 笼子状态。
+   * 标准模式使用尺寸配置；对角线模式启用对角线约束；
+   * Killer 当前仅接入展示层，题面/校验仍复用标准 9×9 主链路，避免生成异常。
+   * 等后续补齐 Killer 专用生成与校验后，再切回完整拓扑。
+   */
+  private applyVariantTopologyAndState(variantType: VariantType, gridConfig: GridConfig): void {
+    this.currentVariantType = variantType
+    if (variantType === VariantType.DIAGONAL) {
+      this.killerCages = []
+      this.refreshBoardDecorations()
+      applyTopology(createDiagonalConfig())
+      return
+    }
+
+    if (variantType === VariantType.KILLER && gridConfig.gridSize === 9) {
+      const cages = createDefaultKillerLayout()
+      this.killerCages = cages
+      this.refreshBoardDecorations()
+      applyTopology(createSizedConfig(gridConfig.gridSize, gridConfig.boxRows, gridConfig.boxCols))
+      return
+    }
+
+    this.killerCages = []
+    this.refreshBoardDecorations()
+    applyTopology(createSizedConfig(gridConfig.gridSize, gridConfig.boxRows, gridConfig.boxCols))
+  }
+
+  /**
+   * 使用完整解答刷新 Killer 笼子和数。
+   * 若当前不是 Killer 模式则清空笼子显示；若解答暂不可用则回退到默认布局（sum=0）。
+   */
+  private refreshKillerCagesFromSolution(solution: number[]): void {
+    if (this.currentVariantType !== VariantType.KILLER) {
+      this.killerCages = []
+      this.refreshBoardDecorations()
+      return
+    }
+
+    if (solution.length === 0) {
+      this.killerCages = createDefaultKillerLayout()
+      this.refreshBoardDecorations()
+      return
+    }
+
+    this.killerCages = buildKillerCagesFromSolution(solution)
+    this.refreshBoardDecorations()
+  }
+
   aboutToAppear(): void {
     this.syncUiPreferencesFromStorage()
     hilog.info(0x0000, 'GamePage', 'aboutToAppear: isLeftHand=%{public}s, handModeManual=%{public}s',
@@ -140,19 +207,12 @@ struct GamePage {
     const importedDifficulty = params?.importedDifficulty
     const gridSize = params?.gridSize ?? 9
     const variantTypeRaw = params?.variantType ?? VariantType.STANDARD
-    // 安全校验：未知变种类型回退到标准模式
-    const variantType: VariantType = variantTypeRaw === VariantType.DIAGONAL
-      ? VariantType.DIAGONAL : VariantType.STANDARD
+    const variantType = normalizeVariantType(variantTypeRaw)
 
     // 应用棋盘大小配置
     const gridConfig = getGridConfigBySize(gridSize)
     applyGridConfig(gridConfig)
-    // 根据变种类型构建拓扑
-    if (variantType === VariantType.DIAGONAL) {
-      applyTopology(createDiagonalConfig())
-    } else {
-      applyTopology(createSizedConfig(gridConfig.gridSize, gridConfig.boxRows, gridConfig.boxCols))
-    }
+    this.applyVariantTopologyAndState(variantType, gridConfig)
 
     // 尝试恢复存档（种子模式不恢复存档）
     const saved = !seedIdParam ? loadGame(getContext(this)) : null
@@ -160,11 +220,12 @@ struct GamePage {
       // 恢复存档时，先应用存档的棋盘大小配置
       const savedGridSize = saved.gridSize ?? 9
       const savedGridCfg = getGridConfigBySize(savedGridSize)
+      const savedVariantType = normalizeVariantType(saved.variantType)
       applyGridConfig(savedGridCfg)
-      applyTopology(createSizedConfig(savedGridCfg.gridSize, savedGridCfg.boxRows, savedGridCfg.boxCols))
+      this.applyVariantTopologyAndState(savedVariantType, savedGridCfg)
 
       if (saved.cells.length === savedGridCfg.totalCells) {
-        this.restoreFromSave(saved)
+        this.restoreFromSave(saved, savedVariantType)
         this.finishInit()
       } else {
         // 存档尺寸不匹配，重新生成
@@ -251,6 +312,8 @@ struct GamePage {
           this.gameState.symmetry = symmetry
         }
 
+        this.currentVariantType = variantType
+        this.refreshKillerCagesFromSolution(this.gameState.solution)
         this.cellsWrapper = new ArrayWrapper(this.gameState.cells)
         recordGameStarted(getContext(this), this.gameState.difficulty)
         this.loadingMessage = this.getString('loading_finalizing')
@@ -392,7 +455,7 @@ struct GamePage {
   /**
    * 从存档恢复游戏
    */
-  private restoreFromSave(saved: GameSaveData): void {
+  private restoreFromSave(saved: GameSaveData, variantType: VariantType): void {
     // 重新创建匹配当前 GRID_SIZE 的空棋盘
     this.gameState.cells = createEmptyBoard()
     const cells = this.gameState.cells
@@ -415,6 +478,8 @@ struct GamePage {
     this.gameState.isPaused = false
     this.gameState.seed = saved.seed ?? 0
     this.gameState.symmetry = saved.symmetry ?? ''
+    this.currentVariantType = variantType
+    this.refreshKillerCagesFromSolution(saved.solution)
 
     this.cellsWrapper = new ArrayWrapper(this.gameState.cells)
 
@@ -444,6 +509,7 @@ struct GamePage {
     data.seed = this.gameState.seed
     data.symmetry = this.gameState.symmetry
     data.gridSize = GRID_SIZE
+    data.variantType = this.currentVariantType
     saveGame(getContext(this), data)
   }
 
@@ -1524,6 +1590,7 @@ struct GamePage {
         selectedValue: this.keypadSelectedDigit !== 0 ? this.keypadSelectedDigit : (this.gameState.selectedCell?.value ?? 0),
         hintFocusIndex: this.hintFocusIndex,
         showCoordinates: this.showCoordinates,
+        boardDecorations: this.boardDecorations,
         boardScale: this.boardScale,
         completionScale: this.completionScale,
         boardOpacity: this.boardOpacity,

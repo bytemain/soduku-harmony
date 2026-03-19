@@ -11,8 +11,9 @@
  *
  * 参考：Doc 05 §② 单元格
  */
-import { CellData, CellFlags, hasFlag, getNoteState, NoteState } from '../models/CellData'
-import { Colors, Sizes, DIGITS, BOX_COLS, BOX_ROWS, GRID_SIZE } from '../constants/GameConstants'
+import { CellData, getNoteState, NoteState } from '../models/CellData'
+import { BoardCellDecoration, createEmptyBoardCellDecoration } from '../models/BoardDecoration'
+import { Colors, Sizes, DIGITS, BOX_COLS, BOX_ROWS } from '../constants/GameConstants'
 import { PEERS } from '../utils/Topology'
 
 @Component
@@ -22,6 +23,8 @@ export struct SudokuCell {
   @Prop selectedValue: number = 0
   /** 是否为当前提示目标格 */
   @Prop isHintTarget: boolean = false
+  /** 变种棋盘装饰（如 Killer 笼子边界/角标），由外部策略预计算 */
+  @Prop decoration: BoardCellDecoration = createEmptyBoardCellDecoration()
   /** 全部 81 个格子的引用，用于笔记冲突检测 */
   allCells: CellData[] = []
   onCellClick: () => void = () => {}
@@ -162,6 +165,39 @@ export struct SudokuCell {
         .backgroundColor(this.getCellBgColor())
         .animation({ duration: 150 })
 
+      if (this.hasKillerBorder()) {
+        Column()
+          .width('100%')
+          .height('100%')
+          .margin(Sizes.killerCageInset)
+          .border({
+            width: {
+              left: this.decoration.border.left,
+              top: this.decoration.border.top,
+              right: this.decoration.border.right,
+              bottom: this.decoration.border.bottom,
+            },
+            color: Colors.killerCageBorder,
+          })
+      }
+
+      if (this.decoration.topLeftLabel.length > 0) {
+        Column() {
+          Row() {
+            Text(this.decoration.topLeftLabel)
+              .fontSize(8)
+              .fontColor(Colors.killerCageLabel)
+              .fontWeight(FontWeight.Medium)
+              .margin({ left: 2, top: 1 })
+              .backgroundColor(Colors.boardBg)
+            Blank()
+          }
+          Blank()
+        }
+        .width('100%')
+        .height('100%')
+      }
+
       if (this.cellData.value !== 0) {
         // 显示数字
         Text(this.cellData.value.toString())
@@ -199,6 +235,11 @@ export struct SudokuCell {
       this.lastValue = this.cellData.value
       this.lastError = this.cellData.isError
     })
+  }
+
+  private hasKillerBorder(): boolean {
+    return this.decoration.border.left > 0 || this.decoration.border.top > 0 ||
+      this.decoration.border.right > 0 || this.decoration.border.bottom > 0
   }
 
   /**

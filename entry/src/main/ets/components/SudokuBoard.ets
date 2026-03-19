@@ -7,8 +7,9 @@
  * 参考：Doc 05 §② 棋盘
  */
 import { CellData } from '../models/CellData'
+import { BoardCellDecoration, createEmptyBoardCellDecoration } from '../models/BoardDecoration'
 import { Colors, Sizes, BOX_ROWS, BOX_COLS, BOX_COUNT_COLS, BOX_COUNT_ROWS,
-  GRID_SIZE, DIGITS, GRID_INDICES, BOX_INDICES, BOX_CELL_INDICES } from '../constants/GameConstants'
+  GRID_SIZE, DIGITS, BOX_INDICES, BOX_CELL_INDICES } from '../constants/GameConstants'
 import { SudokuCell } from './SudokuCell'
 
 @Component
@@ -17,6 +18,7 @@ export struct SudokuBoard {
   @Prop selectedValue: number = 0
   @Prop hintFocusIndex: number = -1
   @Prop showCoordinates: boolean = false
+  @Prop boardDecorations: BoardCellDecoration[] = []
   onCellClick: (index: number) => void = () => {}
   /** 鼠标拖拽多选：action = 'start' | 'move' | 'end' */
   onMouseDragSelect: (index: number, action: string) => void = () => {}
@@ -114,31 +116,16 @@ export struct SudokuBoard {
       ForEach(BOX_CELL_INDICES, (cellInBox: number) => {
         GridItem() {
           SudokuCell({
-            cellData: this.cells.data[this.getCellIndex(
-              Math.floor(boxIndex / BOX_COUNT_COLS) * BOX_ROWS,
-              (boxIndex % BOX_COUNT_COLS) * BOX_COLS,
-              cellInBox
-            )],
+            cellData: this.cells.data[this.getBoxCellIndex(boxIndex, cellInBox)],
             selectedValue: this.selectedValue,
-            isHintTarget: this.hintFocusIndex === this.getCellIndex(
-              Math.floor(boxIndex / BOX_COUNT_COLS) * BOX_ROWS,
-              (boxIndex % BOX_COUNT_COLS) * BOX_COLS,
-              cellInBox
-            ),
+            isHintTarget: this.hintFocusIndex === this.getBoxCellIndex(boxIndex, cellInBox),
+            decoration: this.getCellDecoration(this.getBoxCellIndex(boxIndex, cellInBox)),
             allCells: this.cells.data,
             onCellClick: () => {
-              this.onCellClick(this.getCellIndex(
-                Math.floor(boxIndex / BOX_COUNT_COLS) * BOX_ROWS,
-                (boxIndex % BOX_COUNT_COLS) * BOX_COLS,
-                cellInBox
-              ))
+              this.onCellClick(this.getBoxCellIndex(boxIndex, cellInBox))
             },
             onMouseDragSelect: (action: string) => {
-              this.onMouseDragSelect(this.getCellIndex(
-                Math.floor(boxIndex / BOX_COUNT_COLS) * BOX_ROWS,
-                (boxIndex % BOX_COUNT_COLS) * BOX_COLS,
-                cellInBox
-              ), action)
+              this.onMouseDragSelect(this.getBoxCellIndex(boxIndex, cellInBox), action)
             },
           })
         }
@@ -160,6 +147,25 @@ export struct SudokuBoard {
     const r = boxRow + Math.floor(cellInBox / BOX_COLS)
     const c = boxCol + (cellInBox % BOX_COLS)
     return r * GRID_SIZE + c
+  }
+
+  private getBoxCellIndex(boxIndex: number, cellInBox: number): number {
+    return this.getCellIndex(
+      Math.floor(boxIndex / BOX_COUNT_COLS) * BOX_ROWS,
+      (boxIndex % BOX_COUNT_COLS) * BOX_COLS,
+      cellInBox
+    )
+  }
+
+  /**
+   * 取指定格子的预计算装饰。
+   * 未来其他变种只需替换装饰生成策略，无需修改棋盘组件。
+   */
+  private getCellDecoration(index: number): BoardCellDecoration {
+    if (index >= 0 && index < this.boardDecorations.length) {
+      return this.boardDecorations[index]
+    }
+    return createEmptyBoardCellDecoration()
   }
 
   /**
