@@ -22,10 +22,15 @@ export struct SudokuCell {
   @Prop selectedValue: number = 0
   /** 是否为当前提示目标格 */
   @Prop isHintTarget: boolean = false
+  /** Killer 模式左上角和数标签；非笼子起始格传空字符串 */
   @Prop cageSumLabel: string = ''
+  /** Killer 笼子左边界宽度（0 表示与相邻格同笼，不绘制） */
   @Prop killerBorderLeft: number = 0
+  /** Killer 笼子上边界宽度（0 表示与相邻格同笼，不绘制） */
   @Prop killerBorderTop: number = 0
+  /** Killer 笼子右边界宽度（0 表示与相邻格同笼，不绘制） */
   @Prop killerBorderRight: number = 0
+  /** Killer 笼子下边界宽度（0 表示与相邻格同笼，不绘制） */
   @Prop killerBorderBottom: number = 0
   /** 全部 81 个格子的引用，用于笔记冲突检测 */
   allCells: CellData[] = []

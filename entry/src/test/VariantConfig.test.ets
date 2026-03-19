@@ -214,6 +214,7 @@ export default function variantConfigTest() {
     it('normalizeVariantType_supports_killer', 0, () => {
       expect(normalizeVariantType(VariantType.KILLER)).assertEqual(VariantType.KILLER)
       expect(normalizeVariantType(VariantType.DIAGONAL)).assertEqual(VariantType.DIAGONAL)
+      expect(normalizeVariantType(undefined)).assertEqual(VariantType.STANDARD)
       expect(normalizeVariantType('unknown')).assertEqual(VariantType.STANDARD)
     })
 

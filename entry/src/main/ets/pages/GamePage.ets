@@ -131,7 +131,11 @@ struct GamePage {
     this.showSettings = false
   }
 
-  private applyVariantConfig(variantType: VariantType, gridConfig: GridConfig): void {
+  /**
+   * 按当前变种应用拓扑，并同步更新棋盘展示所需的 Killer 笼子状态。
+   * 标准模式使用尺寸配置；对角线模式启用对角线约束；Killer 模式应用默认笼子布局。
+   */
+  private applyVariantTopologyAndState(variantType: VariantType, gridConfig: GridConfig): void {
     this.currentVariantType = variantType
     if (variantType === VariantType.DIAGONAL) {
       this.killerCages = []
@@ -139,8 +143,8 @@ struct GamePage {
       return
     }
 
-    if (variantType === VariantType.KILLER) {
-      const cages = createDefaultKillerLayout(gridConfig.gridSize)
+    if (variantType === VariantType.KILLER && gridConfig.gridSize === 9) {
+      const cages = createDefaultKillerLayout()
       this.killerCages = cages
       applyTopology(createKillerConfig(cages))
       return
@@ -150,6 +154,10 @@ struct GamePage {
     applyTopology(createSizedConfig(gridConfig.gridSize, gridConfig.boxRows, gridConfig.boxCols))
   }
 
+  /**
+   * 使用完整解答刷新 Killer 笼子和数。
+   * 若当前不是 Killer 模式则清空笼子显示；若解答暂不可用则回退到默认布局（sum=0）。
+   */
   private refreshKillerCagesFromSolution(solution: number[]): void {
     if (this.currentVariantType !== VariantType.KILLER) {
       this.killerCages = []
@@ -157,7 +165,7 @@ struct GamePage {
     }
 
     if (solution.length === 0) {
-      this.killerCages = createDefaultKillerLayout(GRID_SIZE)
+      this.killerCages = createDefaultKillerLayout()
       return
     }
 
@@ -182,7 +190,7 @@ struct GamePage {
     // 应用棋盘大小配置
     const gridConfig = getGridConfigBySize(gridSize)
     applyGridConfig(gridConfig)
-    this.applyVariantConfig(variantType, gridConfig)
+    this.applyVariantTopologyAndState(variantType, gridConfig)
 
     // 尝试恢复存档（种子模式不恢复存档）
     const saved = !seedIdParam ? loadGame(getContext(this)) : null
@@ -192,7 +200,7 @@ struct GamePage {
       const savedGridCfg = getGridConfigBySize(savedGridSize)
       const savedVariantType = normalizeVariantType(saved.variantType)
       applyGridConfig(savedGridCfg)
-      this.applyVariantConfig(savedVariantType, savedGridCfg)
+      this.applyVariantTopologyAndState(savedVariantType, savedGridCfg)
 
       if (saved.cells.length === savedGridCfg.totalCells) {
         this.restoreFromSave(saved, savedVariantType)

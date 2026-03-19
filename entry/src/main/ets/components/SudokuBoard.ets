@@ -12,6 +12,10 @@ import { Colors, Sizes, BOX_ROWS, BOX_COLS, BOX_COUNT_COLS, BOX_COUNT_ROWS,
 import { KillerCage, VariantType } from '../models/VariantConfig'
 import { SudokuCell } from './SudokuCell'
 
+type KillerBorderSide = 'left' | 'top' | 'right' | 'bottom'
+
+const KILLER_CAGE_BORDER_WIDTH = 1.5
+
 @Component
 export struct SudokuBoard {
   @ObjectLink cells: ArrayWrapper
@@ -162,6 +166,10 @@ export struct SudokuBoard {
     )
   }
 
+  /**
+   * 查找指定格子所属的 Killer 笼子。
+   * 非 Killer 模式，或该格子没有匹配笼子时返回 null。
+   */
   private getKillerCage(index: number): KillerCage | null {
     if (this.variantType !== VariantType.KILLER || this.killerCages.length === 0) {
       return null
@@ -174,6 +182,10 @@ export struct SudokuBoard {
     return null
   }
 
+  /**
+   * 获取笼子左上起始格显示的和数字。
+   * 仅笼子的第一个格子显示 sum，其余格子返回空字符串。
+   */
   private getKillerCageLabel(index: number): string {
     const cage = this.getKillerCage(index)
     if (cage === null || cage.cells.length === 0 || cage.cells[0] !== index || cage.sum <= 0) {
@@ -182,7 +194,11 @@ export struct SudokuBoard {
     return cage.sum.toString()
   }
 
-  private getKillerBorderWidth(index: number, side: string): number {
+  /**
+   * 计算 Killer 笼子在某一侧是否需要绘制边界。
+   * 若相邻格仍在同一笼子内则不绘制；否则返回 1.5vp 作为笼子边界宽度。
+   */
+  private getKillerBorderWidth(index: number, side: KillerBorderSide): number {
     const cage = this.getKillerCage(index)
     if (cage === null) {
       return 0
@@ -204,7 +220,7 @@ export struct SudokuBoard {
     if (neighborIndex >= 0 && cage.cells.indexOf(neighborIndex) >= 0) {
       return 0
     }
-    return 1.5
+    return KILLER_CAGE_BORDER_WIDTH
   }
 
   /**

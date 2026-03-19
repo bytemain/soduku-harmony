@@ -62,8 +62,8 @@ workerPort.onmessage = (e: MessageEvents): void => {
   // 根据变种类型构建拓扑（无论是否指定 gridSize 都需要应用）
   if (variantType === VariantType.DIAGONAL) {
     applyTopology(createDiagonalConfig())
-  } else if (variantType === VariantType.KILLER) {
-    applyTopology(createKillerConfig(createDefaultKillerLayout(gridSize ?? 9)))
+  } else if (variantType === VariantType.KILLER && (gridSize ?? 9) === 9) {
+    applyTopology(createKillerConfig(createDefaultKillerLayout()))
   } else if (gridSize !== undefined) {
     const cfg = getGridConfigBySize(gridSize)
     applyTopology(createSizedConfig(cfg.gridSize, cfg.boxRows, cfg.boxCols))

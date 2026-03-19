@@ -1,11 +1,18 @@
 import { GRID_SIZE } from '../constants/GameConstants'
 import { KillerCage, VariantType } from '../models/VariantConfig'
 
+/**
+ * 固定笼子宽度模式：
+ * - 仅在单行内切分，确保任意合法标准数独解都不会在笼子内出现重复数字；
+ * - 通过 2/3/4、3/2/4、4/2/3 轮换，让笼子边界有一定变化，避免整盘过于单调。
+ */
 const KILLER_ROW_PATTERNS: number[][] = [
   [2, 3, 4],
   [3, 2, 4],
   [4, 2, 3],
 ]
+
+const SUPPORTED_KILLER_GRID_SIZE = 9
 
 export function normalizeVariantType(raw: string | undefined): VariantType {
   if (raw === VariantType.DIAGONAL) {
@@ -17,19 +24,24 @@ export function normalizeVariantType(raw: string | undefined): VariantType {
   return VariantType.STANDARD
 }
 
-export function createDefaultKillerLayout(gridSize: number = GRID_SIZE): KillerCage[] {
+/**
+ * 生成默认的 Killer 笼子布局。
+ * 当前只为 9×9 棋盘提供固定横向笼子分区：
+ * 每行按 2/3/4、3/2/4、4/2/3 循环切分，保证覆盖全部 81 格且互不重叠。
+ */
+export function createDefaultKillerLayout(): KillerCage[] {
   const cages: KillerCage[] = []
-  if (gridSize !== 9) {
+  if (GRID_SIZE !== SUPPORTED_KILLER_GRID_SIZE) {
     return cages
   }
 
-  for (let row = 0; row < gridSize; row++) {
+  for (let row = 0; row < GRID_SIZE; row++) {
     const pattern = KILLER_ROW_PATTERNS[row % KILLER_ROW_PATTERNS.length]
     let colStart = 0
     for (const width of pattern) {
       const cells: number[] = []
       for (let offset = 0; offset < width; offset++) {
-        cells.push(row * gridSize + colStart + offset)
+        cells.push(row * GRID_SIZE + colStart + offset)
       }
       const cage: KillerCage = {
         cells: cells,
@@ -43,6 +55,11 @@ export function createDefaultKillerLayout(gridSize: number = GRID_SIZE): KillerC
   return cages
 }
 
+/**
+ * 根据完整解答计算默认 Killer 布局的笼子和数。
+ * @param solution 一维完整解答（长度应为 81）
+ * @returns 与默认布局同结构、但每个笼子 sum 已按解答累计好的笼子列表
+ */
 export function buildKillerCagesFromSolution(solution: number[]): KillerCage[] {
   const layout = createDefaultKillerLayout()
   const cages: KillerCage[] = []
