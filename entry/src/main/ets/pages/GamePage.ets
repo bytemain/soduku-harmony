@@ -13,6 +13,7 @@ import { common } from '@kit.AbilityKit'
 import { worker, MessageEvents, ErrorEvent } from '@kit.ArkTS'
 import { CellData, CellFlags, setFlag, clearFlag,
   getNoteState, setNoteState, NoteState, createEmptyBoard } from '../models/CellData'
+import { BoardCellDecoration, buildKillerBoardDecorations, createEmptyBoardDecorations } from '../models/BoardDecoration'
 import { GameState } from '../models/GameState'
 import { GameHistory, CellSnapshot } from '../models/GameHistory'
 import { Colors, Difficulty, GestureDirection, getDifficultyConfig,
@@ -98,6 +99,7 @@ struct GamePage {
   @State private completionScale: number = 1.0
   @State private numPadHeight: number = 0
   @State private isLoading: boolean = true
+  @State private boardDecorations: BoardCellDecoration[] = createEmptyBoardDecorations()
   @State private currentVariantType: VariantType = VariantType.STANDARD
   @State private killerCages: KillerCage[] = []
   @State private loadingTitle: string = ''
@@ -132,6 +134,18 @@ struct GamePage {
   }
 
   /**
+   * 刷新棋盘装饰策略产物。
+   * 当前标准/对角线使用空装饰，Killer 通过专用装饰子类生成边界与和数。
+   */
+  private refreshBoardDecorations(): void {
+    if (this.currentVariantType === VariantType.KILLER && this.killerCages.length > 0) {
+      this.boardDecorations = buildKillerBoardDecorations(this.killerCages)
+      return
+    }
+    this.boardDecorations = createEmptyBoardDecorations()
+  }
+
+  /**
    * 按当前变种应用拓扑，并同步更新棋盘展示所需的 Killer 笼子状态。
    * 标准模式使用尺寸配置；对角线模式启用对角线约束；Killer 模式应用默认笼子布局。
    */
@@ -139,6 +153,7 @@ struct GamePage {
     this.currentVariantType = variantType
     if (variantType === VariantType.DIAGONAL) {
       this.killerCages = []
+      this.refreshBoardDecorations()
       applyTopology(createDiagonalConfig())
       return
     }
@@ -146,11 +161,13 @@ struct GamePage {
     if (variantType === VariantType.KILLER && gridConfig.gridSize === 9) {
       const cages = createDefaultKillerLayout()
       this.killerCages = cages
+      this.refreshBoardDecorations()
       applyTopology(createKillerConfig(cages))
       return
     }
 
     this.killerCages = []
+    this.refreshBoardDecorations()
     applyTopology(createSizedConfig(gridConfig.gridSize, gridConfig.boxRows, gridConfig.boxCols))
   }
 
@@ -161,15 +178,18 @@ struct GamePage {
   private refreshKillerCagesFromSolution(solution: number[]): void {
     if (this.currentVariantType !== VariantType.KILLER) {
       this.killerCages = []
+      this.refreshBoardDecorations()
       return
     }
 
     if (solution.length === 0) {
       this.killerCages = createDefaultKillerLayout()
+      this.refreshBoardDecorations()
       return
     }
 
     this.killerCages = buildKillerCagesFromSolution(solution)
+    this.refreshBoardDecorations()
   }
 
   aboutToAppear(): void {
@@ -1568,8 +1588,7 @@ struct GamePage {
         selectedValue: this.keypadSelectedDigit !== 0 ? this.keypadSelectedDigit : (this.gameState.selectedCell?.value ?? 0),
         hintFocusIndex: this.hintFocusIndex,
         showCoordinates: this.showCoordinates,
-        variantType: this.currentVariantType,
-        killerCages: this.killerCages,
+        boardDecorations: this.boardDecorations,
         boardScale: this.boardScale,
         completionScale: this.completionScale,
         boardOpacity: this.boardOpacity,

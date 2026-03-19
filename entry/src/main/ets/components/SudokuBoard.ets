@@ -7,14 +7,10 @@
  * 参考：Doc 05 §② 棋盘
  */
 import { CellData } from '../models/CellData'
+import { BoardCellDecoration, createEmptyBoardCellDecoration } from '../models/BoardDecoration'
 import { Colors, Sizes, BOX_ROWS, BOX_COLS, BOX_COUNT_COLS, BOX_COUNT_ROWS,
-  GRID_SIZE, DIGITS, GRID_INDICES, BOX_INDICES, BOX_CELL_INDICES } from '../constants/GameConstants'
-import { KillerCage, VariantType } from '../models/VariantConfig'
+  GRID_SIZE, DIGITS, BOX_INDICES, BOX_CELL_INDICES } from '../constants/GameConstants'
 import { SudokuCell } from './SudokuCell'
-
-type KillerBorderSide = 'left' | 'top' | 'right' | 'bottom'
-
-const KILLER_CAGE_BORDER_WIDTH = 1.5
 
 @Component
 export struct SudokuBoard {
@@ -22,8 +18,7 @@ export struct SudokuBoard {
   @Prop selectedValue: number = 0
   @Prop hintFocusIndex: number = -1
   @Prop showCoordinates: boolean = false
-  @Prop variantType: VariantType = VariantType.STANDARD
-  @Prop killerCages: KillerCage[] = []
+  @Prop boardDecorations: BoardCellDecoration[] = []
   onCellClick: (index: number) => void = () => {}
   /** 鼠标拖拽多选：action = 'start' | 'move' | 'end' */
   onMouseDragSelect: (index: number, action: string) => void = () => {}
@@ -124,11 +119,7 @@ export struct SudokuBoard {
             cellData: this.cells.data[this.getBoxCellIndex(boxIndex, cellInBox)],
             selectedValue: this.selectedValue,
             isHintTarget: this.hintFocusIndex === this.getBoxCellIndex(boxIndex, cellInBox),
-            cageSumLabel: this.getKillerCageLabel(this.getBoxCellIndex(boxIndex, cellInBox)),
-            killerBorderLeft: this.getKillerBorderWidth(this.getBoxCellIndex(boxIndex, cellInBox), 'left'),
-            killerBorderTop: this.getKillerBorderWidth(this.getBoxCellIndex(boxIndex, cellInBox), 'top'),
-            killerBorderRight: this.getKillerBorderWidth(this.getBoxCellIndex(boxIndex, cellInBox), 'right'),
-            killerBorderBottom: this.getKillerBorderWidth(this.getBoxCellIndex(boxIndex, cellInBox), 'bottom'),
+            decoration: this.getCellDecoration(this.getBoxCellIndex(boxIndex, cellInBox)),
             allCells: this.cells.data,
             onCellClick: () => {
               this.onCellClick(this.getBoxCellIndex(boxIndex, cellInBox))
@@ -167,60 +158,14 @@ export struct SudokuBoard {
   }
 
   /**
-   * 查找指定格子所属的 Killer 笼子。
-   * 非 Killer 模式，或该格子没有匹配笼子时返回 null。
+   * 取指定格子的预计算装饰。
+   * 未来其他变种只需替换装饰生成策略，无需修改棋盘组件。
    */
-  private getKillerCage(index: number): KillerCage | null {
-    if (this.variantType !== VariantType.KILLER || this.killerCages.length === 0) {
-      return null
+  private getCellDecoration(index: number): BoardCellDecoration {
+    if (index >= 0 && index < this.boardDecorations.length) {
+      return this.boardDecorations[index]
     }
-    for (const cage of this.killerCages) {
-      if (cage.cells.indexOf(index) >= 0) {
-        return cage
-      }
-    }
-    return null
-  }
-
-  /**
-   * 获取笼子左上起始格显示的和数字。
-   * 仅笼子的第一个格子显示 sum，其余格子返回空字符串。
-   */
-  private getKillerCageLabel(index: number): string {
-    const cage = this.getKillerCage(index)
-    if (cage === null || cage.cells.length === 0 || cage.cells[0] !== index || cage.sum <= 0) {
-      return ''
-    }
-    return cage.sum.toString()
-  }
-
-  /**
-   * 计算 Killer 笼子在某一侧是否需要绘制边界。
-   * 若相邻格仍在同一笼子内则不绘制；否则返回 1.5vp 作为笼子边界宽度。
-   */
-  private getKillerBorderWidth(index: number, side: KillerBorderSide): number {
-    const cage = this.getKillerCage(index)
-    if (cage === null) {
-      return 0
-    }
-
-    const row = Math.floor(index / GRID_SIZE)
-    const col = index % GRID_SIZE
-    let neighborIndex = -1
-    if (side === 'left' && col > 0) {
-      neighborIndex = index - 1
-    } else if (side === 'top' && row > 0) {
-      neighborIndex = index - GRID_SIZE
-    } else if (side === 'right' && col < GRID_SIZE - 1) {
-      neighborIndex = index + 1
-    } else if (side === 'bottom' && row < GRID_SIZE - 1) {
-      neighborIndex = index + GRID_SIZE
-    }
-
-    if (neighborIndex >= 0 && cage.cells.indexOf(neighborIndex) >= 0) {
-      return 0
-    }
-    return KILLER_CAGE_BORDER_WIDTH
+    return createEmptyBoardCellDecoration()
   }
 
   /**

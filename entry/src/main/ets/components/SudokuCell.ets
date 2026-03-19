@@ -11,8 +11,9 @@
  *
  * 参考：Doc 05 §② 单元格
  */
-import { CellData, CellFlags, hasFlag, getNoteState, NoteState } from '../models/CellData'
-import { Colors, Sizes, DIGITS, BOX_COLS, BOX_ROWS, GRID_SIZE } from '../constants/GameConstants'
+import { CellData, getNoteState, NoteState } from '../models/CellData'
+import { BoardCellDecoration, createEmptyBoardCellDecoration } from '../models/BoardDecoration'
+import { Colors, Sizes, DIGITS, BOX_COLS, BOX_ROWS } from '../constants/GameConstants'
 import { PEERS } from '../utils/Topology'
 
 @Component
@@ -22,16 +23,8 @@ export struct SudokuCell {
   @Prop selectedValue: number = 0
   /** 是否为当前提示目标格 */
   @Prop isHintTarget: boolean = false
-  /** Killer 模式左上角和数标签；非笼子起始格传空字符串 */
-  @Prop cageSumLabel: string = ''
-  /** Killer 笼子左边界宽度（0 表示与相邻格同笼，不绘制） */
-  @Prop killerBorderLeft: number = 0
-  /** Killer 笼子上边界宽度（0 表示与相邻格同笼，不绘制） */
-  @Prop killerBorderTop: number = 0
-  /** Killer 笼子右边界宽度（0 表示与相邻格同笼，不绘制） */
-  @Prop killerBorderRight: number = 0
-  /** Killer 笼子下边界宽度（0 表示与相邻格同笼，不绘制） */
-  @Prop killerBorderBottom: number = 0
+  /** 变种棋盘装饰（如 Killer 笼子边界/角标），由外部策略预计算 */
+  @Prop decoration: BoardCellDecoration = createEmptyBoardCellDecoration()
   /** 全部 81 个格子的引用，用于笔记冲突检测 */
   allCells: CellData[] = []
   onCellClick: () => void = () => {}
@@ -178,19 +171,19 @@ export struct SudokuCell {
           .height('100%')
           .border({
             width: {
-              left: this.killerBorderLeft,
-              top: this.killerBorderTop,
-              right: this.killerBorderRight,
-              bottom: this.killerBorderBottom,
+              left: this.decoration.border.left,
+              top: this.decoration.border.top,
+              right: this.decoration.border.right,
+              bottom: this.decoration.border.bottom,
             },
             color: Colors.primaryBtn,
           })
       }
 
-      if (this.cageSumLabel.length > 0) {
+      if (this.decoration.topLeftLabel.length > 0) {
         Column() {
           Row() {
-            Text(this.cageSumLabel)
+            Text(this.decoration.topLeftLabel)
               .fontSize(8)
               .fontColor(Colors.subtitleText)
               .fontWeight(FontWeight.Medium)
@@ -243,8 +236,8 @@ export struct SudokuCell {
   }
 
   private hasKillerBorder(): boolean {
-    return this.killerBorderLeft > 0 || this.killerBorderTop > 0 ||
-      this.killerBorderRight > 0 || this.killerBorderBottom > 0
+    return this.decoration.border.left > 0 || this.decoration.border.top > 0 ||
+      this.decoration.border.right > 0 || this.decoration.border.bottom > 0
   }
 
   /**

@@ -6,6 +6,7 @@ import {
   createKillerConfig, createSizedConfig,
   STANDARD_CONFIG, buildStandardRegionMap, getRegionMap,
 } from '../main/ets/models/VariantConfig'
+import { buildKillerBoardDecorations } from '../main/ets/models/BoardDecoration'
 import { buildKillerCagesFromSolution, createDefaultKillerLayout, normalizeVariantType } from '../main/ets/utils/KillerSudoku'
 
 export default function variantConfigTest() {
@@ -246,6 +247,16 @@ export default function variantConfigTest() {
       expect(cages[0].cells[0]).assertEqual(0)
       expect(cages[0].cells[1]).assertEqual(1)
       expect(cages[0].sum).assertEqual(solution[0] + solution[1])
+    })
+
+    it('buildKillerBoardDecorations_uses_generic_decoration_model', 0, () => {
+      const cage: KillerCage = { cells: [0, 1, 2], sum: 6 }
+      const decorations = buildKillerBoardDecorations([cage])
+      expect(decorations[0].topLeftLabel).assertEqual('6')
+      expect(decorations[0].border.left > 0).assertTrue()
+      expect(decorations[1].topLeftLabel).assertEqual('')
+      expect(decorations[1].border.left).assertEqual(0)
+      expect(decorations[1].border.top > 0).assertTrue()
     })
   })
 }
