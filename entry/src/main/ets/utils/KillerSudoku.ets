@@ -18,6 +18,9 @@ export function normalizeVariantType(raw: string | undefined): VariantType {
   if (raw === VariantType.DIAGONAL) {
     return VariantType.DIAGONAL
   }
+  if (raw === VariantType.JIGSAW) {
+    return VariantType.JIGSAW
+  }
   if (raw === VariantType.KILLER) {
     return VariantType.KILLER
   }

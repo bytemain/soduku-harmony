@@ -3,6 +3,7 @@
  */
 import { BoardCellDecoration, createEmptyBoardDecorations } from '../models/BoardDecoration'
 import { Difficulty, GestureDirection, Sizes, createInitialRemainingCounts } from '../constants/GameConstants'
+import { VariantType } from '../models/VariantConfig'
 import { ArrayWrapper, SudokuBoard } from './SudokuBoard'
 import { TopBar } from './TopBar'
 import { MultiSelectBanner } from './MultiSelectBanner'
@@ -20,6 +21,7 @@ export struct GameMainContent {
   @Prop hintFocusIndex: number = -1
   @Prop showCoordinates: boolean = false
   @Prop boardDecorations: BoardCellDecoration[] = createEmptyBoardDecorations()
+  @Prop currentVariantType: VariantType = VariantType.STANDARD
   @Prop boardScale: number = 1
   @Prop completionScale: number = 1
   @Prop boardOpacity: number = 1
@@ -71,6 +73,7 @@ export struct GameMainContent {
         hintFocusIndex: this.hintFocusIndex,
         showCoordinates: this.showCoordinates,
         boardDecorations: this.boardDecorations,
+        currentVariantType: this.currentVariantType,
         onCellClick: (index: number) => {
           this.onCellClick(index)
         },

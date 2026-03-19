@@ -16,7 +16,13 @@ import { solve } from '../utils/SudokuSolver'
 import { parse81String } from '../utils/SudokuFormat'
 import { evaluateDifficulty } from '../utils/DifficultyEvaluator'
 import { Difficulty, applyGridConfig } from '../constants/GameConstants'
-import { getGridConfigBySize, createSizedConfig, VariantType, createDiagonalConfig } from '../models/VariantConfig'
+import {
+  getGridConfigBySize,
+  createSizedConfig,
+  VariantType,
+  createDiagonalConfig,
+  createDefaultJigsawConfig,
+} from '../models/VariantConfig'
 import { normalizeVariantType } from '../utils/KillerSudoku'
 import { applyTopology } from '../utils/Topology'
 
@@ -62,6 +68,8 @@ workerPort.onmessage = (e: MessageEvents): void => {
   // 根据变种类型构建拓扑（无论是否指定 gridSize 都需要应用）
   if (variantType === VariantType.DIAGONAL) {
     applyTopology(createDiagonalConfig())
+  } else if (variantType === VariantType.JIGSAW) {
+    applyTopology(createDefaultJigsawConfig())
   } else if (gridSize !== undefined) {
     const cfg = getGridConfigBySize(gridSize)
     applyTopology(createSizedConfig(cfg.gridSize, cfg.boxRows, cfg.boxCols))

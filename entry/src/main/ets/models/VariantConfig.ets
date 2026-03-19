@@ -236,6 +236,37 @@ export function createJigsawConfig(regionMap: number[]): VariantConfig {
 }
 
 /**
+ * 默认锯齿数独区域布局。
+ * 使用固定的 9 个连通区域，确保主线程与 Worker 在同一拓扑下工作。
+ */
+const DEFAULT_JIGSAW_REGION_MAP: number[] = [
+  0, 0, 0, 1, 1, 1, 2, 2, 3,
+  0, 0, 1, 1, 1, 2, 2, 2, 3,
+  0, 0, 0, 0, 1, 2, 2, 4, 3,
+  5, 5, 5, 1, 1, 2, 4, 4, 3,
+  5, 5, 5, 5, 5, 2, 4, 4, 3,
+  6, 6, 5, 4, 4, 4, 4, 7, 3,
+  6, 6, 7, 7, 7, 7, 7, 7, 3,
+  6, 6, 6, 7, 8, 8, 8, 7, 3,
+  6, 6, 8, 8, 8, 8, 8, 8, 3,
+]
+
+/**
+ * 获取默认锯齿区域图副本。
+ * 返回副本以避免运行时误改共享数组。
+ */
+export function createDefaultJigsawRegionMap(): number[] {
+  return DEFAULT_JIGSAW_REGION_MAP.slice()
+}
+
+/**
+ * 创建默认锯齿数独配置。
+ */
+export function createDefaultJigsawConfig(): VariantConfig {
+  return createJigsawConfig(createDefaultJigsawRegionMap())
+}
+
+/**
  * 创建 Killer（杀手数独）配置。
  * cages 由调用方提供（通常由笼子生成算法产出）。
  *

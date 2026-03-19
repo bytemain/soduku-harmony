@@ -13,7 +13,12 @@ import { common } from '@kit.AbilityKit'
 import { worker, MessageEvents, ErrorEvent } from '@kit.ArkTS'
 import { CellData, CellFlags, setFlag, clearFlag,
   getNoteState, setNoteState, NoteState, createEmptyBoard } from '../models/CellData'
-import { BoardCellDecoration, buildKillerBoardDecorations, createEmptyBoardDecorations } from '../models/BoardDecoration'
+import {
+  BoardCellDecoration,
+  buildJigsawBoardDecorations,
+  buildKillerBoardDecorations,
+  createEmptyBoardDecorations,
+} from '../models/BoardDecoration'
 import { GameState } from '../models/GameState'
 import { GameHistory, CellSnapshot } from '../models/GameHistory'
 import { Colors, Difficulty, GestureDirection, getDifficultyConfig,
@@ -22,6 +27,7 @@ import { decodeSeedId, Symmetry, encodeSeedId } from '../utils/SudokuGenerator'
 import { validateAllCells, updateHighlights, isGameCompleted } from '../utils/SudokuValidator'
 import { PEERS, applyTopology } from '../utils/Topology'
 import { getGridConfigBySize, createSizedConfig, VariantType, createDiagonalConfig,
+  createDefaultJigsawConfig, createDefaultJigsawRegionMap,
   GridConfig, KillerCage } from '../models/VariantConfig'
 import { ArrayWrapper } from '../components/SudokuBoard'
 import { SettingsPanel } from '../components/SettingsPanel'
@@ -135,9 +141,13 @@ struct GamePage {
 
   /**
    * 刷新棋盘装饰策略产物。
-   * 当前标准/对角线使用空装饰，Killer 通过专用装饰子类生成边界与和数。
+   * 当前标准/对角线使用空装饰，Jigsaw/Killer 生成对应的边界装饰。
    */
   private refreshBoardDecorations(): void {
+    if (this.currentVariantType === VariantType.JIGSAW) {
+      this.boardDecorations = buildJigsawBoardDecorations(createDefaultJigsawRegionMap())
+      return
+    }
     if (this.currentVariantType === VariantType.KILLER && this.killerCages.length > 0) {
       this.boardDecorations = buildKillerBoardDecorations(this.killerCages)
       return
@@ -147,7 +157,7 @@ struct GamePage {
 
   /**
    * 按当前变种应用拓扑，并同步更新棋盘展示所需的 Killer 笼子状态。
-   * 标准模式使用尺寸配置；对角线模式启用对角线约束；
+   * 标准模式使用尺寸配置；对角线模式启用对角线约束；Jigsaw 使用固定不规则宫布局；
    * Killer 当前仅接入展示层，题面/校验仍复用标准 9×9 主链路，避免生成异常。
    * 等后续补齐 Killer 专用生成与校验后，再切回完整拓扑。
    */
@@ -157,6 +167,13 @@ struct GamePage {
       this.killerCages = []
       this.refreshBoardDecorations()
       applyTopology(createDiagonalConfig())
+      return
+    }
+
+    if (variantType === VariantType.JIGSAW) {
+      this.killerCages = []
+      this.refreshBoardDecorations()
+      applyTopology(createDefaultJigsawConfig())
       return
     }
 
@@ -1591,6 +1608,7 @@ struct GamePage {
         hintFocusIndex: this.hintFocusIndex,
         showCoordinates: this.showCoordinates,
         boardDecorations: this.boardDecorations,
+        currentVariantType: this.currentVariantType,
         boardScale: this.boardScale,
         completionScale: this.completionScale,
         boardOpacity: this.boardOpacity,

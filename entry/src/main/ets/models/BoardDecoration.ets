@@ -2,6 +2,7 @@ import { GRID_SIZE, TOTAL_CELLS } from '../constants/GameConstants'
 import { KillerCage } from './VariantConfig'
 
 const KILLER_CAGE_BORDER_WIDTH = 1.5
+const JIGSAW_REGION_BORDER_WIDTH = 2
 
 /**
  * 单元格装饰边框配置。
@@ -104,6 +105,30 @@ export function buildKillerBoardDecorations(cages: KillerCage[]): BoardCellDecor
     const label = cage.cells.length > 0 && cage.cells[0] === cellIndex && cage.sum > 0
       ? cage.sum.toString() : ''
     decorations[cellIndex] = new KillerCellDecoration(label, border)
+  }
+
+  return decorations
+}
+
+/**
+ * 基于 Jigsaw regionMap 构建不规则宫边界装饰。
+ */
+export function buildJigsawBoardDecorations(regionMap: number[]): BoardCellDecoration[] {
+  const decorations = createEmptyBoardDecorations()
+  if (regionMap.length < TOTAL_CELLS) {
+    return decorations
+  }
+
+  for (let cellIndex = 0; cellIndex < TOTAL_CELLS; cellIndex++) {
+    const currentRegion = regionMap[cellIndex]
+    const row = Math.floor(cellIndex / GRID_SIZE)
+    const col = cellIndex % GRID_SIZE
+    const left = col === 0 || regionMap[cellIndex - 1] !== currentRegion ? JIGSAW_REGION_BORDER_WIDTH : 0
+    const top = row === 0 || regionMap[cellIndex - GRID_SIZE] !== currentRegion ? JIGSAW_REGION_BORDER_WIDTH : 0
+    const right = col === GRID_SIZE - 1 || regionMap[cellIndex + 1] !== currentRegion ? JIGSAW_REGION_BORDER_WIDTH : 0
+    const bottom = row === GRID_SIZE - 1 || regionMap[cellIndex + GRID_SIZE] !== currentRegion
+      ? JIGSAW_REGION_BORDER_WIDTH : 0
+    decorations[cellIndex] = new BoardCellDecoration('', new CellDecorationBorder(left, top, right, bottom))
   }
 
   return decorations

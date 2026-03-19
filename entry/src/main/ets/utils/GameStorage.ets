@@ -47,7 +47,7 @@ export class GameSaveData {
   symmetry: string = ''
   /** 棋盘大小（4/6/9），默认 9 */
   gridSize: number = 9
-  /** 变种类型（standard/diagonal/killer），默认 standard */
+  /** 变种类型（standard/diagonal/jigsaw/killer），默认 standard */
   variantType: string = 'standard'
 
   constructor() {}
