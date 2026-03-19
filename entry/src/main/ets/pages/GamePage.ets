@@ -22,7 +22,7 @@ import { decodeSeedId, Symmetry, encodeSeedId } from '../utils/SudokuGenerator'
 import { validateAllCells, updateHighlights, isGameCompleted } from '../utils/SudokuValidator'
 import { PEERS, applyTopology } from '../utils/Topology'
 import { getGridConfigBySize, createSizedConfig, VariantType, createDiagonalConfig,
-  GridConfig, KillerCage, createKillerConfig } from '../models/VariantConfig'
+  GridConfig, KillerCage } from '../models/VariantConfig'
 import { ArrayWrapper } from '../components/SudokuBoard'
 import { SettingsPanel } from '../components/SettingsPanel'
 import { GestureGuideOverlay } from '../components/GestureGuideOverlay'
@@ -147,7 +147,9 @@ struct GamePage {
 
   /**
    * 按当前变种应用拓扑，并同步更新棋盘展示所需的 Killer 笼子状态。
-   * 标准模式使用尺寸配置；对角线模式启用对角线约束；Killer 模式应用默认笼子布局。
+   * 标准模式使用尺寸配置；对角线模式启用对角线约束；
+   * Killer 当前仅接入展示层，题面/校验仍复用标准 9×9 主链路，避免生成异常。
+   * 等后续补齐 Killer 专用生成与校验后，再切回完整拓扑。
    */
   private applyVariantTopologyAndState(variantType: VariantType, gridConfig: GridConfig): void {
     this.currentVariantType = variantType
@@ -162,7 +164,7 @@ struct GamePage {
       const cages = createDefaultKillerLayout()
       this.killerCages = cages
       this.refreshBoardDecorations()
-      applyTopology(createKillerConfig(cages))
+      applyTopology(createSizedConfig(gridConfig.gridSize, gridConfig.boxRows, gridConfig.boxCols))
       return
     }
 

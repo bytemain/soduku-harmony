@@ -169,6 +169,7 @@ export struct SudokuCell {
         Column()
           .width('100%')
           .height('100%')
+          .margin(Sizes.killerCageInset)
           .border({
             width: {
               left: this.decoration.border.left,
@@ -176,7 +177,7 @@ export struct SudokuCell {
               right: this.decoration.border.right,
               bottom: this.decoration.border.bottom,
             },
-            color: Colors.primaryBtn,
+            color: Colors.killerCageBorder,
           })
       }
 
@@ -185,9 +186,10 @@ export struct SudokuCell {
           Row() {
             Text(this.decoration.topLeftLabel)
               .fontSize(8)
-              .fontColor(Colors.subtitleText)
+              .fontColor(Colors.killerCageLabel)
               .fontWeight(FontWeight.Medium)
               .margin({ left: 2, top: 1 })
+              .backgroundColor(Colors.boardBg)
             Blank()
           }
           Blank()
