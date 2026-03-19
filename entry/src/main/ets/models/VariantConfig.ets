@@ -238,6 +238,7 @@ export function createJigsawConfig(regionMap: number[]): VariantConfig {
 /**
  * 默认锯齿数独区域布局。
  * 使用固定的 9 个连通区域，确保主线程与 Worker 在同一拓扑下工作。
+ * 每个区域恰好包含 9 格，且都通过正交方向保持连通，便于渲染不规则宫边界。
  */
 const DEFAULT_JIGSAW_REGION_MAP: number[] = [
   0, 0, 0, 1, 1, 1, 2, 2, 3,
