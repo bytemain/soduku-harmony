@@ -6,7 +6,8 @@
  *
  * 参考：Doc 01 §3, Doc 03 任务 1.4
  */
-import { GRID_SIZE, BOX_ROWS, BOX_COLS, DIGITS } from '../constants/GameConstants'
+import { GRID_SIZE, DIGITS } from '../constants/GameConstants'
+import { PEERS } from './Topology'
 
 // ============================================================
 // 可播种伪随机数生成器（Mulberry32）
@@ -140,25 +141,16 @@ export function gridToFlat(grid: number[][]): number[] {
 // ============================================================
 
 /**
- * 检查在 board[row][col] 填入 num 是否合法
- * （同行、同列、同宫不能有重复）
+ * 检查在 board[row][col] 填入 num 是否合法。
+ * 通过 PEERS 拓扑约束进行检查，自动支持标准 / 对角线 / 变种拓扑。
+ * （同行、同列、同宫 + 当前拓扑的额外约束，如对角线）
  */
 export function isValidPlacement(board: number[][], row: number, col: number, num: number): boolean {
-  // 检查行
-  for (let c = 0; c < GRID_SIZE; c++) {
-    if (board[row][c] === num) return false
-  }
-  // 检查列
-  for (let r = 0; r < GRID_SIZE; r++) {
-    if (board[r][col] === num) return false
-  }
-  // 检查宫
-  const br = Math.floor(row / BOX_ROWS) * BOX_ROWS
-  const bc = Math.floor(col / BOX_COLS) * BOX_COLS
-  for (let r = br; r < br + BOX_ROWS; r++) {
-    for (let c = bc; c < bc + BOX_COLS; c++) {
-      if (board[r][c] === num) return false
-    }
+  const idx = row * GRID_SIZE + col
+  for (const peer of PEERS[idx]) {
+    const pr = Math.floor(peer / GRID_SIZE)
+    const pc = peer % GRID_SIZE
+    if (board[pr][pc] === num) return false
   }
   return true
 }

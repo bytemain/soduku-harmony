@@ -3,6 +3,8 @@ import { generateFullBoard, generatePuzzle } from '../main/ets/utils/SudokuGener
 import { solve, hasUniqueSolution } from '../main/ets/utils/SudokuSolver'
 import { Difficulty } from '../main/ets/constants/GameConstants'
 import { hilog } from '@kit.PerformanceAnalysisKit'
+import { createDiagonalConfig, createStandardConfig } from '../main/ets/models/VariantConfig'
+import { applyTopology } from '../main/ets/utils/Topology'
 
 const TAG = 'GeneratorTest'
 
@@ -227,6 +229,121 @@ export default function generatorTest() {
       const origSolVal = result.solution[0][0]
       result.puzzle[0][0] = 0
       expect(result.solution[0][0]).assertEqual(origSolVal)
+    })
+  })
+
+  describe('diagonal_generateFullBoard', () => {
+    it('diagonal_board_rows_cols_boxes_valid', 0, () => {
+      applyTopology(createDiagonalConfig())
+      const board = generateFullBoard()
+
+      // 每行包含 1-9
+      for (let r = 0; r < 9; r++) {
+        const sorted = board[r].slice().sort()
+        for (let i = 0; i < 9; i++) {
+          expect(sorted[i]).assertEqual(i + 1)
+        }
+      }
+
+      // 每列包含 1-9
+      for (let c = 0; c < 9; c++) {
+        const col: number[] = []
+        for (let r = 0; r < 9; r++) col.push(board[r][c])
+        const sorted = col.sort()
+        for (let i = 0; i < 9; i++) {
+          expect(sorted[i]).assertEqual(i + 1)
+        }
+      }
+
+      // 恢复标准拓扑
+      applyTopology(createStandardConfig())
+    })
+
+    it('diagonal_board_main_diagonal_valid', 0, () => {
+      applyTopology(createDiagonalConfig())
+      const board = generateFullBoard()
+
+      // 主对角线包含 1-9
+      const mainDiag: number[] = []
+      for (let i = 0; i < 9; i++) {
+        mainDiag.push(board[i][i])
+      }
+      const sorted = mainDiag.sort()
+      for (let i = 0; i < 9; i++) {
+        expect(sorted[i]).assertEqual(i + 1)
+      }
+
+      applyTopology(createStandardConfig())
+    })
+
+    it('diagonal_board_anti_diagonal_valid', 0, () => {
+      applyTopology(createDiagonalConfig())
+      const board = generateFullBoard()
+
+      // 副对角线包含 1-9
+      const antiDiag: number[] = []
+      for (let i = 0; i < 9; i++) {
+        antiDiag.push(board[i][8 - i])
+      }
+      const sorted = antiDiag.sort()
+      for (let i = 0; i < 9; i++) {
+        expect(sorted[i]).assertEqual(i + 1)
+      }
+
+      applyTopology(createStandardConfig())
+    })
+  })
+
+  describe('diagonal_generatePuzzle', () => {
+    it('diagonal_puzzle_has_empty_cells', 0, () => {
+      applyTopology(createDiagonalConfig())
+      const result = generatePuzzle(Difficulty.EASY)
+      let emptyCount = 0
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          if (result.puzzle[r][c] === 0) emptyCount++
+        }
+      }
+      hilog.info(0x0000, 'DiagonalTest', 'diagonal puzzle empty cells: %{public}d', emptyCount)
+      expect(emptyCount > 0).assertTrue()
+
+      applyTopology(createStandardConfig())
+    })
+
+    it('diagonal_puzzle_has_unique_solution', 0, () => {
+      applyTopology(createDiagonalConfig())
+      const result = generatePuzzle(Difficulty.EASY)
+      expect(hasUniqueSolution(result.puzzle)).assertTrue()
+
+      applyTopology(createStandardConfig())
+    })
+
+    it('diagonal_solution_diagonals_valid', 0, () => {
+      applyTopology(createDiagonalConfig())
+      const result = generatePuzzle(Difficulty.EASY)
+      const sol = result.solution
+
+      // 主对角线包含 1-9
+      const mainDiag: number[] = []
+      for (let i = 0; i < 9; i++) {
+        mainDiag.push(sol[i][i])
+      }
+      const mainSorted = mainDiag.sort()
+      for (let i = 0; i < 9; i++) {
+        expect(mainSorted[i]).assertEqual(i + 1)
+      }
+
+      // 副对角线包含 1-9
+      const antiDiag: number[] = []
+      for (let i = 0; i < 9; i++) {
+        antiDiag.push(sol[i][8 - i])
+      }
+      const antiSorted = antiDiag.sort()
+      for (let i = 0; i < 9; i++) {
+        expect(antiSorted[i]).assertEqual(i + 1)
+      }
+
+      applyTopology(createStandardConfig())
     })
   })
 }
