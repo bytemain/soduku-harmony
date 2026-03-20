@@ -58,6 +58,11 @@ interface GamePageParams {
   variantType?: string
 }
 
+interface LoadingAttemptInfo {
+  attemptNumber: number
+  totalAttemptsNumber: number
+}
+
 /**
  * 兼容旧版扁平历史栈格式。
  * 旧格式为 CellSnapshot[]（每个元素是单个快照对象），
@@ -267,14 +272,38 @@ struct GamePage {
     return attempt != null && totalAttempts != null
   }
 
-  private getLoadingMessage(phase: string, attemptValue?: Object, totalAttemptsValue?: Object): string {
+  private getLoadingAttemptInfo(
+    attemptValue?: Object,
+    totalAttemptsValue?: Object,
+  ): LoadingAttemptInfo | null {
     const attempt = attemptValue as number | null | undefined
     const totalAttempts = totalAttemptsValue as number | null | undefined
-    if (phase === 'generating_solution' && this.hasValidAttemptInfo(attempt, totalAttempts) && totalAttempts > 1) {
-      return formatStr(this.getString('loading_generating_solution_attempt'), attempt, totalAttempts)
+    if (!this.hasValidAttemptInfo(attempt, totalAttempts)) {
+      return null
     }
-    if (phase === 'retrying_generation' && this.hasValidAttemptInfo(attempt, totalAttempts)) {
-      return formatStr(this.getString('loading_retrying_generation'), attempt, totalAttempts)
+    return {
+      attemptNumber: attempt as number,
+      totalAttemptsNumber: totalAttempts as number,
+    }
+  }
+
+  private getLoadingMessage(phase: string, attemptValue?: Object, totalAttemptsValue?: Object): string {
+    const attemptInfo = this.getLoadingAttemptInfo(attemptValue, totalAttemptsValue)
+    if (phase === 'generating_solution' && attemptInfo !== null) {
+      if (attemptInfo.totalAttemptsNumber > 1) {
+        return formatStr(
+          this.getString('loading_generating_solution_attempt'),
+          attemptInfo.attemptNumber,
+          attemptInfo.totalAttemptsNumber,
+        )
+      }
+    }
+    if (phase === 'retrying_generation' && attemptInfo !== null) {
+      return formatStr(
+        this.getString('loading_retrying_generation'),
+        attemptInfo.attemptNumber,
+        attemptInfo.totalAttemptsNumber,
+      )
     }
 
     const key = `loading_${phase}`

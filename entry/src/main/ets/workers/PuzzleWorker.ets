@@ -26,6 +26,7 @@ import {
 } from '../models/VariantConfig'
 import { normalizeVariantType } from '../utils/KillerSudoku'
 import { applyTopology } from '../utils/Topology'
+import { hilog } from '@kit.PerformanceAnalysisKit'
 
 const workerPort: ThreadWorkerGlobalScope = worker.workerPort
 
@@ -41,13 +42,18 @@ function postProgress(phase: string, progress: number, attempt?: number, totalAt
   lastSentPhase = phase
   lastSentProgress = progress
 
-  workerPort.postMessage({
-    type: 'progress',
-    phase: phase,
-    progress: progress,
-    attempt: attempt ?? null,
-    totalAttempts: totalAttempts ?? null,
-  })
+  try {
+    workerPort.postMessage({
+      type: 'progress',
+      phase: phase,
+      progress: progress,
+      attempt: attempt ?? null,
+      totalAttempts: totalAttempts ?? null,
+    })
+  } catch (_e) {
+    hilog.warn(0x0000, 'PuzzleWorker', 'progress postMessage failed')
+    // 进度消息发送失败不影响生成主流程，交由后续 result/error 消息兜底。
+  }
 }
 
 function createProgressCallback(): GenerationProgressCallback {
