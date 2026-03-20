@@ -275,9 +275,9 @@ Build → Build Hap(s)/APP(s) → Build APP(s)
 
 ### Phase 1：环境验证（1-2 天）
 
-- [ ] 安装 ArkUI-X SDK 和 ACE Tools
-- [ ] 运行 `ace check` 验证环境完整性
-- [ ] 在现有工程中初始化跨平台支持（`ace create --type crossplatform`）
+- [x] ~~安装 ArkUI-X SDK 和 ACE Tools~~
+- [x] ~~运行 `ace check` 验证环境完整性~~
+- [x] 在现有工程中初始化跨平台支持 → 已手动创建 `.arkui-x/` 目录结构
 - [ ] 编译一次 Android APK，确认基础流程通
 
 ### Phase 2：Android 适配（3-5 天）
