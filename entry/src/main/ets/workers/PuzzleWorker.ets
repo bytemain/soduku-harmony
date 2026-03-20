@@ -53,6 +53,48 @@ function postProgress(phase: string, progress: number, attempt?: number, totalAt
   })
 }
 
+function createProgressCallback(): GenerationProgressCallback {
+  return (
+    phase: GenerationProgressPhase,
+    progress: number,
+    attempt?: number,
+    totalAttempts?: number,
+  ): void => {
+    postProgress(phase, progress, attempt, totalAttempts)
+  }
+}
+
+function generateVariantPuzzle(
+  variantType: VariantType,
+  difficulty: Difficulty,
+  symmetry?: Symmetry,
+) {
+  const progressCallback = createProgressCallback()
+  if (variantType === VariantType.JIGSAW) {
+    return generatePuzzleFromTemplateSolution(DEFAULT_JIGSAW_SOLUTION_TEMPLATE, difficulty, symmetry, progressCallback)
+  }
+  return generatePuzzle(difficulty, symmetry, progressCallback)
+}
+
+function generateVariantPuzzleFromSeed(
+  variantType: VariantType,
+  seed: number,
+  difficulty: Difficulty,
+  symmetry: Symmetry,
+) {
+  const progressCallback = createProgressCallback()
+  if (variantType === VariantType.JIGSAW) {
+    return generatePuzzleFromTemplateSolutionSeed(
+      DEFAULT_JIGSAW_SOLUTION_TEMPLATE,
+      seed,
+      difficulty,
+      symmetry,
+      progressCallback,
+    )
+  }
+  return generatePuzzleFromSeed(seed, difficulty, symmetry, progressCallback)
+}
+
 workerPort.onmessage = (e: MessageEvents): void => {
   const msg = e.data as Record<string, Object>
   const type = msg['type'] as string
@@ -84,17 +126,7 @@ workerPort.onmessage = (e: MessageEvents): void => {
       const difficulty = msg['difficulty'] as number as Difficulty
       const symmetryStr = msg['symmetry'] as string | undefined
       const symmetry = symmetryStr ? symmetryStr as Symmetry : undefined
-      const progressCallback: GenerationProgressCallback = (
-        phase: GenerationProgressPhase,
-        progress: number,
-        attempt?: number,
-        totalAttempts?: number,
-      ): void => {
-        postProgress(phase, progress, attempt, totalAttempts)
-      }
-      const result = variantType === VariantType.JIGSAW
-        ? generatePuzzleFromTemplateSolution(DEFAULT_JIGSAW_SOLUTION_TEMPLATE, difficulty, symmetry, progressCallback)
-        : generatePuzzle(difficulty, symmetry, progressCallback)
+      const result = generateVariantPuzzle(variantType, difficulty, symmetry)
 
       workerPort.postMessage({
         type: 'result',
@@ -111,24 +143,12 @@ workerPort.onmessage = (e: MessageEvents): void => {
       const seedId = msg['seedId'] as string
       const decoded = decodeSeedId(seedId)
       if (decoded !== null) {
-        const result = variantType === VariantType.JIGSAW
-          ? generatePuzzleFromTemplateSolutionSeed(
-            DEFAULT_JIGSAW_SOLUTION_TEMPLATE,
-            decoded.seed,
-            decoded.difficulty,
-            decoded.symmetry,
-            (phase: GenerationProgressPhase, progress: number, attempt?: number, totalAttempts?: number): void => {
-              postProgress(phase, progress, attempt, totalAttempts)
-            },
-          )
-          : generatePuzzleFromSeed(
-            decoded.seed,
-            decoded.difficulty,
-            decoded.symmetry,
-            (phase: GenerationProgressPhase, progress: number, attempt?: number, totalAttempts?: number): void => {
-              postProgress(phase, progress, attempt, totalAttempts)
-            },
-          )
+        const result = generateVariantPuzzleFromSeed(
+          variantType,
+          decoded.seed,
+          decoded.difficulty,
+          decoded.symmetry,
+        )
 
         workerPort.postMessage({
           type: 'result',

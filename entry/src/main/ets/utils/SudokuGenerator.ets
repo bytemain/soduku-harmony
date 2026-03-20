@@ -43,6 +43,11 @@ export type GenerationProgressCallback = (
   totalAttempts?: number,
 ) => void
 
+/**
+ * 默认 Jigsaw 拓扑对应的一份已验证终盘模板。
+ * 它满足当前默认不规则宫 regionMap 的行/列/区域约束，用于避免在 Jigsaw 模式下
+ * 再走一次代价很高的随机回溯终盘生成。
+ */
 export const DEFAULT_JIGSAW_SOLUTION_TEMPLATE: number[][] = [
   [1, 2, 3, 4, 5, 6, 7, 8, 9],
   [8, 9, 1, 2, 3, 4, 5, 6, 7],
@@ -54,6 +59,9 @@ export const DEFAULT_JIGSAW_SOLUTION_TEMPLATE: number[][] = [
   [9, 1, 2, 3, 4, 8, 6, 7, 5],
   [6, 8, 5, 9, 7, 3, 1, 2, 4],
 ]
+
+/** 大于任意合理难度差值的哨兵初始值，用于“尚未选出最佳候选题”状态。 */
+const INITIAL_BEST_DIFFICULTY_DIFF = 999
 
 function reportProgress(
   callback: GenerationProgressCallback | undefined,
@@ -94,9 +102,14 @@ export function generateFullBoard(rng?: SeededRandom): number[][] {
   return board
 }
 
+/**
+ * 基于已完成终盘模板做数字重映射。
+ * 通过同一个 RNG 随机置换 1-9，可快速得到另一份仍然合法的完整终盘。
+ */
 function remapSolvedBoardDigits(solutionTemplate: number[][], rng: SeededRandom): number[][] {
   const digitOrder = seededShuffle([...DIGITS], rng)
   const mappedBoard = cloneGrid(solutionTemplate)
+  // index 0 仅作占位，digitMap[1..9] 表示“原数字 -> 新数字”的映射关系。
   const digitMap: number[] = [0]
   for (let i = 0; i < digitOrder.length; i++) {
     digitMap.push(digitOrder[i])
@@ -109,6 +122,13 @@ function remapSolvedBoardDigits(solutionTemplate: number[][], rng: SeededRandom)
   }
 
   return mappedBoard
+}
+
+function shouldReplaceBestPuzzle(bestPuzzle: GeneratedPuzzle | null, diff: number, bestDiff: number): boolean {
+  if (bestPuzzle === null) {
+    return true
+  }
+  return diff < bestDiff
 }
 
 function getSymmetricPositions(row: number, col: number, symmetry: Symmetry): number[][] {
@@ -344,7 +364,7 @@ export function generatePuzzle(
   } : undefined
 
   let bestPuzzle: GeneratedPuzzle | null = null
-  let bestDiff = 999
+  let bestDiff = INITIAL_BEST_DIFFICULTY_DIFF
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const attemptNumber = attempt + 1
@@ -376,7 +396,7 @@ export function generatePuzzle(
     }
 
     const diff = Math.abs(grade.difficulty - difficulty)
-    if (diff < bestDiff) {
+    if (shouldReplaceBestPuzzle(bestPuzzle, diff, bestDiff)) {
       bestDiff = diff
       bestPuzzle = candidate
     }
@@ -384,8 +404,25 @@ export function generatePuzzle(
     reportProgress(globalCallback, 'retrying_generation', 95, attemptNumber, maxAttempts)
   }
 
+  if (bestPuzzle === null) {
+    const fallbackSeed = randomSeed()
+    const fallbackRng = new SeededRandom(fallbackSeed)
+    const fallbackSolution = generateFullBoard(fallbackRng)
+    const fallbackSymmetry = preferredSymmetry ?? pickSymmetry(difficulty, fallbackRng)
+    const fallbackPuzzle = digHoles(fallbackSolution, config.holesToDig, fallbackSymmetry, fallbackRng)
+    const fallbackGrade = evaluateDifficulty(fallbackPuzzle)
+    bestPuzzle = {
+      puzzle: fallbackPuzzle,
+      solution: cloneGrid(fallbackSolution),
+      seed: fallbackSeed,
+      symmetry: fallbackSymmetry,
+      actualDifficulty: fallbackGrade.difficulty,
+      score: fallbackGrade.score,
+    }
+  }
+
   reportProgress(progressCallback, 'finalizing', 100, maxAttempts, maxAttempts)
-  return bestPuzzle!
+  return bestPuzzle
 }
 
 export function generatePuzzleFromSeed(
@@ -452,7 +489,7 @@ export function generatePuzzleFromTemplateSolution(
   } : undefined
 
   let bestPuzzle: GeneratedPuzzle | null = null
-  let bestDiff = 999
+  let bestDiff = INITIAL_BEST_DIFFICULTY_DIFF
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const attemptNumber = attempt + 1
@@ -484,7 +521,7 @@ export function generatePuzzleFromTemplateSolution(
     }
 
     const diff = Math.abs(grade.difficulty - difficulty)
-    if (diff < bestDiff) {
+    if (shouldReplaceBestPuzzle(bestPuzzle, diff, bestDiff)) {
       bestDiff = diff
       bestPuzzle = candidate
     }
@@ -492,8 +529,25 @@ export function generatePuzzleFromTemplateSolution(
     reportProgress(globalCallback, 'retrying_generation', 95, attemptNumber, maxAttempts)
   }
 
+  if (bestPuzzle === null) {
+    const fallbackSeed = randomSeed()
+    const fallbackRng = new SeededRandom(fallbackSeed)
+    const fallbackSolution = remapSolvedBoardDigits(solutionTemplate, fallbackRng)
+    const fallbackSymmetry = preferredSymmetry ?? pickSymmetry(difficulty, fallbackRng)
+    const fallbackPuzzle = digHoles(fallbackSolution, config.holesToDig, fallbackSymmetry, fallbackRng)
+    const fallbackGrade = evaluateDifficulty(fallbackPuzzle)
+    bestPuzzle = {
+      puzzle: fallbackPuzzle,
+      solution: cloneGrid(fallbackSolution),
+      seed: fallbackSeed,
+      symmetry: fallbackSymmetry,
+      actualDifficulty: fallbackGrade.difficulty,
+      score: fallbackGrade.score,
+    }
+  }
+
   reportProgress(progressCallback, 'finalizing', 100, maxAttempts, maxAttempts)
-  return bestPuzzle!
+  return bestPuzzle
 }
 
 export function generatePuzzleFromTemplateSolutionSeed(
