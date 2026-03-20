@@ -6,12 +6,9 @@
  */
 import { ErrorEvent, MessageEvents, ThreadWorkerGlobalScope, worker } from '@kit.ArkTS'
 import {
-  DEFAULT_JIGSAW_SOLUTION_TEMPLATE,
   decodeSeedId,
   generatePuzzle,
   generatePuzzleFromSeed,
-  generatePuzzleFromTemplateSolution,
-  generatePuzzleFromTemplateSolutionSeed,
   GenerationProgressCallback,
   GenerationProgressPhase,
   Symmetry,
@@ -64,34 +61,13 @@ function createProgressCallback(): GenerationProgressCallback {
   }
 }
 
-function generateVariantPuzzle(
-  variantType: VariantType,
-  difficulty: Difficulty,
-  symmetry?: Symmetry,
-) {
+function generateVariantPuzzle(difficulty: Difficulty, symmetry?: Symmetry) {
   const progressCallback = createProgressCallback()
-  if (variantType === VariantType.JIGSAW) {
-    return generatePuzzleFromTemplateSolution(DEFAULT_JIGSAW_SOLUTION_TEMPLATE, difficulty, symmetry, progressCallback)
-  }
   return generatePuzzle(difficulty, symmetry, progressCallback)
 }
 
-function generateVariantPuzzleFromSeed(
-  variantType: VariantType,
-  seed: number,
-  difficulty: Difficulty,
-  symmetry: Symmetry,
-) {
+function generateVariantPuzzleFromSeed(seed: number, difficulty: Difficulty, symmetry: Symmetry) {
   const progressCallback = createProgressCallback()
-  if (variantType === VariantType.JIGSAW) {
-    return generatePuzzleFromTemplateSolutionSeed(
-      DEFAULT_JIGSAW_SOLUTION_TEMPLATE,
-      seed,
-      difficulty,
-      symmetry,
-      progressCallback,
-    )
-  }
   return generatePuzzleFromSeed(seed, difficulty, symmetry, progressCallback)
 }
 
@@ -126,7 +102,7 @@ workerPort.onmessage = (e: MessageEvents): void => {
       const difficulty = msg['difficulty'] as number as Difficulty
       const symmetryStr = msg['symmetry'] as string | undefined
       const symmetry = symmetryStr ? symmetryStr as Symmetry : undefined
-      const result = generateVariantPuzzle(variantType, difficulty, symmetry)
+      const result = generateVariantPuzzle(difficulty, symmetry)
 
       workerPort.postMessage({
         type: 'result',
@@ -143,12 +119,7 @@ workerPort.onmessage = (e: MessageEvents): void => {
       const seedId = msg['seedId'] as string
       const decoded = decodeSeedId(seedId)
       if (decoded !== null) {
-        const result = generateVariantPuzzleFromSeed(
-          variantType,
-          decoded.seed,
-          decoded.difficulty,
-          decoded.symmetry,
-        )
+        const result = generateVariantPuzzleFromSeed(decoded.seed, decoded.difficulty, decoded.symmetry)
 
         workerPort.postMessage({
           type: 'result',

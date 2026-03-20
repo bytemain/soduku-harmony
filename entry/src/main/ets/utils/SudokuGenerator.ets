@@ -8,7 +8,7 @@
  *
  * 参考：Doc 01 §3, Simon Tatham Solo
  */
-import { GRID_SIZE, DIGITS } from '../constants/GameConstants'
+import { GRID_SIZE, DIGITS, TOTAL_CELLS } from '../constants/GameConstants'
 import { Difficulty, getDifficultyConfig } from '../constants/GameConstants'
 import {
   cloneGrid,
@@ -43,25 +43,44 @@ export type GenerationProgressCallback = (
   totalAttempts?: number,
 ) => void
 
-/**
- * 默认 Jigsaw 拓扑对应的一份已验证终盘模板。
- * 它满足当前默认不规则宫 regionMap 的行/列/区域约束，用于避免在 Jigsaw 模式下
- * 再走一次代价很高的随机回溯终盘生成。
- */
-export const DEFAULT_JIGSAW_SOLUTION_TEMPLATE: number[][] = [
-  [1, 2, 3, 4, 5, 6, 7, 8, 9],
-  [8, 9, 1, 2, 3, 4, 5, 6, 7],
-  [4, 6, 7, 5, 8, 2, 3, 9, 1],
-  [2, 5, 6, 7, 9, 1, 4, 3, 8],
-  [3, 7, 4, 8, 1, 9, 2, 5, 6],
-  [5, 3, 9, 1, 6, 7, 8, 4, 2],
-  [7, 4, 8, 6, 2, 5, 9, 1, 3],
-  [9, 1, 2, 3, 4, 8, 6, 7, 5],
-  [6, 8, 5, 9, 7, 3, 1, 2, 4],
-]
-
 /** 大于任意合理难度差值的哨兵初始值，用于“尚未选出最佳候选题”状态。 */
 const INITIAL_BEST_DIFFICULTY_DIFF = 999
+/** 0-9 预留给初始化，10-24 表示“生成终盘”，25 起交给挖洞与后续阶段。 */
+const GENERATING_SOLUTION_START_PROGRESS = 10
+const GENERATING_SOLUTION_END_PROGRESS = 24
+/** 回溯状态每累计 64 个递归节点再刷新一次，避免 Worker 过度频繁上报进度。 */
+const GENERATING_SOLUTION_REPORT_STATE_THRESHOLD = 64
+/**
+ * 经验值：约探索 6 个棋盘规模的状态数后，进度应能明显前进，
+ * 该阈值来自默认 9x9/Jigsaw 终盘生成的本地观察，既能体现“仍在搜索”，又不会过早逼近 24%。
+ */
+const EXPLORATION_PROGRESS_DECAY_STEPS = TOTAL_CELLS * 6
+
+/**
+ * 记录终盘回溯阶段的进度状态：
+ * - visitedStates：累计探索过多少个递归状态；
+ * - bestFilledCells：当前搜索过程中达到过的最大填充深度；
+ * - maxReportedProgress：确保对外上报的进度单调不回退。
+ */
+class SolutionGenerationProgressState {
+  callback: GenerationProgressCallback | undefined
+  attempt: number | undefined
+  totalAttempts: number | undefined
+  visitedStates: number = 0
+  nextReportStateCount: number = 1
+  bestFilledCells: number = 0
+  maxReportedProgress: number = GENERATING_SOLUTION_START_PROGRESS
+
+  constructor(
+    callback?: GenerationProgressCallback,
+    attempt?: number,
+    totalAttempts?: number,
+  ) {
+    this.callback = callback
+    this.attempt = attempt
+    this.totalAttempts = totalAttempts
+  }
+}
 
 function reportProgress(
   callback: GenerationProgressCallback | undefined,
@@ -75,7 +94,66 @@ function reportProgress(
   }
 }
 
-function fillBoard(board: number[][], rng: SeededRandom): boolean {
+function countFilledCells(board: number[][]): number {
+  let filled = 0
+  for (let row = 0; row < GRID_SIZE; row++) {
+    for (let col = 0; col < GRID_SIZE; col++) {
+      if (board[row][col] !== 0) {
+        filled++
+      }
+    }
+  }
+  return filled
+}
+
+function maybeReportSolutionProgress(
+  board: number[][],
+  progressState: SolutionGenerationProgressState | undefined,
+): void {
+  if (progressState === undefined || progressState.callback === undefined) {
+    return
+  }
+
+  progressState.visitedStates++
+  if (progressState.visitedStates < progressState.nextReportStateCount) {
+    return
+  }
+  progressState.nextReportStateCount += GENERATING_SOLUTION_REPORT_STATE_THRESHOLD
+
+  const filledCells = countFilledCells(board)
+  if (filledCells > progressState.bestFilledCells) {
+    progressState.bestFilledCells = filledCells
+  }
+
+  const depthRatio = progressState.bestFilledCells / TOTAL_CELLS
+  const explorationRatio = 1 - Math.exp(
+    -progressState.visitedStates / EXPLORATION_PROGRESS_DECAY_STEPS,
+  )
+  // 取两者较大值：只要“搜索更深”或“搜索更久”任一指标有推进，就不让进度停滞。
+  const progressRatio = Math.max(depthRatio, explorationRatio)
+  const progress = GENERATING_SOLUTION_START_PROGRESS + Math.floor(
+    progressRatio * (GENERATING_SOLUTION_END_PROGRESS - GENERATING_SOLUTION_START_PROGRESS),
+  )
+
+  if (progress <= progressState.maxReportedProgress) {
+    return
+  }
+  progressState.maxReportedProgress = progress
+  reportProgress(
+    progressState.callback,
+    'generating_solution',
+    progress,
+    progressState.attempt,
+    progressState.totalAttempts,
+  )
+}
+
+function fillBoard(
+  board: number[][],
+  rng: SeededRandom,
+  progressState?: SolutionGenerationProgressState,
+): boolean {
+  maybeReportSolutionProgress(board, progressState)
   for (let row = 0; row < GRID_SIZE; row++) {
     for (let col = 0; col < GRID_SIZE; col++) {
       if (board[row][col] === 0) {
@@ -83,7 +161,7 @@ function fillBoard(board: number[][], rng: SeededRandom): boolean {
         for (const num of numbers) {
           if (isValidPlacement(board, row, col, num)) {
             board[row][col] = num
-            if (fillBoard(board, rng)) {
+            if (fillBoard(board, rng, progressState)) {
               return true
             }
             board[row][col] = 0
@@ -96,32 +174,23 @@ function fillBoard(board: number[][], rng: SeededRandom): boolean {
   return true
 }
 
-export function generateFullBoard(rng?: SeededRandom): number[][] {
+export function generateFullBoard(
+  rng?: SeededRandom,
+  progressCallback?: GenerationProgressCallback,
+  attempt?: number,
+  totalAttempts?: number,
+): number[][] {
   const board = createEmptyGrid()
-  fillBoard(board, rng ?? new SeededRandom(randomSeed()))
+  const progressState = progressCallback ? new SolutionGenerationProgressState(
+    progressCallback,
+    attempt,
+    totalAttempts,
+  ) : undefined
+  fillBoard(board, rng ?? new SeededRandom(randomSeed()), progressState)
+  if (progressState !== undefined) {
+    reportProgress(progressCallback, 'generating_solution', GENERATING_SOLUTION_END_PROGRESS, attempt, totalAttempts)
+  }
   return board
-}
-
-/**
- * 基于已完成终盘模板做数字重映射。
- * 通过同一个 RNG 随机置换 1-9，可快速得到另一份仍然合法的完整终盘。
- */
-function remapSolvedBoardDigits(solutionTemplate: number[][], rng: SeededRandom): number[][] {
-  const digitOrder = seededShuffle([...DIGITS], rng)
-  const mappedBoard = cloneGrid(solutionTemplate)
-  // index 0 仅作占位，digitMap[1..9] 表示“原数字 -> 新数字”的映射关系。
-  const digitMap: number[] = [0]
-  for (let i = 0; i < digitOrder.length; i++) {
-    digitMap.push(digitOrder[i])
-  }
-
-  for (let row = 0; row < GRID_SIZE; row++) {
-    for (let col = 0; col < GRID_SIZE; col++) {
-      mappedBoard[row][col] = digitMap[solutionTemplate[row][col]]
-    }
-  }
-
-  return mappedBoard
 }
 
 function shouldReplaceBestPuzzle(bestPuzzle: GeneratedPuzzle | null, diff: number, bestDiff: number): boolean {
@@ -372,7 +441,7 @@ export function generatePuzzle(
     const rng = new SeededRandom(seed)
 
     reportProgress(globalCallback, 'generating_solution', 10, attemptNumber, maxAttempts)
-    const solution = generateFullBoard(rng)
+    const solution = generateFullBoard(rng, globalCallback, attemptNumber, maxAttempts)
 
     const symmetry = preferredSymmetry ?? pickSymmetry(difficulty, rng)
     reportProgress(globalCallback, 'digging_holes', 25, attemptNumber, maxAttempts)
@@ -407,7 +476,7 @@ export function generatePuzzle(
   if (bestPuzzle === null) {
     const fallbackSeed = randomSeed()
     const fallbackRng = new SeededRandom(fallbackSeed)
-    const fallbackSolution = generateFullBoard(fallbackRng)
+    const fallbackSolution = generateFullBoard(fallbackRng, progressCallback, maxAttempts, maxAttempts)
     const fallbackSymmetry = preferredSymmetry ?? pickSymmetry(difficulty, fallbackRng)
     const fallbackPuzzle = digHoles(fallbackSolution, config.holesToDig, fallbackSymmetry, fallbackRng)
     const fallbackGrade = evaluateDifficulty(fallbackPuzzle)
@@ -435,133 +504,7 @@ export function generatePuzzleFromSeed(
   const rng = new SeededRandom(seed)
 
   reportProgress(progressCallback, 'generating_solution', 10, 1, 1)
-  const solution = generateFullBoard(rng)
-
-  reportProgress(progressCallback, 'digging_holes', 25, 1, 1)
-  const puzzle = digHoles(solution, config.holesToDig, symmetry, rng, progressCallback, 1, 1)
-
-  reportProgress(progressCallback, 'evaluating_difficulty', 85, 1, 1)
-  const grade = evaluateDifficulty(puzzle)
-
-  const result: GeneratedPuzzle = {
-    puzzle: puzzle,
-    solution: cloneGrid(solution),
-    seed: seed,
-    symmetry: symmetry,
-    actualDifficulty: grade.difficulty,
-    score: grade.score,
-  }
-
-  reportProgress(progressCallback, 'finalizing', 100, 1, 1)
-  return result
-}
-
-export function generatePuzzleFromTemplateSolution(
-  solutionTemplate: number[][],
-  difficulty: Difficulty,
-  preferredSymmetry?: Symmetry,
-  progressCallback?: GenerationProgressCallback,
-): GeneratedPuzzle {
-  const config = getDifficultyConfig(difficulty)
-  const maxAttempts = 20
-  const DECAY = 0.5
-  const TOTAL_RANGE = 95
-  let maxProgressSent = 0
-
-  const globalCallback: GenerationProgressCallback | undefined = progressCallback ? (
-    phase: GenerationProgressPhase,
-    progress: number,
-    attempt?: number,
-    totalAttempts?: number,
-  ): void => {
-    const a = (attempt ?? 1) - 1
-    const rangeStart = TOTAL_RANGE * (1 - Math.pow(DECAY, a))
-    const rangeEnd = TOTAL_RANGE * (1 - Math.pow(DECAY, a + 1))
-    let globalProgress = rangeStart + (progress / 100) * (rangeEnd - rangeStart)
-
-    if (globalProgress > maxProgressSent) {
-      maxProgressSent = globalProgress
-    } else {
-      globalProgress = maxProgressSent
-    }
-
-    progressCallback!(phase, Math.max(0, Math.min(TOTAL_RANGE, Math.round(globalProgress))), attempt, totalAttempts)
-  } : undefined
-
-  let bestPuzzle: GeneratedPuzzle | null = null
-  let bestDiff = INITIAL_BEST_DIFFICULTY_DIFF
-
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    const attemptNumber = attempt + 1
-    const seed = randomSeed()
-    const rng = new SeededRandom(seed)
-
-    reportProgress(globalCallback, 'generating_solution', 10, attemptNumber, maxAttempts)
-    const solution = remapSolvedBoardDigits(solutionTemplate, rng)
-
-    const symmetry = preferredSymmetry ?? pickSymmetry(difficulty, rng)
-    reportProgress(globalCallback, 'digging_holes', 25, attemptNumber, maxAttempts)
-    const puzzle = digHoles(solution, config.holesToDig, symmetry, rng, globalCallback, attemptNumber, maxAttempts)
-
-    reportProgress(globalCallback, 'evaluating_difficulty', 85, attemptNumber, maxAttempts)
-    const grade = evaluateDifficulty(puzzle)
-
-    const candidate: GeneratedPuzzle = {
-      puzzle: puzzle,
-      solution: cloneGrid(solution),
-      seed: seed,
-      symmetry: symmetry,
-      actualDifficulty: grade.difficulty,
-      score: grade.score,
-    }
-
-    if (grade.difficulty === difficulty) {
-      reportProgress(progressCallback, 'finalizing', 100, attemptNumber, maxAttempts)
-      return candidate
-    }
-
-    const diff = Math.abs(grade.difficulty - difficulty)
-    if (shouldReplaceBestPuzzle(bestPuzzle, diff, bestDiff)) {
-      bestDiff = diff
-      bestPuzzle = candidate
-    }
-
-    reportProgress(globalCallback, 'retrying_generation', 95, attemptNumber, maxAttempts)
-  }
-
-  if (bestPuzzle === null) {
-    const fallbackSeed = randomSeed()
-    const fallbackRng = new SeededRandom(fallbackSeed)
-    const fallbackSolution = remapSolvedBoardDigits(solutionTemplate, fallbackRng)
-    const fallbackSymmetry = preferredSymmetry ?? pickSymmetry(difficulty, fallbackRng)
-    const fallbackPuzzle = digHoles(fallbackSolution, config.holesToDig, fallbackSymmetry, fallbackRng)
-    const fallbackGrade = evaluateDifficulty(fallbackPuzzle)
-    bestPuzzle = {
-      puzzle: fallbackPuzzle,
-      solution: cloneGrid(fallbackSolution),
-      seed: fallbackSeed,
-      symmetry: fallbackSymmetry,
-      actualDifficulty: fallbackGrade.difficulty,
-      score: fallbackGrade.score,
-    }
-  }
-
-  reportProgress(progressCallback, 'finalizing', 100, maxAttempts, maxAttempts)
-  return bestPuzzle
-}
-
-export function generatePuzzleFromTemplateSolutionSeed(
-  solutionTemplate: number[][],
-  seed: number,
-  difficulty: Difficulty,
-  symmetry: Symmetry,
-  progressCallback?: GenerationProgressCallback,
-): GeneratedPuzzle {
-  const config = getDifficultyConfig(difficulty)
-  const rng = new SeededRandom(seed)
-
-  reportProgress(progressCallback, 'generating_solution', 10, 1, 1)
-  const solution = remapSolvedBoardDigits(solutionTemplate, rng)
+  const solution = generateFullBoard(rng, progressCallback, 1, 1)
 
   reportProgress(progressCallback, 'digging_holes', 25, 1, 1)
   const puzzle = digHoles(solution, config.holesToDig, symmetry, rng, progressCallback, 1, 1)

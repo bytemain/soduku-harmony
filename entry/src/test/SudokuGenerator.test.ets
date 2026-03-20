@@ -1,9 +1,8 @@
 import { describe, it, expect } from '@ohos/hypium'
 import {
-  DEFAULT_JIGSAW_SOLUTION_TEMPLATE,
   generateFullBoard,
   generatePuzzle,
-  generatePuzzleFromTemplateSolutionSeed,
+  generatePuzzleFromSeed,
   Symmetry,
 } from '../main/ets/utils/SudokuGenerator'
 import { solve, hasUniqueSolution } from '../main/ets/utils/SudokuSolver'
@@ -353,11 +352,10 @@ export default function generatorTest() {
     })
   })
 
-  describe('jigsaw_generatePuzzleFromTemplate', () => {
-    it('jigsaw_template_seed_generation_is_valid', 0, () => {
+  describe('jigsaw_generatePuzzle', () => {
+    it('jigsaw_seed_generation_is_valid', 0, () => {
       applyTopology(createDefaultJigsawConfig())
-      const result = generatePuzzleFromTemplateSolutionSeed(
-        DEFAULT_JIGSAW_SOLUTION_TEMPLATE,
+      const result = generatePuzzleFromSeed(
         20260320,
         Difficulty.EASY,
         Symmetry.NONE,
@@ -398,6 +396,32 @@ export default function generatorTest() {
       }
 
       expect(hasUniqueSolution(result.puzzle)).assertTrue()
+      applyTopology(createStandardConfig())
+    })
+
+    it('jigsaw_generation_reports_solution_progress', 0, () => {
+      applyTopology(createDefaultJigsawConfig())
+      const generatingSolutionProgress: number[] = []
+      generatePuzzleFromSeed(
+        20260320,
+        Difficulty.EASY,
+        Symmetry.NONE,
+        (phase, progress): void => {
+          if (phase === 'generating_solution') {
+            generatingSolutionProgress.push(progress)
+          }
+        },
+      )
+
+      expect(generatingSolutionProgress.length > 1).assertTrue()
+      expect(generatingSolutionProgress[0]).assertEqual(10)
+      // 进度允许停滞，但不能回退。
+      for (let i = 1; i < generatingSolutionProgress.length; i++) {
+        expect(generatingSolutionProgress[i] >= generatingSolutionProgress[i - 1]).assertTrue()
+      }
+      const lastProgress = generatingSolutionProgress[generatingSolutionProgress.length - 1]
+      expect(lastProgress > 10).assertTrue()
+      expect(lastProgress <= 24).assertTrue()
       applyTopology(createStandardConfig())
     })
   })

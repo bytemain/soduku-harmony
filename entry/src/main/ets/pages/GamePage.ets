@@ -263,11 +263,17 @@ struct GamePage {
     this.loadingProgress = isImporting ? 5 : 0
   }
 
+  private hasValidAttemptInfo(attempt: number | null | undefined, totalAttempts: number | null | undefined): boolean {
+    return attempt != null && totalAttempts != null
+  }
+
   private getLoadingMessage(phase: string, attemptValue?: Object, totalAttemptsValue?: Object): string {
     const attempt = attemptValue as number | null | undefined
     const totalAttempts = totalAttemptsValue as number | null | undefined
-    if (phase === 'retrying_generation' && attempt !== null && attempt !== undefined &&
-      totalAttempts !== null && totalAttempts !== undefined) {
+    if (phase === 'generating_solution' && this.hasValidAttemptInfo(attempt, totalAttempts) && totalAttempts > 1) {
+      return formatStr(this.getString('loading_generating_solution_attempt'), attempt, totalAttempts)
+    }
+    if (phase === 'retrying_generation' && this.hasValidAttemptInfo(attempt, totalAttempts)) {
       return formatStr(this.getString('loading_retrying_generation'), attempt, totalAttempts)
     }
 
