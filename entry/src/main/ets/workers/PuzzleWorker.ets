@@ -6,9 +6,13 @@
  */
 import { ErrorEvent, MessageEvents, ThreadWorkerGlobalScope, worker } from '@kit.ArkTS'
 import {
+  DEFAULT_JIGSAW_SOLUTION_TEMPLATE,
   decodeSeedId,
   generatePuzzle,
   generatePuzzleFromSeed,
+  generatePuzzleFromTemplateSolution,
+  generatePuzzleFromTemplateSolutionSeed,
+  GenerationProgressCallback,
   GenerationProgressPhase,
   Symmetry,
 } from '../utils/SudokuGenerator'
@@ -80,14 +84,17 @@ workerPort.onmessage = (e: MessageEvents): void => {
       const difficulty = msg['difficulty'] as number as Difficulty
       const symmetryStr = msg['symmetry'] as string | undefined
       const symmetry = symmetryStr ? symmetryStr as Symmetry : undefined
-      const result = generatePuzzle(difficulty, symmetry, (
+      const progressCallback: GenerationProgressCallback = (
         phase: GenerationProgressPhase,
         progress: number,
         attempt?: number,
         totalAttempts?: number,
       ): void => {
         postProgress(phase, progress, attempt, totalAttempts)
-      })
+      }
+      const result = variantType === VariantType.JIGSAW
+        ? generatePuzzleFromTemplateSolution(DEFAULT_JIGSAW_SOLUTION_TEMPLATE, difficulty, symmetry, progressCallback)
+        : generatePuzzle(difficulty, symmetry, progressCallback)
 
       workerPort.postMessage({
         type: 'result',
@@ -104,14 +111,24 @@ workerPort.onmessage = (e: MessageEvents): void => {
       const seedId = msg['seedId'] as string
       const decoded = decodeSeedId(seedId)
       if (decoded !== null) {
-        const result = generatePuzzleFromSeed(
-          decoded.seed,
-          decoded.difficulty,
-          decoded.symmetry,
-          (phase: GenerationProgressPhase, progress: number, attempt?: number, totalAttempts?: number): void => {
-            postProgress(phase, progress, attempt, totalAttempts)
-          },
-        )
+        const result = variantType === VariantType.JIGSAW
+          ? generatePuzzleFromTemplateSolutionSeed(
+            DEFAULT_JIGSAW_SOLUTION_TEMPLATE,
+            decoded.seed,
+            decoded.difficulty,
+            decoded.symmetry,
+            (phase: GenerationProgressPhase, progress: number, attempt?: number, totalAttempts?: number): void => {
+              postProgress(phase, progress, attempt, totalAttempts)
+            },
+          )
+          : generatePuzzleFromSeed(
+            decoded.seed,
+            decoded.difficulty,
+            decoded.symmetry,
+            (phase: GenerationProgressPhase, progress: number, attempt?: number, totalAttempts?: number): void => {
+              postProgress(phase, progress, attempt, totalAttempts)
+            },
+          )
 
         workerPort.postMessage({
           type: 'result',

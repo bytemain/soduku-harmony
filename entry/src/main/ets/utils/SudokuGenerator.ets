@@ -43,6 +43,18 @@ export type GenerationProgressCallback = (
   totalAttempts?: number,
 ) => void
 
+export const DEFAULT_JIGSAW_SOLUTION_TEMPLATE: number[][] = [
+  [1, 2, 3, 4, 5, 6, 7, 8, 9],
+  [8, 9, 1, 2, 3, 4, 5, 6, 7],
+  [4, 6, 7, 5, 8, 2, 3, 9, 1],
+  [2, 5, 6, 7, 9, 1, 4, 3, 8],
+  [3, 7, 4, 8, 1, 9, 2, 5, 6],
+  [5, 3, 9, 1, 6, 7, 8, 4, 2],
+  [7, 4, 8, 6, 2, 5, 9, 1, 3],
+  [9, 1, 2, 3, 4, 8, 6, 7, 5],
+  [6, 8, 5, 9, 7, 3, 1, 2, 4],
+]
+
 function reportProgress(
   callback: GenerationProgressCallback | undefined,
   phase: GenerationProgressPhase,
@@ -80,6 +92,23 @@ export function generateFullBoard(rng?: SeededRandom): number[][] {
   const board = createEmptyGrid()
   fillBoard(board, rng ?? new SeededRandom(randomSeed()))
   return board
+}
+
+function remapSolvedBoardDigits(solutionTemplate: number[][], rng: SeededRandom): number[][] {
+  const digitOrder = seededShuffle([...DIGITS], rng)
+  const mappedBoard = cloneGrid(solutionTemplate)
+  const digitMap: number[] = [0]
+  for (let i = 0; i < digitOrder.length; i++) {
+    digitMap.push(digitOrder[i])
+  }
+
+  for (let row = 0; row < GRID_SIZE; row++) {
+    for (let col = 0; col < GRID_SIZE; col++) {
+      mappedBoard[row][col] = digitMap[solutionTemplate[row][col]]
+    }
+  }
+
+  return mappedBoard
 }
 
 function getSymmetricPositions(row: number, col: number, symmetry: Symmetry): number[][] {
@@ -370,6 +399,115 @@ export function generatePuzzleFromSeed(
 
   reportProgress(progressCallback, 'generating_solution', 10, 1, 1)
   const solution = generateFullBoard(rng)
+
+  reportProgress(progressCallback, 'digging_holes', 25, 1, 1)
+  const puzzle = digHoles(solution, config.holesToDig, symmetry, rng, progressCallback, 1, 1)
+
+  reportProgress(progressCallback, 'evaluating_difficulty', 85, 1, 1)
+  const grade = evaluateDifficulty(puzzle)
+
+  const result: GeneratedPuzzle = {
+    puzzle: puzzle,
+    solution: cloneGrid(solution),
+    seed: seed,
+    symmetry: symmetry,
+    actualDifficulty: grade.difficulty,
+    score: grade.score,
+  }
+
+  reportProgress(progressCallback, 'finalizing', 100, 1, 1)
+  return result
+}
+
+export function generatePuzzleFromTemplateSolution(
+  solutionTemplate: number[][],
+  difficulty: Difficulty,
+  preferredSymmetry?: Symmetry,
+  progressCallback?: GenerationProgressCallback,
+): GeneratedPuzzle {
+  const config = getDifficultyConfig(difficulty)
+  const maxAttempts = 20
+  const DECAY = 0.5
+  const TOTAL_RANGE = 95
+  let maxProgressSent = 0
+
+  const globalCallback: GenerationProgressCallback | undefined = progressCallback ? (
+    phase: GenerationProgressPhase,
+    progress: number,
+    attempt?: number,
+    totalAttempts?: number,
+  ): void => {
+    const a = (attempt ?? 1) - 1
+    const rangeStart = TOTAL_RANGE * (1 - Math.pow(DECAY, a))
+    const rangeEnd = TOTAL_RANGE * (1 - Math.pow(DECAY, a + 1))
+    let globalProgress = rangeStart + (progress / 100) * (rangeEnd - rangeStart)
+
+    if (globalProgress > maxProgressSent) {
+      maxProgressSent = globalProgress
+    } else {
+      globalProgress = maxProgressSent
+    }
+
+    progressCallback!(phase, Math.max(0, Math.min(TOTAL_RANGE, Math.round(globalProgress))), attempt, totalAttempts)
+  } : undefined
+
+  let bestPuzzle: GeneratedPuzzle | null = null
+  let bestDiff = 999
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const attemptNumber = attempt + 1
+    const seed = randomSeed()
+    const rng = new SeededRandom(seed)
+
+    reportProgress(globalCallback, 'generating_solution', 10, attemptNumber, maxAttempts)
+    const solution = remapSolvedBoardDigits(solutionTemplate, rng)
+
+    const symmetry = preferredSymmetry ?? pickSymmetry(difficulty, rng)
+    reportProgress(globalCallback, 'digging_holes', 25, attemptNumber, maxAttempts)
+    const puzzle = digHoles(solution, config.holesToDig, symmetry, rng, globalCallback, attemptNumber, maxAttempts)
+
+    reportProgress(globalCallback, 'evaluating_difficulty', 85, attemptNumber, maxAttempts)
+    const grade = evaluateDifficulty(puzzle)
+
+    const candidate: GeneratedPuzzle = {
+      puzzle: puzzle,
+      solution: cloneGrid(solution),
+      seed: seed,
+      symmetry: symmetry,
+      actualDifficulty: grade.difficulty,
+      score: grade.score,
+    }
+
+    if (grade.difficulty === difficulty) {
+      reportProgress(progressCallback, 'finalizing', 100, attemptNumber, maxAttempts)
+      return candidate
+    }
+
+    const diff = Math.abs(grade.difficulty - difficulty)
+    if (diff < bestDiff) {
+      bestDiff = diff
+      bestPuzzle = candidate
+    }
+
+    reportProgress(globalCallback, 'retrying_generation', 95, attemptNumber, maxAttempts)
+  }
+
+  reportProgress(progressCallback, 'finalizing', 100, maxAttempts, maxAttempts)
+  return bestPuzzle!
+}
+
+export function generatePuzzleFromTemplateSolutionSeed(
+  solutionTemplate: number[][],
+  seed: number,
+  difficulty: Difficulty,
+  symmetry: Symmetry,
+  progressCallback?: GenerationProgressCallback,
+): GeneratedPuzzle {
+  const config = getDifficultyConfig(difficulty)
+  const rng = new SeededRandom(seed)
+
+  reportProgress(progressCallback, 'generating_solution', 10, 1, 1)
+  const solution = remapSolvedBoardDigits(solutionTemplate, rng)
 
   reportProgress(progressCallback, 'digging_holes', 25, 1, 1)
   const puzzle = digHoles(solution, config.holesToDig, symmetry, rng, progressCallback, 1, 1)
