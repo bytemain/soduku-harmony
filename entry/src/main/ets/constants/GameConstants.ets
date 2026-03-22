@@ -75,6 +75,8 @@ export interface ColorsConfig {
   cellBorderThin: string
   cellBorderBold: string
   cellDefault: string
+  cellDiagonal: string
+  cellDiagonalHighlight: string
   cellSelected: string
   cellHighlight: string
   cellSameNumber: string
@@ -173,6 +175,8 @@ export const LightColors: ColorsConfig = {
 
   // === 格子背景（高亮系统） ===
   cellDefault: '#FFFFFF',
+  cellDiagonal: '#F3E5F5',
+  cellDiagonalHighlight: '#E1BEE7',
   cellSelected: '#BBDEFB',
   cellHighlight: '#E3F2FD',
   cellSameNumber: '#C8E6C9',
@@ -287,6 +291,8 @@ export const DarkColors: ColorsConfig = {
 
   // === 格子背景（高亮系统） ===
   cellDefault: '#1E1E1E',
+  cellDiagonal: '#2A2235',
+  cellDiagonalHighlight: '#3A2F52',
   cellSelected: '#1A3A5C',
   cellHighlight: '#1A2332',
   cellSameNumber: '#1B3B2A',

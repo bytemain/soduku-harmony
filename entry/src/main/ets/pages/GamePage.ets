@@ -15,6 +15,7 @@ import { CellData, CellFlags, setFlag, clearFlag,
   getNoteState, setNoteState, NoteState, createEmptyBoard } from '../models/CellData'
 import {
   BoardCellDecoration,
+  buildDiagonalBoardDecorations,
   buildJigsawBoardDecorations,
   buildKillerBoardDecorations,
   createEmptyBoardDecorations,
@@ -146,9 +147,14 @@ struct GamePage {
 
   /**
    * 刷新棋盘装饰策略产物。
-   * 当前标准/对角线使用空装饰，Jigsaw/Killer 生成对应的边界装饰。
+   * 标准模式使用空装饰；对角线/Jigsaw/Killer 生成对应的视觉装饰。
    */
   private refreshBoardDecorations(): void {
+    if (this.currentVariantType === VariantType.DIAGONAL) {
+      const selectedIndex = this.isMultiSelectMode ? -1 : this.gameState.selectedIndex
+      this.boardDecorations = buildDiagonalBoardDecorations(selectedIndex)
+      return
+    }
     if (this.currentVariantType === VariantType.JIGSAW) {
       this.boardDecorations = buildJigsawBoardDecorations(createDefaultJigsawRegionMap())
       return
@@ -158,6 +164,14 @@ struct GamePage {
       return
     }
     this.boardDecorations = createEmptyBoardDecorations()
+  }
+
+  /**
+   * 同步选中态相关的格子高亮与变种装饰。
+   */
+  private syncSelectionVisuals(): void {
+    updateHighlights(this.gameState.cells, this.gameState.selectedIndex)
+    this.refreshBoardDecorations()
   }
 
   /**
@@ -434,6 +448,7 @@ struct GamePage {
    */
   private finishInit(): void {
     validateAllCells(this.gameState.cells, this.validateInput ? this.gameState.solution : undefined)
+    this.syncSelectionVisuals()
     this.updateRemainingCounts()
     this.syncDisplayState()
     this.isLoading = false
@@ -656,6 +671,7 @@ struct GamePage {
           this.history = new GameHistory()
           this.cellsWrapper = new ArrayWrapper(this.gameState.cells)
           validateAllCells(this.gameState.cells, this.validateInput ? this.gameState.solution : undefined)
+          this.refreshBoardDecorations()
           this.updateRemainingCounts()
           this.syncDisplayState()
           this.gameState.isPaused = false
@@ -723,7 +739,7 @@ struct GamePage {
     }
     this.keypadSelectedDigit = 0
     this.gameState.clearSelection()
-    updateHighlights(this.gameState.cells, this.gameState.selectedIndex)
+    this.syncSelectionVisuals()
   }
 
   /**
@@ -740,7 +756,7 @@ struct GamePage {
 
     this.keypadSelectedDigit = 0
     this.gameState.selectCell(index)
-    updateHighlights(this.gameState.cells, this.gameState.selectedIndex)
+    this.syncSelectionVisuals()
   }
 
   /**
@@ -780,7 +796,7 @@ struct GamePage {
         this.exitMultiSelect()
       }
       this.gameState.selectedIndex = newIndex
-      updateHighlights(this.gameState.cells, this.gameState.selectedIndex)
+      this.syncSelectionVisuals()
       return
     }
 
@@ -853,7 +869,7 @@ struct GamePage {
         this.exitMultiSelect()
         if (index >= 0 && index < TOTAL_CELLS) {
           this.gameState.selectCell(index)
-          updateHighlights(this.gameState.cells, this.gameState.selectedIndex)
+          this.syncSelectionVisuals()
         }
       }
       // 否则保持多选模式，等待用户输入笔记
@@ -898,6 +914,7 @@ struct GamePage {
       cells[idx].flags = setFlag(cells[idx].flags, CellFlags.MULTI_SELECTED)
     })
     this.multiSelectCount = this.multiSelectIndices.size
+    this.refreshBoardDecorations()
   }
 
   /**
@@ -913,7 +930,7 @@ struct GamePage {
     this.multiSelectCount = 0
     this.isMouseDragging = false
     this.mouseDragStartIndex = -1
-    updateHighlights(cells, this.gameState.selectedIndex)
+    this.syncSelectionVisuals()
   }
 
   /**
@@ -1093,7 +1110,7 @@ struct GamePage {
 
     // 操作后更新冲突 + 高亮 + 剩余计数
     validateAllCells(this.gameState.cells, this.validateInput ? this.gameState.solution : undefined)
-    updateHighlights(this.gameState.cells, this.gameState.selectedIndex)
+    this.syncSelectionVisuals()
     this.updateRemainingCounts()
     this.syncDisplayState()
 
@@ -1418,7 +1435,7 @@ struct GamePage {
   private focusHintCell(index: number): void {
     this.hintFocusIndex = index
     this.gameState.selectedIndex = index
-    updateHighlights(this.gameState.cells, this.gameState.selectedIndex)
+    this.syncSelectionVisuals()
     setTimeout(() => {
       if (this.hintFocusIndex === index) {
         this.hintFocusIndex = -1

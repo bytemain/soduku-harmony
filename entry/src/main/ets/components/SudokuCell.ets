@@ -63,11 +63,18 @@ export struct SudokuCell {
       && this.selectedValue !== 0 && this.cellData.value === this.selectedValue) {
       return Colors.cellSameNumber
     }
-    // 4. 同行列宫 → 极浅蓝
+    // 4. 同行列宫 / 变种约束高亮
     if (this.cellData.isHighlighted) {
+      if (this.decoration.highlightBackgroundColor.length > 0) {
+        return this.decoration.highlightBackgroundColor
+      }
       return Colors.cellHighlight
     }
-    // 5. 默认白色
+    // 5. 变种底纹（如 Sudoku-X 对角线）
+    if (this.decoration.backgroundColor.length > 0) {
+      return this.decoration.backgroundColor
+    }
+    // 6. 默认白色
     return Colors.cellDefault
   }
 
