@@ -2,8 +2,7 @@
  * VariantTopology.ets — 数独拓扑构建器（统一抽象）
  *
  * 根据 VariantConfig 动态构建 units 和 peers。
- * 支持：标准宫 / 对角线 / 不规则宫 / 任意尺寸。
- * Killer 当前仍为纯展示模式，笼子数据仅供 UI 渲染，不参与拓扑约束。
+ * 支持：标准宫 / 对角线 / 不规则宫 / 笼子（Killer）/ 任意尺寸。
  *
  * 这是所有拓扑构建的唯一入口：
  *   - 标准 9×9 拓扑由 Topology.ets 通过本模块预计算并导出全局常量
@@ -23,7 +22,7 @@ import { VariantConfig, getRegionMap } from '../models/VariantConfig'
  * 标准 9×9 和所有变种共用同一结构，由 buildVariantTopology() 构建。
  */
 export class VariantTopology {
-  /** 所有 units（行 + 列 + 区域 + 对角线） */
+  /** 所有 units（行 + 列 + 区域 + 对角线 + 笼子） */
   allUnits: number[][]
   /** 每个格子所属的 units 列表 */
   unitsOf: number[][][]
@@ -123,6 +122,22 @@ function buildDiagonalUnits(gridSize: number): number[][] {
 }
 
 // ============================================================
+// 构建笼子 units（Killer）
+// ============================================================
+
+function buildCageUnits(config: VariantConfig): number[][] {
+  if (config.cages === null) {
+    return []
+  }
+  const units: number[][] = []
+  for (const cage of config.cages) {
+    // 笼子内数字不能重复 → 形成一个 unit
+    units.push(cage.cells.slice())
+  }
+  return units
+}
+
+// ============================================================
 // 构建 unitsOf（每格所属 units）
 // ============================================================
 
@@ -207,6 +222,12 @@ export function buildVariantTopology(config: VariantConfig): VariantTopology {
     for (const u of diagUnits) {
       allUnits.push(u)
     }
+  }
+
+  // 笼子 units（Killer）
+  const cageUnits = buildCageUnits(config)
+  for (const u of cageUnits) {
+    allUnits.push(u)
   }
 
   // 2. 构建 unitsOf 和 peers

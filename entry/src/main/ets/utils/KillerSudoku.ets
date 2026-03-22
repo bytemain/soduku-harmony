@@ -3,9 +3,8 @@ import { KillerCage, VariantType } from '../models/VariantConfig'
 
 /**
  * 固定笼子宽度模式：
- * - 仅在单行内切分，提供稳定的 Killer 装饰边界；
- * - 通过 2/3/4、3/2/4、4/2/3 轮换，让笼子边界有一定变化，避免整盘过于单调；
- * - 当前仅用于展示，不承载 Killer 去重/求和玩法约束。
+ * - 仅在单行内切分，确保任意合法标准数独解都不会在笼子内出现重复数字；
+ * - 通过 2/3/4、3/2/4、4/2/3 轮换，让笼子边界有一定变化，避免整盘过于单调。
  */
 const KILLER_ROW_PATTERNS: number[][] = [
   [2, 3, 4],
@@ -60,8 +59,7 @@ export function createDefaultKillerLayout(): KillerCage[] {
 }
 
 /**
- * 根据完整解答计算默认 Killer 布局的笼子和数标签。
- * 这些 sum 当前仅用于 UI 左上角展示，不参与求解或校验。
+ * 根据完整解答计算默认 Killer 布局的笼子和数。
  * @param solution 一维完整解答（长度应为 81）
  * @returns 与默认布局同结构、但每个笼子 sum 已按解答累计好的笼子列表
  */

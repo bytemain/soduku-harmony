@@ -33,7 +33,7 @@ function withDiagonalTopology(block: () => void): void {
   }
 }
 
-function withKillerDisplayTopology(cages: KillerCage[], block: () => void): void {
+function withKillerTopology(cages: KillerCage[], block: () => void): void {
   applyTopology(createKillerConfig(cages))
   try {
     block()
@@ -103,17 +103,60 @@ export default function validatorTest() {
       })
     })
 
-    it('killer_cage_repeat_is_not_treated_as_conflict', 0, () => {
-      const cage: KillerCage = { cells: [0, 30], sum: 10 }
-      withKillerDisplayTopology([cage], () => {
+    it('killer_cage_exceeding_sum_marks_player_cells', 0, () => {
+      const cage: KillerCage = { cells: [0, 1], sum: 3 }
+      withKillerTopology([cage], () => {
         const cells = createEmptyBoard()
-        cells[0].value = 4
-        cells[30].value = 4
+        cells[0].value = 1
+        cells[1].value = 4
 
-        const count = validateAllCells(cells)
+        const count = validateAllCells(cells, undefined, [cage])
+        expect(count).assertEqual(2)
+        expect(cells[0].isError).assertTrue()
+        expect(cells[1].isError).assertTrue()
+      })
+    })
+
+    it('killer_partial_cage_under_sum_is_allowed', 0, () => {
+      const cage: KillerCage = { cells: [0, 1, 2], sum: 10 }
+      withKillerTopology([cage], () => {
+        const cells = createEmptyBoard()
+        cells[0].value = 1
+        cells[1].value = 4
+
+        const count = validateAllCells(cells, undefined, [cage])
         expect(count).assertEqual(0)
         expect(cells[0].isError).assertFalse()
-        expect(cells[30].isError).assertFalse()
+        expect(cells[1].isError).assertFalse()
+      })
+    })
+
+    it('killer_full_cage_wrong_sum_marks_player_cells', 0, () => {
+      const cage: KillerCage = { cells: [0, 1], sum: 8 }
+      withKillerTopology([cage], () => {
+        const cells = createEmptyBoard()
+        cells[0].value = 3
+        cells[1].value = 4
+
+        const count = validateAllCells(cells, undefined, [cage])
+        expect(count).assertEqual(2)
+        expect(cells[0].isError).assertTrue()
+        expect(cells[1].isError).assertTrue()
+      })
+    })
+
+    it('killer_sum_error_does_not_mark_given_cells', 0, () => {
+      const cage: KillerCage = { cells: [0, 1], sum: 5 }
+      withKillerTopology([cage], () => {
+        const cells = createEmptyBoard()
+        cells[0].value = 2
+        cells[0].flags = setFlag(cells[0].flags, CellFlags.GIVEN)
+        cells[1].value = 4
+
+        const count = validateAllCells(cells, undefined, [cage])
+        expect(count).assertEqual(1)
+        expect(cells[0].isError).assertFalse()
+        expect(cells[1].isError).assertTrue()
       })
     })
 
@@ -229,11 +272,19 @@ export default function validatorTest() {
       expect(isGameCompleted(cells)).assertTrue()
     })
 
-    it('killer_cage_sum_is_not_checked_for_completion', 0, () => {
+    it('killer_complete_board_requires_matching_cage_sum', 0, () => {
       const cells = createBoardFromArray(getCompleteSolution())
       const impossibleCage: KillerCage = { cells: [0, 1], sum: 999 }
-      withKillerDisplayTopology([impossibleCage], () => {
-        expect(isGameCompleted(cells)).assertTrue()
+      withKillerTopology([impossibleCage], () => {
+        expect(isGameCompleted(cells, [impossibleCage])).assertFalse()
+      })
+    })
+
+    it('killer_complete_board_accepts_matching_cage_sum', 0, () => {
+      const cells = createBoardFromArray(getCompleteSolution())
+      const validCage: KillerCage = { cells: [0, 1], sum: cells[0].value + cells[1].value }
+      withKillerTopology([validCage], () => {
+        expect(isGameCompleted(cells, [validCage])).assertTrue()
       })
     })
 

@@ -9,6 +9,7 @@
  * 参考：Doc 01 §1, Doc 03 任务 1.7
  */
 import { CellData, CellFlags, hasFlag, setFlag, clearFlag } from '../models/CellData'
+import { KillerCage } from '../models/VariantConfig'
 import { PEERS } from './Topology'
 import { TOTAL_CELLS } from '../constants/GameConstants'
 
@@ -32,6 +33,83 @@ function hasConflictWith(cells: CellData[], index: number): boolean {
   return false
 }
 
+function collectCageSumErrors(cells: CellData[], cages?: KillerCage[]): boolean[] {
+  const cageErrors: boolean[] = new Array(TOTAL_CELLS).fill(false)
+  if (cages === undefined || cages.length === 0) {
+    return cageErrors
+  }
+
+  for (const cage of cages) {
+    if (cage.sum <= 0 || cage.cells.length === 0) {
+      continue
+    }
+
+    let filledSum = 0
+    let filledCount = 0
+    const playerFilledCells: number[] = []
+    const filledCells: number[] = []
+
+    for (const cellIndex of cage.cells) {
+      if (cellIndex < 0 || cellIndex >= TOTAL_CELLS) {
+        continue
+      }
+      const cell = cells[cellIndex]
+      if (cell.value === 0) {
+        continue
+      }
+      filledSum += cell.value
+      filledCount++
+      filledCells.push(cellIndex)
+      if (!cell.isGiven) {
+        playerFilledCells.push(cellIndex)
+      }
+    }
+
+    const exceedsTarget = filledSum > cage.sum
+    const filledButWrongSum = filledCount === cage.cells.length && filledSum !== cage.sum
+    if (!exceedsTarget && !filledButWrongSum) {
+      continue
+    }
+
+    const targets = playerFilledCells.length > 0 ? playerFilledCells : filledCells
+    for (const cellIndex of targets) {
+      cageErrors[cellIndex] = true
+    }
+  }
+
+  return cageErrors
+}
+
+function allCageSumsSatisfied(cells: CellData[], cages?: KillerCage[]): boolean {
+  if (cages === undefined || cages.length === 0) {
+    return true
+  }
+
+  for (const cage of cages) {
+    if (cage.sum <= 0 || cage.cells.length === 0) {
+      continue
+    }
+
+    let sum = 0
+    for (const cellIndex of cage.cells) {
+      if (cellIndex < 0 || cellIndex >= TOTAL_CELLS) {
+        return false
+      }
+      const cell = cells[cellIndex]
+      if (cell.value === 0) {
+        return false
+      }
+      sum += cell.value
+    }
+
+    if (sum !== cage.sum) {
+      return false
+    }
+  }
+
+  return true
+}
+
 /**
  * 扫描全部 81 格，更新每个格子的 ERROR 标志。
  * 应该在每次玩家操作后调用。
@@ -41,11 +119,13 @@ function hasConflictWith(cells: CellData[], index: number): boolean {
  *
  * 返回冲突格的数量（用于统计）。
  */
-export function validateAllCells(cells: CellData[], solution?: number[]): number {
+export function validateAllCells(cells: CellData[], solution?: number[], cages?: KillerCage[]): number {
   let errorCount = 0
+  const cageErrors = collectCageSumErrors(cells, cages)
 
   for (let i = 0; i < TOTAL_CELLS; i++) {
     const hasPeerConflict = hasConflictWith(cells, i)
+    const hasCageSumConflict = cageErrors[i]
     // 若提供了答案，也检查用户填入的数字是否与答案不符
     const hasSolutionMismatch = solution !== undefined &&
       solution.length > i &&
@@ -53,7 +133,7 @@ export function validateAllCells(cells: CellData[], solution?: number[]): number
       !cells[i].isGiven &&
       cells[i].value !== solution[i]
 
-    if (hasPeerConflict || hasSolutionMismatch) {
+    if (hasPeerConflict || hasSolutionMismatch || hasCageSumConflict) {
       cells[i].flags = setFlag(cells[i].flags, CellFlags.ERROR)
       errorCount++
     } else {
@@ -79,14 +159,14 @@ export function isCorrectValue(cells: CellData[], index: number, solution: numbe
 /**
  * 判断游戏是否完成（所有格子都填满且无冲突）
  */
-export function isGameCompleted(cells: CellData[]): boolean {
+export function isGameCompleted(cells: CellData[], cages?: KillerCage[]): boolean {
   for (let i = 0; i < TOTAL_CELLS; i++) {
     // 还有空格 → 未完成
     if (cells[i].value === 0) return false
     // 有冲突 → 未完成
     if (hasConflictWith(cells, i)) return false
   }
-  return true
+  return allCageSumsSatisfied(cells, cages)
 }
 
 /**

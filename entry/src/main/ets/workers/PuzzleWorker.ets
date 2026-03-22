@@ -23,8 +23,9 @@ import {
   VariantType,
   createDiagonalConfig,
   createDefaultJigsawConfig,
+  createKillerConfig,
 } from '../models/VariantConfig'
-import { normalizeVariantType } from '../utils/KillerSudoku'
+import { createDefaultKillerLayout, normalizeVariantType } from '../utils/KillerSudoku'
 import { applyTopology } from '../utils/Topology'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 
@@ -98,6 +99,8 @@ workerPort.onmessage = (e: MessageEvents): void => {
     applyTopology(createDiagonalConfig())
   } else if (variantType === VariantType.JIGSAW) {
     applyTopology(createDefaultJigsawConfig())
+  } else if (variantType === VariantType.KILLER) {
+    applyTopology(createKillerConfig(createDefaultKillerLayout()))
   } else if (gridSize !== undefined) {
     const cfg = getGridConfigBySize(gridSize)
     applyTopology(createSizedConfig(cfg.gridSize, cfg.boxRows, cfg.boxCols))

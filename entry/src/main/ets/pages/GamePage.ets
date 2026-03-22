@@ -28,7 +28,7 @@ import { decodeSeedId, Symmetry, encodeSeedId } from '../utils/SudokuGenerator'
 import { validateAllCells, updateHighlights, isGameCompleted } from '../utils/SudokuValidator'
 import { PEERS, applyTopology } from '../utils/Topology'
 import { getGridConfigBySize, createSizedConfig, VariantType, createDiagonalConfig,
-  createDefaultJigsawConfig, createDefaultJigsawRegionMap,
+  createDefaultJigsawConfig, createDefaultJigsawRegionMap, createKillerConfig,
   GridConfig, KillerCage } from '../models/VariantConfig'
 import { ArrayWrapper } from '../components/SudokuBoard'
 import { SettingsPanel } from '../components/SettingsPanel'
@@ -174,11 +174,18 @@ struct GamePage {
     this.refreshBoardDecorations()
   }
 
+  private getActiveKillerCages(): KillerCage[] | undefined {
+    if (this.currentVariantType !== VariantType.KILLER || this.killerCages.length === 0) {
+      return undefined
+    }
+    return this.killerCages
+  }
+
   /**
    * 按当前变种应用拓扑，并同步更新棋盘展示所需的 Killer 笼子状态。
    * 标准模式使用尺寸配置；对角线模式启用对角线约束；Jigsaw 使用固定不规则宫布局；
-   * Killer 当前仅接入展示层，题面/校验仍复用标准 9×9 主链路，避免生成异常。
-   * 等后续补齐 Killer 专用生成与校验后，再切回完整拓扑。
+   * Killer 使用固定笼子布局驱动去重拓扑，并在校验阶段额外检查笼子和数。
+   * 题目生成仍复用标准 9×9 题面主链路，后续可再补齐随机笼子生成。
    */
   private applyVariantTopologyAndState(variantType: VariantType, gridConfig: GridConfig): void {
     this.currentVariantType = variantType
@@ -200,7 +207,7 @@ struct GamePage {
       const cages = createDefaultKillerLayout()
       this.killerCages = cages
       this.refreshBoardDecorations()
-      applyTopology(createSizedConfig(gridConfig.gridSize, gridConfig.boxRows, gridConfig.boxCols))
+      applyTopology(createKillerConfig(cages))
       return
     }
 
@@ -447,7 +454,11 @@ struct GamePage {
    * 初始化完成后的通用逻辑（验证、计时器、动画）
    */
   private finishInit(): void {
-    validateAllCells(this.gameState.cells, this.validateInput ? this.gameState.solution : undefined)
+    validateAllCells(
+      this.gameState.cells,
+      this.validateInput ? this.gameState.solution : undefined,
+      this.getActiveKillerCages(),
+    )
     this.syncSelectionVisuals()
     this.updateRemainingCounts()
     this.syncDisplayState()
@@ -670,7 +681,11 @@ struct GamePage {
           this.gameState.resetGame()
           this.history = new GameHistory()
           this.cellsWrapper = new ArrayWrapper(this.gameState.cells)
-          validateAllCells(this.gameState.cells, this.validateInput ? this.gameState.solution : undefined)
+          validateAllCells(
+            this.gameState.cells,
+            this.validateInput ? this.gameState.solution : undefined,
+            this.getActiveKillerCages(),
+          )
           this.refreshBoardDecorations()
           this.updateRemainingCounts()
           this.syncDisplayState()
@@ -1109,13 +1124,17 @@ struct GamePage {
     this.autoClearPeerNotes(filledIndex)
 
     // 操作后更新冲突 + 高亮 + 剩余计数
-    validateAllCells(this.gameState.cells, this.validateInput ? this.gameState.solution : undefined)
+    validateAllCells(
+      this.gameState.cells,
+      this.validateInput ? this.gameState.solution : undefined,
+      this.getActiveKillerCages(),
+    )
     this.syncSelectionVisuals()
     this.updateRemainingCounts()
     this.syncDisplayState()
 
     // 检查是否完成
-    if (isGameCompleted(this.gameState.cells)) {
+    if (isGameCompleted(this.gameState.cells, this.getActiveKillerCages())) {
       this.gameState.isCompleted = true
       if (this.timerId !== -1) {
         clearInterval(this.timerId)
