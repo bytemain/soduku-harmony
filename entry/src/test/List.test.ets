@@ -12,6 +12,7 @@ import gameConstantsTest from './GameConstants.test'
 import variantConfigTest from './VariantConfig.test'
 import variantTopologyTest from './VariantTopology.test'
 import gameHistoryTest from './GameHistory.test'
+import boardDecorationTest from './BoardDecoration.test'
 
 export default function testsuite() {
   localUnitTest()
@@ -28,4 +29,5 @@ export default function testsuite() {
   variantConfigTest()
   variantTopologyTest()
   gameHistoryTest()
+  boardDecorationTest()
 }
