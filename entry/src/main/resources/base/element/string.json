@@ -177,6 +177,22 @@
       "value": "返回主页"
     },
     {
+      "name": "dialog_restart",
+      "value": "重新开始"
+    },
+    {
+      "name": "dialog_challenge_failed_title",
+      "value": "挑战失败"
+    },
+    {
+      "name": "dialog_challenge_failed_msg",
+      "value": "你已经累计 3 次错误，本局挑战已失败。你可以重新开始、返回主页，或关闭弹窗继续完成当前棋局。"
+    },
+    {
+      "name": "dialog_completed_failed_title",
+      "value": "题目已完成（挑战失败）"
+    },
+    {
       "name": "stats_title",
       "value": "游戏统计"
     },

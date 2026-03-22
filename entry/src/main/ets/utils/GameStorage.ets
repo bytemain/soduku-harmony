@@ -39,6 +39,7 @@ export class GameSaveData {
   difficulty: number = 0
   elapsedSeconds: number = 0
   errorCount: number = 0
+  isChallengeFailed: boolean = false
   selectedIndex: number = -1
   undoStack: CellSnapshot[][] = []
   redoStack: CellSnapshot[][] = []
