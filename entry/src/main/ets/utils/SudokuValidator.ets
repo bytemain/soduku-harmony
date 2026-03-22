@@ -81,6 +81,13 @@ function buildCageIndexMap(cages: KillerCage[]): number[] {
 }
 
 /**
+ * 检查是否有有效的笼子数据。
+ */
+function hasActiveCages(cages: KillerCage[] | undefined): boolean {
+  return cages !== undefined && cages.length > 0
+}
+
+/**
  * 扫描全部 81 格，更新每个格子的 ERROR 标志。
  * 应该在每次玩家操作后调用。
  *
@@ -93,7 +100,7 @@ function buildCageIndexMap(cages: KillerCage[]): number[] {
  */
 export function validateAllCells(cells: CellData[], solution?: number[], cages?: KillerCage[]): number {
   let errorCount = 0
-  const cageIndexByCell = cages !== undefined && cages.length > 0 ? buildCageIndexMap(cages) : undefined
+  const cageIndexByCell = hasActiveCages(cages) ? buildCageIndexMap(cages!) : undefined
 
   for (let i = 0; i < TOTAL_CELLS; i++) {
     const hasPeerConflict = hasConflictWith(cells, i)
@@ -145,7 +152,7 @@ export function isGameCompleted(cells: CellData[], cages?: KillerCage[]): boolea
   }
 
   // 若有笼子，检查所有笼子求和
-  if (cages !== undefined && cages.length > 0) {
+  if (hasActiveCages(cages)) {
     for (const cage of cages) {
       let sum = 0
       for (const cellIdx of cage.cells) {

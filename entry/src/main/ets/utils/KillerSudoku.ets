@@ -37,6 +37,14 @@ function getOrthogonalNeighbors(cellIndex: number): number[] {
 }
 
 /**
+ * 随机生成笼子大小（在 [KILLER_CAGE_MIN_SIZE, KILLER_CAGE_MAX_SIZE] 范围内）。
+ */
+function getRandomCageSize(): number {
+  return KILLER_CAGE_MIN_SIZE +
+    Math.floor(Math.random() * (KILLER_CAGE_MAX_SIZE - KILLER_CAGE_MIN_SIZE + 1))
+}
+
+/**
  * 随机生成连通笼子分区，覆盖全部格子。
  *
  * 算法：
@@ -68,8 +76,7 @@ export function generateRandomCageLayout(): KillerCage[] {
     assignment[startCell] = cageId
 
     // 目标大小随机 [min, max]
-    const targetSize = KILLER_CAGE_MIN_SIZE +
-      Math.floor(Math.random() * (KILLER_CAGE_MAX_SIZE - KILLER_CAGE_MIN_SIZE + 1))
+    const targetSize = getRandomCageSize()
 
     // BFS 式扩展：维护候选边界
     const frontier: number[] = []

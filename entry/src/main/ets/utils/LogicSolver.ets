@@ -406,31 +406,29 @@ function findCageSumWithBoard(candidates: number[], board: number[][]): SolveSte
     }
 
     // Case 2: 排除使剩余无法达到目标和的候选
+    const otherCount = unfilledIndices.length - 1
+
+    // 笼子内不能重复，基础已用数字（已填格子）
+    const baseUsedDigits = new Set<number>()
+    for (const cellIdx of cage.cells) {
+      const cr = rowOf(cellIdx)
+      const cc = colOf(cellIdx)
+      if (board[cr][cc] !== 0) {
+        baseUsedDigits.add(board[cr][cc])
+      }
+    }
+
     for (const idx of unfilledIndices) {
       const cands = getCandidates(candidates[idx])
       for (const d of cands) {
         // 如果选择 d，剩余 n-1 个格子需要凑出 remaining - d
         const needSum = remaining - d
-        const otherCount = unfilledIndices.length - 1
 
-        // 笼子内不能重复，已用数字需要排除
-        const usedDigits = new Set<number>()
-        for (const cellIdx of cage.cells) {
-          const cr = rowOf(cellIdx)
-          const cc = colOf(cellIdx)
-          if (board[cr][cc] !== 0) {
-            usedDigits.add(board[cr][cc])
-          }
-        }
-        usedDigits.add(d) // 当前候选也算已用
+        // 在基础已用数字基础上加入当前候选
+        const usedDigits = new Set<number>(baseUsedDigits)
+        usedDigits.add(d)
 
-        // 其他未填格子可用的最小和、最大和
-        let minSum = 0
-        let maxSum = 0
-        let availableMin = 1
-        let availableMax = GRID_SIZE
-
-        // 计算其他格子可用的最小 otherCount 个不同数字之和、最大 otherCount 个不同数字之和
+        // 计算其他格子可用的数字
         const availableDigits: number[] = []
         for (let digit = 1; digit <= GRID_SIZE; digit++) {
           if (!usedDigits.has(digit)) {
@@ -454,10 +452,12 @@ function findCageSumWithBoard(candidates: number[], board: number[][]): SolveSte
         }
 
         // 最小和 = 取最小的 otherCount 个可用数字
+        let minSum = 0
         for (let k = 0; k < otherCount; k++) {
           minSum += availableDigits[k]
         }
         // 最大和 = 取最大的 otherCount 个可用数字
+        let maxSum = 0
         for (let k = availableDigits.length - otherCount; k < availableDigits.length; k++) {
           maxSum += availableDigits[k]
         }
