@@ -24,6 +24,7 @@ import {
   createDiagonalConfig,
   createDefaultJigsawConfig,
   createKillerConfig,
+  KillerCage,
 } from '../models/VariantConfig'
 import { normalizeVariantType, generateRandomCageLayout, buildKillerCagesFromSolution } from '../utils/KillerSudoku'
 import { applyTopology } from '../utils/Topology'
@@ -122,7 +123,10 @@ workerPort.onmessage = (e: MessageEvents): void => {
         const layout = generateRandomCageLayout()
         const cages = buildKillerCagesFromSolution(flatSolution, layout)
         applyTopology(createKillerConfig(cages))
-        killerCagesData = cages.map(c => ({ cells: c.cells, sum: c.sum }))
+        killerCagesData = cages.map(c => {
+          const cage: KillerCage = { cells: c.cells, sum: c.sum }
+          return cage
+        })
       }
 
       workerPort.postMessage({
@@ -152,7 +156,10 @@ workerPort.onmessage = (e: MessageEvents): void => {
           const layout = generateRandomCageLayout()
           const cages = buildKillerCagesFromSolution(flatSolution, layout)
           applyTopology(createKillerConfig(cages))
-          killerCagesData = cages.map(c => ({ cells: c.cells, sum: c.sum }))
+          killerCagesData = cages.map(c => {
+            const cage: KillerCage = { cells: c.cells, sum: c.sum }
+            return cage
+          })
         }
 
         workerPort.postMessage({

@@ -388,10 +388,11 @@ struct GamePage {
         if (variantType === VariantType.KILLER && workerCages !== null && workerCages !== undefined) {
           const cages: KillerCage[] = workerCages.map((c: object) => {
             const obj = c as Record<string, Object>
-            return {
+            const cage: KillerCage = {
               cells: obj['cells'] as number[],
               sum: obj['sum'] as number,
             }
+            return cage
           })
           this.killerCages = cages
           this.refreshBoardDecorations()
@@ -580,10 +581,13 @@ struct GamePage {
     this.currentVariantType = variantType
     // 从存档恢复 Killer 笼子
     if (variantType === VariantType.KILLER && saved.killerCages !== undefined && saved.killerCages.length > 0) {
-      this.killerCages = saved.killerCages.map(c => ({
-        cells: c.cells.slice(),
-        sum: c.sum,
-      }))
+      this.killerCages = saved.killerCages.map(c => {
+        const cage: KillerCage = {
+          cells: c.cells.slice(),
+          sum: c.sum,
+        }
+        return cage
+      })
       this.refreshBoardDecorations()
       applyTopology(createKillerConfig(this.killerCages))
     } else {

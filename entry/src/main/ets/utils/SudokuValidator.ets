@@ -153,7 +153,7 @@ export function isGameCompleted(cells: CellData[], cages?: KillerCage[]): boolea
 
   // 若有笼子，检查所有笼子求和
   if (hasActiveCages(cages)) {
-    for (const cage of cages) {
+    for (const cage of cages!) {
       let sum = 0
       for (const cellIdx of cage.cells) {
         sum += cells[cellIdx].value
