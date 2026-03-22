@@ -68,7 +68,7 @@ export struct PauseOverlay {
             .fontSize(16)
             .fontWeight(FontWeight.Medium)
             .backgroundColor(Colors.pauseRestartBtn)
-            .fontColor('#FFFFFF')
+            .fontColor(Colors.pauseOverlayText)
             .onClick(() => this.onRestart())
 
           Button($r('app.string.pause_quit'))
@@ -78,7 +78,7 @@ export struct PauseOverlay {
             .fontSize(16)
             .fontWeight(FontWeight.Medium)
             .backgroundColor(Colors.pauseQuitBtn)
-            .fontColor('#FFFFFF')
+            .fontColor(Colors.pauseOverlayText)
             .onClick(() => this.onQuit())
         }
         .alignItems(HorizontalAlign.Center)

@@ -28,7 +28,7 @@ export struct GestureGuideOverlay {
         .borderRadius(10)
       Text(label)
         .fontSize(16)
-        .fontColor('#FFFFFF')
+        .fontColor(Colors.titleText)
         .fontWeight(FontWeight.Medium)
     }
     .width('100%')
@@ -40,19 +40,19 @@ export struct GestureGuideOverlay {
       Column({ space: 20 }) {
         Text($r('app.string.guide_title'))
           .fontSize(22)
-          .fontColor('#FFFFFF')
+          .fontColor(Colors.titleText)
           .fontWeight(FontWeight.Bold)
 
         Column({ space: 4 }) {
           Text('⬆')
             .fontSize(24)
-            .fontColor('#90CAF9')
+            .fontColor(Colors.diffMedium)
             .margin({ bottom: 2 })
 
           Row({ space: 4 }) {
             Text('⬅')
               .fontSize(24)
-              .fontColor('#FFE0B2')
+              .fontColor(Colors.diffExpert)
 
             Column() {
               Text('5')
@@ -65,11 +65,11 @@ export struct GestureGuideOverlay {
             .justifyContent(FlexAlign.Center)
             .backgroundColor(Colors.keyBg)
             .borderRadius(12)
-            .shadow({ radius: 4, color: '#00000033', offsetX: 0, offsetY: 2 })
+            .shadow({ radius: 4, color: Colors.shadowColorLight, offsetX: 0, offsetY: 2 })
 
             Text('➡')
               .fontSize(24)
-              .fontColor('#FFF3E0')
+              .fontColor(Colors.diffHard)
           }
           .justifyContent(FlexAlign.Center)
           .alignItems(VerticalAlign.Center)
@@ -81,10 +81,10 @@ export struct GestureGuideOverlay {
         .margin({ top: 4, bottom: 8 })
 
         Column({ space: 14 }) {
-          this.guideItem('👆', $r('app.string.guide_tap'), '#43A047')
-          this.guideItem('⬆', $r('app.string.guide_up'), '#1E88E5')
-          this.guideItem('➡', $r('app.string.guide_right'), '#FB8C00')
-          this.guideItem('⬅', $r('app.string.guide_left'), '#8E24AA')
+          this.guideItem('👆', $r('app.string.guide_tap'), Colors.diffEasy)
+          this.guideItem('⬆', $r('app.string.guide_up'), Colors.diffMedium)
+          this.guideItem('➡', $r('app.string.guide_right'), Colors.diffHard)
+          this.guideItem('⬅', $r('app.string.guide_left'), Colors.diffExpert)
         }
         .padding({ left: 24, right: 24 })
 
@@ -106,13 +106,13 @@ export struct GestureGuideOverlay {
       .width('88%')
       .padding(28)
       .borderRadius(20)
-      .backgroundColor('#2A2A2A')
-      .shadow({ radius: 20, color: '#00000066', offsetX: 0, offsetY: 8 })
+      .backgroundColor(Colors.boardBg)
+      .shadow({ radius: 20, color: Colors.shadowColor, offsetX: 0, offsetY: 8 })
     }
     .width('100%')
     .height('100%')
     .justifyContent(FlexAlign.Center)
     .alignItems(HorizontalAlign.Center)
-    .backgroundColor('#000000B3')
+    .backgroundColor(Colors.modalOverlayMask)
   }
 }

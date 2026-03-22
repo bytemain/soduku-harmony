@@ -64,6 +64,7 @@ export interface ColorsConfig {
   pageBg: string
   titleText: string
   subtitleText: string
+  systemBarContent: string
   primaryBtn: string
   primaryPressed: string
   primaryText: string
@@ -115,6 +116,7 @@ export interface ColorsConfig {
   divider: string
   shadowColor: string
   shadowColorLight: string
+  modalOverlayMask: string
 
   // === 暂停遮罩 ===
   pauseOverlayBg: string
@@ -154,6 +156,7 @@ export const LightColors: ColorsConfig = {
   // === 标题 ===
   titleText: '#212121',
   subtitleText: '#9E9E9E',
+  systemBarContent: '#000000',
 
   // === 主按钮（开始游戏） ===
   primaryBtn: '#1976D2',
@@ -229,6 +232,7 @@ export const LightColors: ColorsConfig = {
   divider: '#E0E0E0',
   shadowColor: '#1A000000',
   shadowColorLight: '#0D000000',
+  modalOverlayMask: '#00000099',
 
   // === 暂停遮罩 ===
   pauseOverlayBg: '#1B2838',
@@ -268,6 +272,7 @@ export const DarkColors: ColorsConfig = {
   // === 标题 ===
   titleText: '#E0E0E0',
   subtitleText: '#9E9E9E',
+  systemBarContent: '#FFFFFF',
 
   // === 主按钮（开始游戏） ===
   primaryBtn: '#42A5F5',
@@ -282,7 +287,7 @@ export const DarkColors: ColorsConfig = {
 
   // === 棋盘 ===
   boardBg: '#1E1E1E',
-  cellBorderThin: '#424242',
+  cellBorderThin: '#616161',
   cellBorderBold: '#9E9E9E',
 
   // === 格子背景（高亮系统） ===
@@ -323,8 +328,8 @@ export const DarkColors: ColorsConfig = {
   diffHard: '#FFA726',
   diffExpert: '#FF9800',
   diffEvil: '#EF5350',
-  killerCageBorder: '#FFB74D',
-  killerCageLabel: '#FFCC80',
+  killerCageBorder: '#FFD180',
+  killerCageLabel: '#FFE0B2',
 
   // === 分段按钮 ===
   segmentBg: '#2A2A2A',
@@ -343,6 +348,7 @@ export const DarkColors: ColorsConfig = {
   divider: '#333333',
   shadowColor: '#40000000',
   shadowColorLight: '#20000000',
+  modalOverlayMask: '#000000B3',
 
   // === 暂停遮罩 ===
   pauseOverlayBg: '#0D1117',
