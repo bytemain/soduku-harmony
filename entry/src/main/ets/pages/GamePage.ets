@@ -36,13 +36,14 @@ import { GestureGuideOverlay } from '../components/GestureGuideOverlay'
 import { GameLoadingView } from '../components/GameLoadingView'
 import { GameMainContent } from '../components/GameMainContent'
 import { PauseOverlay } from '../components/PauseOverlay'
-import { getNextHint, getTechniqueNameKey, SolveStep } from '../utils/LogicSolver'
+import { getNextHint, getTechniqueNameKey, SolveStep, setActiveCages, clearActiveCages } from '../utils/LogicSolver'
 import { formatStr } from '../utils/I18nHelper'
 import { exportTo81String } from '../utils/SudokuFormat'
-import { saveGame, loadGame, clearSave, GameSaveData, CellSerialized } from '../utils/GameStorage'
+import { saveGame, loadGame, clearSave, GameSaveData, CellSerialized, CageSerialized } from '../utils/GameStorage'
 import { recordGameStarted, recordGameWon } from '../utils/StatsStorage'
 import { addGameRecord, GameRecord } from '../utils/HistoryStorage'
-import { buildKillerCagesFromSolution, createDefaultKillerLayout, normalizeVariantType } from '../utils/KillerSudoku'
+import { buildKillerCagesFromSolution, generateRandomCageLayout, normalizeVariantType } from '../utils/KillerSudoku'
+import { createKillerConfig } from '../models/VariantConfig'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 
 interface GamePageParams {
@@ -197,10 +198,10 @@ struct GamePage {
     }
 
     if (variantType === VariantType.KILLER && gridConfig.gridSize === 9) {
-      const cages = createDefaultKillerLayout()
+      const cages = generateRandomCageLayout()
       this.killerCages = cages
       this.refreshBoardDecorations()
-      applyTopology(createSizedConfig(gridConfig.gridSize, gridConfig.boxRows, gridConfig.boxCols))
+      applyTopology(createKillerConfig(cages))
       return
     }
 
@@ -221,13 +222,15 @@ struct GamePage {
     }
 
     if (solution.length === 0) {
-      this.killerCages = createDefaultKillerLayout()
+      this.killerCages = generateRandomCageLayout()
       this.refreshBoardDecorations()
       return
     }
 
-    this.killerCages = buildKillerCagesFromSolution(solution)
+    this.killerCages = buildKillerCagesFromSolution(solution, this.killerCages.length > 0 ? this.killerCages : undefined)
     this.refreshBoardDecorations()
+    // 使用带笼子的拓扑
+    applyTopology(createKillerConfig(this.killerCages))
   }
 
   aboutToAppear(): void {
@@ -379,7 +382,23 @@ struct GamePage {
         }
 
         this.currentVariantType = variantType
-        this.refreshKillerCagesFromSolution(this.gameState.solution)
+
+        // Killer 模式：从 Worker 接收预计算好的笼子
+        const workerCages = msg['killerCages'] as object[] | null
+        if (variantType === VariantType.KILLER && workerCages !== null && workerCages !== undefined) {
+          const cages: KillerCage[] = workerCages.map((c: object) => {
+            const obj = c as Record<string, Object>
+            return {
+              cells: obj['cells'] as number[],
+              sum: obj['sum'] as number,
+            }
+          })
+          this.killerCages = cages
+          this.refreshBoardDecorations()
+          applyTopology(createKillerConfig(cages))
+        } else {
+          this.refreshKillerCagesFromSolution(this.gameState.solution)
+        }
         this.cellsWrapper = new ArrayWrapper(this.gameState.cells)
         recordGameStarted(getContext(this), this.gameState.difficulty)
         this.loadingMessage = this.getString('loading_finalizing')
@@ -444,10 +463,22 @@ struct GamePage {
   }
 
   /**
+   * 获取当前活跃的 Killer 笼子（用于验证）。
+   * 非 Killer 模式返回 undefined。
+   */
+  private getActiveCages(): KillerCage[] | undefined {
+    if (this.currentVariantType === VariantType.KILLER && this.killerCages.length > 0) {
+      return this.killerCages
+    }
+    return undefined
+  }
+
+  /**
    * 初始化完成后的通用逻辑（验证、计时器、动画）
    */
   private finishInit(): void {
-    validateAllCells(this.gameState.cells, this.validateInput ? this.gameState.solution : undefined)
+    validateAllCells(this.gameState.cells, this.validateInput ? this.gameState.solution : undefined,
+      this.getActiveCages())
     this.syncSelectionVisuals()
     this.updateRemainingCounts()
     this.syncDisplayState()
@@ -546,7 +577,17 @@ struct GamePage {
     this.gameState.seed = saved.seed ?? 0
     this.gameState.symmetry = saved.symmetry ?? ''
     this.currentVariantType = variantType
-    this.refreshKillerCagesFromSolution(saved.solution)
+    // 从存档恢复 Killer 笼子
+    if (variantType === VariantType.KILLER && saved.killerCages !== undefined && saved.killerCages.length > 0) {
+      this.killerCages = saved.killerCages.map(c => ({
+        cells: c.cells.slice(),
+        sum: c.sum,
+      }))
+      this.refreshBoardDecorations()
+      applyTopology(createKillerConfig(this.killerCages))
+    } else {
+      this.refreshKillerCagesFromSolution(saved.solution)
+    }
 
     this.cellsWrapper = new ArrayWrapper(this.gameState.cells)
 
@@ -577,6 +618,10 @@ struct GamePage {
     data.symmetry = this.gameState.symmetry
     data.gridSize = GRID_SIZE
     data.variantType = this.currentVariantType
+    // 保存 Killer 笼子数据
+    if (this.currentVariantType === VariantType.KILLER && this.killerCages.length > 0) {
+      data.killerCages = this.killerCages.map(c => new CageSerialized(c.cells.slice(), c.sum))
+    }
     saveGame(getContext(this), data)
   }
 
@@ -670,7 +715,8 @@ struct GamePage {
           this.gameState.resetGame()
           this.history = new GameHistory()
           this.cellsWrapper = new ArrayWrapper(this.gameState.cells)
-          validateAllCells(this.gameState.cells, this.validateInput ? this.gameState.solution : undefined)
+          validateAllCells(this.gameState.cells, this.validateInput ? this.gameState.solution : undefined,
+            this.getActiveCages())
           this.refreshBoardDecorations()
           this.updateRemainingCounts()
           this.syncDisplayState()
@@ -1109,13 +1155,14 @@ struct GamePage {
     this.autoClearPeerNotes(filledIndex)
 
     // 操作后更新冲突 + 高亮 + 剩余计数
-    validateAllCells(this.gameState.cells, this.validateInput ? this.gameState.solution : undefined)
+    validateAllCells(this.gameState.cells, this.validateInput ? this.gameState.solution : undefined,
+      this.getActiveCages())
     this.syncSelectionVisuals()
     this.updateRemainingCounts()
     this.syncDisplayState()
 
     // 检查是否完成
-    if (isGameCompleted(this.gameState.cells)) {
+    if (isGameCompleted(this.gameState.cells, this.getActiveCages())) {
       this.gameState.isCompleted = true
       if (this.timerId !== -1) {
         clearInterval(this.timerId)
@@ -1323,6 +1370,12 @@ struct GamePage {
     setTimeout(() => {
       try {
         const board = this.buildCurrentBoard()
+        // Killer 模式下设置活跃笼子以启用笼子约束提示
+        if (this.currentVariantType === VariantType.KILLER && this.killerCages.length > 0) {
+          setActiveCages(this.killerCages)
+        } else {
+          clearActiveCages()
+        }
         const hint = getNextHint(board)
 
         if (hint !== null && hint.digit !== 0) {
