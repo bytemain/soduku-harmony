@@ -23,6 +23,8 @@ export class GameState {
   elapsedSeconds: number
   /** 错误次数 */
   errorCount: number
+  /** 3 次错误后挑战是否已失败（不阻止继续完成棋盘） */
+  isChallengeFailed: boolean
   /** 游戏是否已完成 */
   isCompleted: boolean
   /** 游戏是否暂停 */
@@ -39,6 +41,7 @@ export class GameState {
     this.difficulty = Difficulty.EASY
     this.elapsedSeconds = 0
     this.errorCount = 0
+    this.isChallengeFailed = false
     this.isCompleted = false
     this.isPaused = false
     this.seed = 0
@@ -90,6 +93,7 @@ export class GameState {
     this.selectedIndex = -1
     this.elapsedSeconds = 0
     this.errorCount = 0
+    this.isChallengeFailed = false
     this.isCompleted = false
     this.isPaused = false
   }
@@ -104,6 +108,7 @@ export class GameState {
     this.selectedIndex = -1
     this.elapsedSeconds = 0
     this.errorCount = 0
+    this.isChallengeFailed = false
     this.isCompleted = false
   }
 

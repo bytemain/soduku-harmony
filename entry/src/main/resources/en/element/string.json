@@ -177,6 +177,22 @@
       "value": "Back to Home"
     },
     {
+      "name": "dialog_restart",
+      "value": "Restart"
+    },
+    {
+      "name": "dialog_challenge_failed_title",
+      "value": "Challenge Failed"
+    },
+    {
+      "name": "dialog_challenge_failed_msg",
+      "value": "You have made 3 mistakes, so this challenge is failed. You can restart, go back home, or dismiss this dialog and keep solving the current board."
+    },
+    {
+      "name": "dialog_completed_failed_title",
+      "value": "Puzzle Completed (Challenge Failed)"
+    },
+    {
       "name": "stats_title",
       "value": "Statistics"
     },

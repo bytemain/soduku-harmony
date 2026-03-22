@@ -40,7 +40,7 @@ import { getNextHint, getTechniqueNameKey, SolveStep, setActiveCages, clearActiv
 import { formatStr } from '../utils/I18nHelper'
 import { exportTo81String } from '../utils/SudokuFormat'
 import { saveGame, loadGame, clearSave, GameSaveData, CellSerialized, CageSerialized } from '../utils/GameStorage'
-import { recordGameStarted, recordGameWon } from '../utils/StatsStorage'
+import { recordGameLost, recordGameStarted, recordGameWon } from '../utils/StatsStorage'
 import { addGameRecord, GameRecord } from '../utils/HistoryStorage'
 import { buildKillerCagesFromSolution, generateRandomCageLayout, normalizeVariantType } from '../utils/KillerSudoku'
 import { createKillerConfig } from '../models/VariantConfig'
@@ -571,6 +571,7 @@ struct GamePage {
     this.gameState.difficulty = saved.difficulty as Difficulty
     this.gameState.elapsedSeconds = saved.elapsedSeconds
     this.gameState.errorCount = saved.errorCount
+    this.gameState.isChallengeFailed = saved.isChallengeFailed ?? false
     this.gameState.selectedIndex = saved.selectedIndex
     this.gameState.isCompleted = false
     this.gameState.isPaused = false
@@ -610,6 +611,7 @@ struct GamePage {
     data.difficulty = this.gameState.difficulty
     data.elapsedSeconds = this.gameState.elapsedSeconds
     data.errorCount = this.gameState.errorCount
+    data.isChallengeFailed = this.gameState.isChallengeFailed
     data.selectedIndex = this.gameState.selectedIndex
     data.undoStack = this.history.undoStack
     data.redoStack = this.history.redoStack
@@ -723,6 +725,61 @@ struct GamePage {
           this.gameState.isPaused = false
           this.showPauseOverlay = false
           // 重启计时器
+          if (this.timerId !== -1) {
+            clearInterval(this.timerId)
+          }
+          this.timerId = setInterval(() => {
+            this.gameState.tick()
+            this.displayTime = this.gameState.formattedTime
+          }, 1000)
+        },
+      },
+    })
+  }
+
+  /**
+   * 第 3 次错误后判定挑战失败，但允许继续完成棋盘。
+   */
+  private handleChallengeFailedIfNeeded(): void {
+    if (this.gameState.isChallengeFailed || this.gameState.errorCount < 3) {
+      return
+    }
+    this.gameState.isChallengeFailed = true
+    recordGameLost(getContext(this), this.gameState.difficulty)
+    this.showChallengeFailedDialog()
+  }
+
+  /**
+   * 挑战失败弹窗：可重新开始或返回主页；关闭弹窗后也可继续当前棋局。
+   */
+  private showChallengeFailedDialog(): void {
+    const ctx = getContext(this)
+    const title = ctx.resourceManager.getStringByNameSync('dialog_challenge_failed_title')
+    const msg = ctx.resourceManager.getStringByNameSync('dialog_challenge_failed_msg')
+    const restart = ctx.resourceManager.getStringByNameSync('dialog_restart')
+    const backHome = ctx.resourceManager.getStringByNameSync('dialog_back_home')
+    AlertDialog.show({
+      title: title,
+      message: msg,
+      autoCancel: true,
+      primaryButton: {
+        value: backHome,
+        action: () => {
+          router.back()
+        },
+      },
+      secondaryButton: {
+        value: restart,
+        action: () => {
+          this.gameState.resetGame()
+          this.history = new GameHistory()
+          this.cellsWrapper = new ArrayWrapper(this.gameState.cells)
+          validateAllCells(this.gameState.cells, this.validateInput ? this.gameState.solution : undefined,
+            this.getActiveCages())
+          this.updateRemainingCounts()
+          this.syncDisplayState()
+          this.gameState.isPaused = false
+          this.showPauseOverlay = false
           if (this.timerId !== -1) {
             clearInterval(this.timerId)
           }
@@ -1160,22 +1217,26 @@ struct GamePage {
     this.syncSelectionVisuals()
     this.updateRemainingCounts()
     this.syncDisplayState()
+    this.handleChallengeFailedIfNeeded()
 
     // 检查是否完成
     if (isGameCompleted(this.gameState.cells, this.getActiveCages())) {
+      const challengeWon = !this.gameState.isChallengeFailed
       this.gameState.isCompleted = true
       if (this.timerId !== -1) {
         clearInterval(this.timerId)
         this.timerId = -1
       }
       clearSave(getContext(this))
-      // 记录胜利统计
-      recordGameWon(
-        getContext(this),
-        this.gameState.difficulty,
-        this.gameState.elapsedSeconds,
-        this.gameState.errorCount
-      )
+      if (challengeWon) {
+        // 记录胜利统计
+        recordGameWon(
+          getContext(this),
+          this.gameState.difficulty,
+          this.gameState.elapsedSeconds,
+          this.gameState.errorCount
+        )
+      }
       // 记录到历史记录（含种子和每步操作）
       const record = new GameRecord()
       record.seedId = encodeSeedId(
@@ -1189,7 +1250,7 @@ struct GamePage {
       record.timeSeconds = this.gameState.elapsedSeconds
       record.errors = this.gameState.errorCount
       record.stepCount = this.history.undoStack.length
-      record.won = true
+      record.won = challengeWon
       record.timestamp = Date.now()
       record.steps = this.history.undoStack.slice() // 复制一份
       addGameRecord(getContext(this), record)
@@ -1659,7 +1720,9 @@ struct GamePage {
    */
   private showCompletionDialog(): void {
     const ctx = getContext(this)
-    const congrats = ctx.resourceManager.getStringByNameSync('dialog_congrats_title')
+    const congrats = this.gameState.isChallengeFailed
+      ? ctx.resourceManager.getStringByNameSync('dialog_completed_failed_title')
+      : ctx.resourceManager.getStringByNameSync('dialog_congrats_title')
     const timeLabel = ctx.resourceManager.getStringByNameSync('dialog_congrats_time')
     const errLabel = ctx.resourceManager.getStringByNameSync('dialog_congrats_errors')
     const unit = ctx.resourceManager.getStringByNameSync('dialog_congrats_unit')
