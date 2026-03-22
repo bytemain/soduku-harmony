@@ -261,6 +261,10 @@
       "value": "用于检测您的操作手，自动调整键盘布局到更顺手的一侧"
     },
     {
+      "name": "permission_vibrate_reason",
+      "value": "用于在填错、笔记和完成时提供震动反馈"
+    },
+    {
       "name": "diff_easy_desc",
       "value": "仅需裸单数"
     },
@@ -407,6 +411,26 @@
     {
       "name": "settings_section_display",
       "value": "显示"
+    },
+    {
+      "name": "settings_section_feedback",
+      "value": "反馈"
+    },
+    {
+      "name": "settings_sound_feedback",
+      "value": "音效反馈"
+    },
+    {
+      "name": "settings_sound_feedback_desc",
+      "value": "填数、错误、完成与笔记操作时播放短音效"
+    },
+    {
+      "name": "settings_haptic_feedback",
+      "value": "震动反馈"
+    },
+    {
+      "name": "settings_haptic_feedback_desc",
+      "value": "错误、笔记切换和完成时给出轻微或明显震动"
     },
     {
       "name": "settings_show_coordinates",

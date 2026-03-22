@@ -261,6 +261,10 @@
       "value": "Used to detect your operating hand and automatically adjust the keyboard layout for comfort"
     },
     {
+      "name": "permission_vibrate_reason",
+      "value": "Used to provide vibration feedback for mistakes, notes, and puzzle completion"
+    },
+    {
       "name": "diff_easy_desc",
       "value": "Naked Single only"
     },
@@ -407,6 +411,26 @@
     {
       "name": "settings_section_display",
       "value": "Display"
+    },
+    {
+      "name": "settings_section_feedback",
+      "value": "Feedback"
+    },
+    {
+      "name": "settings_sound_feedback",
+      "value": "Sound Effects"
+    },
+    {
+      "name": "settings_sound_feedback_desc",
+      "value": "Play short sounds for fills, mistakes, completion, and note actions"
+    },
+    {
+      "name": "settings_haptic_feedback",
+      "value": "Haptic Feedback"
+    },
+    {
+      "name": "settings_haptic_feedback_desc",
+      "value": "Use light or stronger vibration for note changes, mistakes, and completion"
     },
     {
       "name": "settings_show_coordinates",

@@ -36,6 +36,7 @@ import { GestureGuideOverlay } from '../components/GestureGuideOverlay'
 import { GameLoadingView } from '../components/GameLoadingView'
 import { GameMainContent } from '../components/GameMainContent'
 import { PauseOverlay } from '../components/PauseOverlay'
+import { FeedbackService, FeedbackType } from '../services/FeedbackService'
 import { getNextHint, getTechniqueNameKey, SolveStep } from '../utils/LogicSolver'
 import { formatStr } from '../utils/I18nHelper'
 import { exportTo81String } from '../utils/SudokuFormat'
@@ -232,6 +233,7 @@ struct GamePage {
 
   aboutToAppear(): void {
     this.syncUiPreferencesFromStorage()
+    FeedbackService.getInstance().prepare(getContext(this) as common.UIAbilityContext)
     hilog.info(0x0000, 'GamePage', 'aboutToAppear: isLeftHand=%{public}s, handModeManual=%{public}s',
       String(this.isLeftHand), String(AppStorage.get<boolean>('handModeManual')))
     // 从路由参数获取难度
@@ -1007,10 +1009,16 @@ struct GamePage {
     )
 
     let filledIndex: number | undefined = undefined
+    let feedbackType: FeedbackType = FeedbackType.FILL
+    let shouldEmitFeedback: boolean = false
 
     switch (direction) {
       case GestureDirection.TAP:
-        this.handleFillDigit(cell, digit)
+        if (this.handleFillDigit(cell, digit)) {
+          feedbackType = FeedbackType.ERROR
+        } else {
+          feedbackType = FeedbackType.FILL
+        }
         // 如果填入了数字（非擦除），记录索引用于自动清除 peers 笔记
         if (cell.value !== 0) {
           filledIndex = cell.index
@@ -1018,12 +1026,15 @@ struct GamePage {
         break
       case GestureDirection.UP:
         this.handleToggleNote(cell, digit)
+        feedbackType = FeedbackType.NOTE
         break
       case GestureDirection.RIGHT:
         this.handleToggleEliminated(cell, digit)
+        feedbackType = FeedbackType.NOTE
         break
       case GestureDirection.LEFT:
         this.handleEraseNote(cell, digit)
+        feedbackType = FeedbackType.NOTE
         break
       default:
         break
@@ -1038,9 +1049,13 @@ struct GamePage {
     if (snapshot.oldValue !== snapshot.newValue ||
         snapshot.oldNotes !== snapshot.newNotes) {
       this.history.push(snapshot)
+      shouldEmitFeedback = true
     }
 
     this.afterAction(filledIndex)
+    if (shouldEmitFeedback && !this.gameState.isCompleted) {
+      FeedbackService.getInstance().play(getContext(this) as common.UIAbilityContext, feedbackType)
+    }
   }
 
   /**
@@ -1096,6 +1111,9 @@ struct GamePage {
       this.afterAction()
       // 操作完成后重新更新多选标志（afterAction 会清除 flags）
       this.updateMultiSelectFlags()
+      if (!this.gameState.isCompleted) {
+        FeedbackService.getInstance().play(getContext(this) as common.UIAbilityContext, FeedbackType.NOTE)
+      }
     }
   }
 
@@ -1146,6 +1164,7 @@ struct GamePage {
       record.timestamp = Date.now()
       record.steps = this.history.undoStack.slice() // 复制一份
       addGameRecord(getContext(this), record)
+      FeedbackService.getInstance().play(getContext(this) as common.UIAbilityContext, FeedbackType.COMPLETE)
       // 完成庆祝动画：棋盘弹跳 → 弹窗
       this.playCompletionAnimation()
       return // 游戏完成，已 clearSave，不再持久化
@@ -1158,18 +1177,21 @@ struct GamePage {
   /**
    * 填数（点击）— Doc 05 §4.1
    */
-  private handleFillDigit(cell: CellData, digit: number): void {
+  private handleFillDigit(cell: CellData, digit: number): boolean {
     if (cell.value === digit) {
       // toggle：再次点击同一数字 → 擦除
       cell.value = 0
+      return false
     } else {
       cell.fillValue(digit)
       // 检查是否与答案不符 → 计数错误（无论助手开关，均记录）
       const idx = cell.index
       if (this.gameState.solution.length > 0 && this.gameState.solution[idx] !== digit) {
         this.gameState.errorCount++
+        return true
       }
     }
+    return false
   }
 
   /**

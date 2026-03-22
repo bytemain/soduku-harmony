@@ -21,6 +21,8 @@ export struct SettingsPanel {
   @StorageLink('showCoordinates') showCoordinates: boolean = false
   @StorageLink('validateInput') validateInput: boolean = true
   @StorageLink('showAutoNotes') showAutoNotes: boolean = false
+  @StorageLink('soundEnabled') soundEnabled: boolean = true
+  @StorageLink('hapticEnabled') hapticEnabled: boolean = true
   @StorageLink('themeMode') themeMode: string = 'system'
   @StorageProp('isDarkMode') isDarkMode: boolean = false
   @StorageProp('bottomRectHeight') bottomRectHeight: number = 0
@@ -359,6 +361,68 @@ export struct SettingsPanel {
         .margin({ top: 8 })
         .backgroundColor(Colors.secondaryPress)
         .borderRadius(8)
+
+        // ====== 反馈设置 ======
+        Text($r('app.string.settings_section_feedback'))
+          .fontSize(13)
+          .fontColor(Colors.subtitleText)
+          .fontWeight(FontWeight.Medium)
+          .width('100%')
+          .margin({ top: 24, bottom: 8 })
+
+        Row() {
+          Column() {
+            Text($r('app.string.settings_sound_feedback'))
+              .fontSize(16)
+              .fontColor(Colors.titleText)
+            Text($r('app.string.settings_sound_feedback_desc'))
+              .fontSize(12)
+              .fontColor(Colors.subtitleText)
+              .margin({ top: 2 })
+          }
+          .alignItems(HorizontalAlign.Start)
+          .layoutWeight(1)
+
+          Toggle({ type: ToggleType.Switch, isOn: this.soundEnabled })
+            .selectedColor(Colors.primaryBtn)
+            .switchStyle({ unselectedColor: Colors.switchTrackOff })
+            .onChange((isOn: boolean) => {
+              this.soundEnabled = isOn
+              hilog.info(0x0000, 'SettingsPanel', 'Sound feedback: %{public}s', isOn.toString())
+              if (this.context) {
+                saveSettings(this.context)
+              }
+            })
+        }
+        .width('100%')
+        .padding({ top: 12, bottom: 12 })
+
+        Row() {
+          Column() {
+            Text($r('app.string.settings_haptic_feedback'))
+              .fontSize(16)
+              .fontColor(Colors.titleText)
+            Text($r('app.string.settings_haptic_feedback_desc'))
+              .fontSize(12)
+              .fontColor(Colors.subtitleText)
+              .margin({ top: 2 })
+          }
+          .alignItems(HorizontalAlign.Start)
+          .layoutWeight(1)
+
+          Toggle({ type: ToggleType.Switch, isOn: this.hapticEnabled })
+            .selectedColor(Colors.primaryBtn)
+            .switchStyle({ unselectedColor: Colors.switchTrackOff })
+            .onChange((isOn: boolean) => {
+              this.hapticEnabled = isOn
+              hilog.info(0x0000, 'SettingsPanel', 'Haptic feedback: %{public}s', isOn.toString())
+              if (this.context) {
+                saveSettings(this.context)
+              }
+            })
+        }
+        .width('100%')
+        .padding({ top: 12, bottom: 12 })
 
         // ====== 显示设置 ======
         Text($r('app.string.settings_section_display'))
