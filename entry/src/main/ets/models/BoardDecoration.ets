@@ -146,10 +146,9 @@ export function buildJigsawBoardDecorations(regionMap: number[]): BoardCellDecor
  */
 export function buildDiagonalBoardDecorations(selectedIndex: number = -1): BoardCellDecoration[] {
   const decorations = createEmptyBoardDecorations()
-  const selectedOnMain = selectedIndex >= 0 && selectedIndex < TOTAL_CELLS &&
-    isOnMainDiagonal(selectedIndex, GRID_SIZE)
-  const selectedOnAnti = selectedIndex >= 0 && selectedIndex < TOTAL_CELLS &&
-    isOnAntiDiagonal(selectedIndex, GRID_SIZE)
+  const hasSelectedCell = selectedIndex >= 0 && selectedIndex < TOTAL_CELLS
+  const selectedOnMain = hasSelectedCell && isOnMainDiagonal(selectedIndex, GRID_SIZE)
+  const selectedOnAnti = hasSelectedCell && isOnAntiDiagonal(selectedIndex, GRID_SIZE)
 
   for (let cellIndex = 0; cellIndex < TOTAL_CELLS; cellIndex++) {
     const onMain = isOnMainDiagonal(cellIndex, GRID_SIZE)
