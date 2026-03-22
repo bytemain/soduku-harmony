@@ -9,6 +9,7 @@ import {
   decodeSeedId,
   generatePuzzle,
   generatePuzzleFromSeed,
+  GenerationProgressCallback,
   GenerationProgressPhase,
   Symmetry,
 } from '../utils/SudokuGenerator'
@@ -16,9 +17,16 @@ import { solve } from '../utils/SudokuSolver'
 import { parse81String } from '../utils/SudokuFormat'
 import { evaluateDifficulty } from '../utils/DifficultyEvaluator'
 import { Difficulty, applyGridConfig } from '../constants/GameConstants'
-import { getGridConfigBySize, createSizedConfig, VariantType, createDiagonalConfig } from '../models/VariantConfig'
+import {
+  getGridConfigBySize,
+  createSizedConfig,
+  VariantType,
+  createDiagonalConfig,
+  createDefaultJigsawConfig,
+} from '../models/VariantConfig'
 import { normalizeVariantType } from '../utils/KillerSudoku'
 import { applyTopology } from '../utils/Topology'
+import { hilog } from '@kit.PerformanceAnalysisKit'
 
 const workerPort: ThreadWorkerGlobalScope = worker.workerPort
 
@@ -34,13 +42,39 @@ function postProgress(phase: string, progress: number, attempt?: number, totalAt
   lastSentPhase = phase
   lastSentProgress = progress
 
-  workerPort.postMessage({
-    type: 'progress',
-    phase: phase,
-    progress: progress,
-    attempt: attempt ?? null,
-    totalAttempts: totalAttempts ?? null,
-  })
+  try {
+    workerPort.postMessage({
+      type: 'progress',
+      phase: phase,
+      progress: progress,
+      attempt: attempt ?? null,
+      totalAttempts: totalAttempts ?? null,
+    })
+  } catch (_e) {
+    hilog.warn(0x0000, 'PuzzleWorker', 'progress postMessage failed')
+    // 进度消息发送失败不影响生成主流程，交由后续 result/error 消息兜底。
+  }
+}
+
+function createProgressCallback(): GenerationProgressCallback {
+  return (
+    phase: GenerationProgressPhase,
+    progress: number,
+    attempt?: number,
+    totalAttempts?: number,
+  ): void => {
+    postProgress(phase, progress, attempt, totalAttempts)
+  }
+}
+
+function generateVariantPuzzle(difficulty: Difficulty, symmetry?: Symmetry) {
+  const progressCallback = createProgressCallback()
+  return generatePuzzle(difficulty, symmetry, progressCallback)
+}
+
+function generateVariantPuzzleFromSeed(seed: number, difficulty: Difficulty, symmetry: Symmetry) {
+  const progressCallback = createProgressCallback()
+  return generatePuzzleFromSeed(seed, difficulty, symmetry, progressCallback)
 }
 
 workerPort.onmessage = (e: MessageEvents): void => {
@@ -62,6 +96,8 @@ workerPort.onmessage = (e: MessageEvents): void => {
   // 根据变种类型构建拓扑（无论是否指定 gridSize 都需要应用）
   if (variantType === VariantType.DIAGONAL) {
     applyTopology(createDiagonalConfig())
+  } else if (variantType === VariantType.JIGSAW) {
+    applyTopology(createDefaultJigsawConfig())
   } else if (gridSize !== undefined) {
     const cfg = getGridConfigBySize(gridSize)
     applyTopology(createSizedConfig(cfg.gridSize, cfg.boxRows, cfg.boxCols))
@@ -72,14 +108,7 @@ workerPort.onmessage = (e: MessageEvents): void => {
       const difficulty = msg['difficulty'] as number as Difficulty
       const symmetryStr = msg['symmetry'] as string | undefined
       const symmetry = symmetryStr ? symmetryStr as Symmetry : undefined
-      const result = generatePuzzle(difficulty, symmetry, (
-        phase: GenerationProgressPhase,
-        progress: number,
-        attempt?: number,
-        totalAttempts?: number,
-      ): void => {
-        postProgress(phase, progress, attempt, totalAttempts)
-      })
+      const result = generateVariantPuzzle(difficulty, symmetry)
 
       workerPort.postMessage({
         type: 'result',
@@ -96,14 +125,7 @@ workerPort.onmessage = (e: MessageEvents): void => {
       const seedId = msg['seedId'] as string
       const decoded = decodeSeedId(seedId)
       if (decoded !== null) {
-        const result = generatePuzzleFromSeed(
-          decoded.seed,
-          decoded.difficulty,
-          decoded.symmetry,
-          (phase: GenerationProgressPhase, progress: number, attempt?: number, totalAttempts?: number): void => {
-            postProgress(phase, progress, attempt, totalAttempts)
-          },
-        )
+        const result = generateVariantPuzzleFromSeed(decoded.seed, decoded.difficulty, decoded.symmetry)
 
         workerPort.postMessage({
           type: 'result',

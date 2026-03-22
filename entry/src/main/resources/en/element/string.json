@@ -21,6 +21,10 @@
       "value": "Generating full solution board..."
     },
     {
+      "name": "loading_generating_solution_attempt",
+      "value": "Generating full solution board (attempt %d/%d)..."
+    },
+    {
       "name": "loading_digging_holes",
       "value": "Carving puzzle holes..."
     },

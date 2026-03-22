@@ -78,7 +78,7 @@ class VariantOption {
 const VARIANT_OPTIONS: VariantOption[] = [
   new VariantOption(VariantType.STANDARD, '🔢', 'variant_standard', 'variant_standard_desc', true),
   new VariantOption(VariantType.DIAGONAL, '╳', 'variant_diagonal', 'variant_diagonal_desc', true),
-  new VariantOption(VariantType.JIGSAW, '🧩', 'variant_jigsaw', 'variant_jigsaw_desc', false),
+  new VariantOption(VariantType.JIGSAW, '🧩', 'variant_jigsaw', 'variant_jigsaw_desc', true),
   new VariantOption(VariantType.KILLER, '🗡️', 'variant_killer', 'variant_killer_desc', true),
 ]
 
@@ -665,6 +665,8 @@ struct Index {
                 params: {
                   difficulty: decoded.difficulty,
                   seedId: trimmedInput,
+                  gridSize: this.selectedGridSize,
+                  variantType: this.selectedVariant,
                 },
               })
               return

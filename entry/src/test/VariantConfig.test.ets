@@ -3,10 +3,10 @@ import {
   VariantType, KillerCage,
   GRID_4x4, GRID_6x6, GRID_9x9, GRID_12x12, GRID_16x16,
   createStandardConfig, createDiagonalConfig, createJigsawConfig,
-  createKillerConfig, createSizedConfig,
+  createKillerConfig, createSizedConfig, createDefaultJigsawConfig, createDefaultJigsawRegionMap,
   STANDARD_CONFIG, buildStandardRegionMap, getRegionMap,
 } from '../main/ets/models/VariantConfig'
-import { buildKillerBoardDecorations } from '../main/ets/models/BoardDecoration'
+import { buildJigsawBoardDecorations, buildKillerBoardDecorations } from '../main/ets/models/BoardDecoration'
 import { buildKillerCagesFromSolution, createDefaultKillerLayout, normalizeVariantType } from '../main/ets/utils/KillerSudoku'
 
 export default function variantConfigTest() {
@@ -106,6 +106,14 @@ export default function variantConfigTest() {
       expect(config.regions!.regionCount).assertEqual(9)
       expect(config.regions!.regionMap.length).assertEqual(81)
       expect(config.cages).assertNull()
+    })
+
+    it('createDefaultJigsawConfig_has_default_regions', 0, () => {
+      const config = createDefaultJigsawConfig()
+      expect(config.type).assertEqual(VariantType.JIGSAW)
+      expect(config.regions !== null).assertTrue()
+      expect(config.regions!.regionCount).assertEqual(9)
+      expect(config.regions!.regionMap.length).assertEqual(81)
     })
 
     it('createKillerConfig_has_cages', 0, () => {
@@ -209,11 +217,24 @@ export default function variantConfigTest() {
         expect(map[i]).assertEqual(i % 9)
       }
     })
+
+    it('createDefaultJigsawRegionMap_has_9_regions_of_9_cells', 0, () => {
+      const map = createDefaultJigsawRegionMap()
+      const counts: number[] = new Array(9).fill(0)
+      expect(map.length).assertEqual(81)
+      for (const regionId of map) {
+        counts[regionId]++
+      }
+      for (const count of counts) {
+        expect(count).assertEqual(9)
+      }
+    })
   })
 
   describe('VariantConfig.KillerHelpers', () => {
     it('normalizeVariantType_supports_killer', 0, () => {
       expect(normalizeVariantType(VariantType.KILLER)).assertEqual(VariantType.KILLER)
+      expect(normalizeVariantType(VariantType.JIGSAW)).assertEqual(VariantType.JIGSAW)
       expect(normalizeVariantType(VariantType.DIAGONAL)).assertEqual(VariantType.DIAGONAL)
       expect(normalizeVariantType(undefined)).assertEqual(VariantType.STANDARD)
       expect(normalizeVariantType('unknown')).assertEqual(VariantType.STANDARD)
@@ -257,6 +278,16 @@ export default function variantConfigTest() {
       expect(decorations[1].topLeftLabel).assertEqual('')
       expect(decorations[1].border.left).assertEqual(0)
       expect(decorations[1].border.top > 0).assertTrue()
+    })
+
+    it('buildJigsawBoardDecorations_marks_region_edges', 0, () => {
+      const decorations = buildJigsawBoardDecorations(createDefaultJigsawRegionMap())
+      expect(decorations.length).assertEqual(81)
+      expect(decorations[0].border.left > 0).assertTrue()
+      expect(decorations[0].border.top > 0).assertTrue()
+      expect(decorations[0].border.right).assertEqual(0)
+      expect(decorations[2].border.right > 0).assertTrue()
+      expect(decorations[20].border.bottom > 0).assertTrue()
     })
   })
 }

@@ -8,6 +8,7 @@
  */
 import { CellData } from '../models/CellData'
 import { BoardCellDecoration, createEmptyBoardCellDecoration } from '../models/BoardDecoration'
+import { VariantType } from '../models/VariantConfig'
 import { Colors, Sizes, BOX_ROWS, BOX_COLS, BOX_COUNT_COLS, BOX_COUNT_ROWS,
   GRID_SIZE, DIGITS, BOX_INDICES, BOX_CELL_INDICES } from '../constants/GameConstants'
 import { SudokuCell } from './SudokuCell'
@@ -19,6 +20,7 @@ export struct SudokuBoard {
   @Prop hintFocusIndex: number = -1
   @Prop showCoordinates: boolean = false
   @Prop boardDecorations: BoardCellDecoration[] = []
+  @Prop currentVariantType: VariantType = VariantType.STANDARD
   onCellClick: (index: number) => void = () => {}
   /** 鼠标拖拽多选：action = 'start' | 'move' | 'end' */
   onMouseDragSelect: (index: number, action: string) => void = () => {}
@@ -80,15 +82,15 @@ export struct SudokuBoard {
             GridItem() {
               this.BoxGrid(boxIndex)
             }
-            .borderWidth(Sizes.cellBorderBold / 2)
-            .borderColor(Colors.cellBorderBold)
+            .borderWidth(this.getBoxBorderWidth())
+            .borderColor(this.getBoxBorderColor())
           })
         }
         .columnsTemplate('1fr '.repeat(BOX_COUNT_COLS).trim())
         .rowsTemplate('1fr '.repeat(BOX_COUNT_ROWS).trim())
         .layoutWeight(1)
         .aspectRatio(1)
-        .backgroundColor(Colors.cellBorderBold)
+        .backgroundColor(this.getInnerGridBorderColor())
         .borderWidth(Sizes.cellBorderBold)
         .borderColor(Colors.cellBorderBold)
         .onAreaChange((_old, newArea) => {
@@ -166,6 +168,27 @@ export struct SudokuBoard {
       return this.boardDecorations[index]
     }
     return createEmptyBoardCellDecoration()
+  }
+
+  private getBoxBorderWidth(): number {
+    if (this.currentVariantType === VariantType.JIGSAW) {
+      return Sizes.cellBorderThin / 2
+    }
+    return Sizes.cellBorderBold / 2
+  }
+
+  private getBoxBorderColor(): string {
+    if (this.currentVariantType === VariantType.JIGSAW) {
+      return Colors.cellBorderThin
+    }
+    return Colors.cellBorderBold
+  }
+
+  private getInnerGridBorderColor(): string {
+    if (this.currentVariantType === VariantType.JIGSAW) {
+      return Colors.cellBorderThin
+    }
+    return Colors.cellBorderBold
   }
 
   /**

@@ -1,9 +1,14 @@
 import { describe, it, expect } from '@ohos/hypium'
-import { generateFullBoard, generatePuzzle } from '../main/ets/utils/SudokuGenerator'
+import {
+  generateFullBoard,
+  generatePuzzle,
+  generatePuzzleFromSeed,
+  Symmetry,
+} from '../main/ets/utils/SudokuGenerator'
 import { solve, hasUniqueSolution } from '../main/ets/utils/SudokuSolver'
 import { Difficulty } from '../main/ets/constants/GameConstants'
 import { hilog } from '@kit.PerformanceAnalysisKit'
-import { createDiagonalConfig, createStandardConfig } from '../main/ets/models/VariantConfig'
+import { createDefaultJigsawConfig, createDefaultJigsawRegionMap, createDiagonalConfig, createStandardConfig } from '../main/ets/models/VariantConfig'
 import { applyTopology } from '../main/ets/utils/Topology'
 
 const TAG = 'GeneratorTest'
@@ -343,6 +348,80 @@ export default function generatorTest() {
         expect(antiSorted[i]).assertEqual(i + 1)
       }
 
+      applyTopology(createStandardConfig())
+    })
+  })
+
+  describe('jigsaw_generatePuzzle', () => {
+    it('jigsaw_seed_generation_is_valid', 0, () => {
+      applyTopology(createDefaultJigsawConfig())
+      const result = generatePuzzleFromSeed(
+        20260320,
+        Difficulty.EASY,
+        Symmetry.NONE,
+      )
+      const regionMap = createDefaultJigsawRegionMap()
+
+      for (let r = 0; r < 9; r++) {
+        const sorted = result.solution[r].slice().sort()
+        for (let i = 0; i < 9; i++) {
+          expect(sorted[i]).assertEqual(i + 1)
+        }
+      }
+
+      for (let c = 0; c < 9; c++) {
+        const col: number[] = []
+        for (let r = 0; r < 9; r++) {
+          col.push(result.solution[r][c])
+        }
+        const sorted = col.sort()
+        for (let i = 0; i < 9; i++) {
+          expect(sorted[i]).assertEqual(i + 1)
+        }
+      }
+
+      for (let regionId = 0; regionId < 9; regionId++) {
+        const regionDigits: number[] = []
+        for (let idx = 0; idx < regionMap.length; idx++) {
+          if (regionMap[idx] === regionId) {
+            const row = Math.floor(idx / 9)
+            const col = idx % 9
+            regionDigits.push(result.solution[row][col])
+          }
+        }
+        const sorted = regionDigits.sort()
+        for (let i = 0; i < 9; i++) {
+          expect(sorted[i]).assertEqual(i + 1)
+        }
+      }
+
+      expect(hasUniqueSolution(result.puzzle)).assertTrue()
+      applyTopology(createStandardConfig())
+    })
+
+    it('jigsaw_generation_reports_solution_progress', 0, () => {
+      applyTopology(createDefaultJigsawConfig())
+      const generatingSolutionProgress: number[] = []
+      generatePuzzleFromSeed(
+        20260320,
+        Difficulty.EASY,
+        Symmetry.NONE,
+        (phase, progress): void => {
+          if (phase === 'generating_solution') {
+            generatingSolutionProgress.push(progress)
+          }
+        },
+      )
+
+      expect(generatingSolutionProgress.length > 1).assertTrue()
+      expect(generatingSolutionProgress[0]).assertEqual(10)
+      // 进度允许停滞，但不能回退。
+      for (let i = 1; i < generatingSolutionProgress.length; i++) {
+        expect(generatingSolutionProgress[i] >= generatingSolutionProgress[i - 1]).assertTrue()
+      }
+      const lastProgress = generatingSolutionProgress[generatingSolutionProgress.length - 1]
+      expect(lastProgress > 10).assertTrue()
+      expect(lastProgress <= 24).assertTrue()
       applyTopology(createStandardConfig())
     })
   })
