@@ -33,6 +33,20 @@ function hasConflictWith(cells: CellData[], index: number): boolean {
   return false
 }
 
+/**
+ * 收集笼子求和约束导致的错误格。
+ * 规则：
+ *   - 部分填写时，若当前和数已超过目标和，则记为错误；
+ *   - 全部填写后，若和数不等于目标和，则记为错误。
+ * 优先只标记玩家填写的格子；若笼子内没有玩家填写格，则回退到所有已填格。
+ * given 格代表题面初始状态，不应因玩家后续操作被直接标红；
+ * 只有当笼子内完全没有玩家填写格时，才回退标记所有已填格。
+ * 注意：sum ≤ 0 或空笼子会被直接跳过；非法格子索引会视为笼子配置错误。
+ *
+ * @param cells 当前棋盘格子
+ * @param cages Killer 笼子列表
+ * @returns 与棋盘等长的布尔数组，true 表示对应格子存在笼子和数错误
+ */
 function collectCageSumErrors(cells: CellData[], cages?: KillerCage[]): boolean[] {
   const cageErrors: boolean[] = new Array(TOTAL_CELLS).fill(false)
   if (cages === undefined || cages.length === 0) {
@@ -44,6 +58,7 @@ function collectCageSumErrors(cells: CellData[], cages?: KillerCage[]): boolean[
       continue
     }
 
+    let hasInvalidCellIndex = false
     let filledSum = 0
     let filledCount = 0
     const playerFilledCells: number[] = []
@@ -51,6 +66,7 @@ function collectCageSumErrors(cells: CellData[], cages?: KillerCage[]): boolean[
 
     for (const cellIndex of cage.cells) {
       if (cellIndex < 0 || cellIndex >= TOTAL_CELLS) {
+        hasInvalidCellIndex = true
         continue
       }
       const cell = cells[cellIndex]
@@ -67,7 +83,7 @@ function collectCageSumErrors(cells: CellData[], cages?: KillerCage[]): boolean[
 
     const exceedsTarget = filledSum > cage.sum
     const filledButWrongSum = filledCount === cage.cells.length && filledSum !== cage.sum
-    if (!exceedsTarget && !filledButWrongSum) {
+    if (!hasInvalidCellIndex && !exceedsTarget && !filledButWrongSum) {
       continue
     }
 
@@ -80,6 +96,16 @@ function collectCageSumErrors(cells: CellData[], cages?: KillerCage[]): boolean[
   return cageErrors
 }
 
+/**
+ * 检查所有笼子是否都满足目标和。
+ * 仅用于完成判定：要求每个笼子都已填满，且其格子和恰好等于目标和。
+ * 与 collectCageSumErrors() 不同，这里不接受“未填满但当前和数未超标”的中间态。
+ * 注意：sum ≤ 0 或空笼子会被直接跳过，非法格子索引会视为笼子配置错误并直接判定未满足。
+ *
+ * @param cells 当前棋盘格子
+ * @param cages Killer 笼子列表
+ * @returns true 表示所有笼子都满足求和约束
+ */
 function allCageSumsSatisfied(cells: CellData[], cages?: KillerCage[]): boolean {
   if (cages === undefined || cages.length === 0) {
     return true

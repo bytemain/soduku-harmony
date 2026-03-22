@@ -174,6 +174,11 @@ struct GamePage {
     this.refreshBoardDecorations()
   }
 
+  /**
+   * 获取当前生效的 Killer 笼子列表。
+   * 只有在 Killer 模式且存在笼子定义时才返回，用于按需接入求和校验与完成判定。
+   * 非 Killer 模式或空笼子列表返回 undefined，可让校验器直接跳过笼子专属逻辑。
+   */
   private getActiveKillerCages(): KillerCage[] | undefined {
     if (this.currentVariantType !== VariantType.KILLER || this.killerCages.length === 0) {
       return undefined
