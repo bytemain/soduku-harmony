@@ -855,13 +855,13 @@ function applyStep(
 type TechniqueFinder = (candidates: number[], board: number[][]) => SolveStep | null
 
 const TECHNIQUE_FINDERS: TechniqueFinder[] = [
-  (c, _b) => findNakedSingle(c),
-  (c, _b) => findHiddenSingle(c),
-  (c, b) => findCageSumWithBoard(c, b),
-  (c, _b) => findNakedPair(c),
-  (c, _b) => findPointingPair(c),
-  (c, _b) => findBoxLineReduction(c),
-  (c, _b) => findXWing(c),
+  (c: number[], _b: number[][]): SolveStep | null => findNakedSingle(c),
+  (c: number[], _b: number[][]): SolveStep | null => findHiddenSingle(c),
+  (c: number[], b: number[][]): SolveStep | null => findCageSumWithBoard(c, b),
+  (c: number[], _b: number[][]): SolveStep | null => findNakedPair(c),
+  (c: number[], _b: number[][]): SolveStep | null => findPointingPair(c),
+  (c: number[], _b: number[][]): SolveStep | null => findBoxLineReduction(c),
+  (c: number[], _b: number[][]): SolveStep | null => findXWing(c),
 ]
 
 /**
