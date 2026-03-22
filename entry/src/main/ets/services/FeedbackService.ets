@@ -63,12 +63,27 @@ export function getFeedbackVibrationDuration(type: FeedbackType): number {
   }
 }
 
+export function getFeedbackHapticUsage(type: FeedbackType): vibrator.Usage {
+  switch (type) {
+    case FeedbackType.NOTE:
+      return vibrator.Usage.USAGE_TOUCH
+    case FeedbackType.ERROR:
+      return vibrator.Usage.USAGE_NOTIFICATION
+    case FeedbackType.COMPLETE:
+      return vibrator.Usage.USAGE_ALARM
+    case FeedbackType.FILL:
+    default:
+      return vibrator.Usage.USAGE_TOUCH
+  }
+}
+
 export class FeedbackService {
   private static instance: FeedbackService = new FeedbackService()
   private soundPool: media.SoundPool | null = null
   private isPreparing: boolean = false
   private isPrepared: boolean = false
   private soundIds: number[] = [0, 0, 0, 0]
+  private pendingSoundPlay: boolean[] = [false, false, false, false]
 
   static getInstance(): FeedbackService {
     return FeedbackService.instance
@@ -97,6 +112,9 @@ export class FeedbackService {
   }
 
   play(context: common.UIAbilityContext, type: FeedbackType): void {
+    if (this.soundPool === null || this.soundIds[type] === 0) {
+      this.pendingSoundPlay[type] = true
+    }
     this.prepare(context)
     this.playSound(type)
     this.playHaptic(type)
@@ -120,6 +138,10 @@ export class FeedbackService {
       }
       this.soundPool.load(rawFd.fd, rawFd.offset, rawFd.length).then((soundId: number) => {
         this.soundIds[type] = soundId
+        if (this.pendingSoundPlay[type]) {
+          this.pendingSoundPlay[type] = false
+          this.playSound(type)
+        }
       }).catch((err: BusinessError) => {
         hilog.warn(DOMAIN, TAG, 'Failed to load sound %{public}s: %{public}s', fileName, JSON.stringify(err))
       })
@@ -155,9 +177,10 @@ export class FeedbackService {
       priority: DEFAULT_PRIORITY
     }
 
-    this.soundPool.play(soundId, params, (err: BusinessError | undefined, _: number) => {
+    this.soundPool.play(soundId, params, (err: BusinessError | undefined, streamId: number) => {
       if (err) {
-        hilog.warn(DOMAIN, TAG, 'Failed to play sound %{public}d: %{public}s', soundId, JSON.stringify(err))
+        hilog.warn(DOMAIN, TAG, 'Failed to play sound %{public}d on stream %{public}d: %{public}s',
+          soundId, streamId, JSON.stringify(err))
       }
     })
   }
@@ -177,7 +200,7 @@ export class FeedbackService {
       duration: duration
     }, {
       id: 0,
-      usage: 'alarm'
+      usage: getFeedbackHapticUsage(type)
     }).catch((err: BusinessError) => {
       hilog.info(DOMAIN, TAG, 'Vibration unavailable: %{public}s', JSON.stringify(err))
     })

@@ -1009,21 +1009,23 @@ struct GamePage {
     )
 
     let filledIndex: number | undefined = undefined
-    let feedbackType: FeedbackType = FeedbackType.FILL
-    let shouldEmitFeedback: boolean = false
+    let feedbackType: FeedbackType | null = null
+    let hasStateChanged: boolean = false
 
     switch (direction) {
-      case GestureDirection.TAP:
-        if (this.handleFillDigit(cell, digit)) {
-          feedbackType = FeedbackType.ERROR
-        } else {
-          feedbackType = FeedbackType.FILL
+      case GestureDirection.TAP: {
+        const previousValue = cell.value
+        const previousErrorCount = this.gameState.errorCount
+        this.handleFillDigit(cell, digit)
+        if (previousValue !== digit) {
+          feedbackType = this.gameState.errorCount > previousErrorCount ? FeedbackType.ERROR : FeedbackType.FILL
         }
         // 如果填入了数字（非擦除），记录索引用于自动清除 peers 笔记
         if (cell.value !== 0) {
           filledIndex = cell.index
         }
         break
+      }
       case GestureDirection.UP:
         this.handleToggleNote(cell, digit)
         feedbackType = FeedbackType.NOTE
@@ -1049,13 +1051,11 @@ struct GamePage {
     if (snapshot.oldValue !== snapshot.newValue ||
         snapshot.oldNotes !== snapshot.newNotes) {
       this.history.push(snapshot)
-      shouldEmitFeedback = true
+      hasStateChanged = true
     }
 
     this.afterAction(filledIndex)
-    if (shouldEmitFeedback && !this.gameState.isCompleted) {
-      FeedbackService.getInstance().play(getContext(this) as common.UIAbilityContext, feedbackType)
-    }
+    this.playGameplayFeedback(feedbackType, hasStateChanged)
   }
 
   /**
@@ -1111,10 +1111,22 @@ struct GamePage {
       this.afterAction()
       // 操作完成后重新更新多选标志（afterAction 会清除 flags）
       this.updateMultiSelectFlags()
-      if (!this.gameState.isCompleted) {
-        FeedbackService.getInstance().play(getContext(this) as common.UIAbilityContext, FeedbackType.NOTE)
-      }
+      this.playGameplayFeedback(FeedbackType.NOTE, true)
     }
+  }
+
+  private playGameplayFeedback(type: FeedbackType | null, hasStateChanged: boolean,
+    playEvenIfCompleted: boolean = false): void {
+    if (!hasStateChanged) {
+      return
+    }
+    if (type === null) {
+      return
+    }
+    if (this.gameState.isCompleted && !playEvenIfCompleted) {
+      return
+    }
+    FeedbackService.getInstance().play(getContext(this) as common.UIAbilityContext, type)
   }
 
   /**
@@ -1164,7 +1176,7 @@ struct GamePage {
       record.timestamp = Date.now()
       record.steps = this.history.undoStack.slice() // 复制一份
       addGameRecord(getContext(this), record)
-      FeedbackService.getInstance().play(getContext(this) as common.UIAbilityContext, FeedbackType.COMPLETE)
+      this.playGameplayFeedback(FeedbackType.COMPLETE, true, true)
       // 完成庆祝动画：棋盘弹跳 → 弹窗
       this.playCompletionAnimation()
       return // 游戏完成，已 clearSave，不再持久化
@@ -1177,21 +1189,19 @@ struct GamePage {
   /**
    * 填数（点击）— Doc 05 §4.1
    */
-  private handleFillDigit(cell: CellData, digit: number): boolean {
+  private handleFillDigit(cell: CellData, digit: number): void {
     if (cell.value === digit) {
       // toggle：再次点击同一数字 → 擦除
       cell.value = 0
-      return false
+      return
     } else {
       cell.fillValue(digit)
       // 检查是否与答案不符 → 计数错误（无论助手开关，均记录）
       const idx = cell.index
       if (this.gameState.solution.length > 0 && this.gameState.solution[idx] !== digit) {
         this.gameState.errorCount++
-        return true
       }
     }
-    return false
   }
 
   /**

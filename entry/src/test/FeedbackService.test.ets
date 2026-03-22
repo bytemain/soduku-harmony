@@ -1,6 +1,8 @@
 import { describe, it, expect } from '@ohos/hypium'
+import { vibrator } from '@kit.SensorServiceKit'
 import {
   FeedbackType,
+  getFeedbackHapticUsage,
   getFeedbackRawFileName,
   getFeedbackVolume,
   getFeedbackVibrationDuration,
@@ -34,6 +36,13 @@ export default function feedbackServiceTest() {
       expect(getFeedbackVibrationDuration(FeedbackType.NOTE)).assertEqual(20)
       expect(getFeedbackVibrationDuration(FeedbackType.ERROR)).assertEqual(120)
       expect(getFeedbackVibrationDuration(FeedbackType.COMPLETE)).assertEqual(180)
+    })
+
+    it('haptic_usage_matches_feedback_intent', 0, () => {
+      expect(getFeedbackHapticUsage(FeedbackType.FILL)).assertEqual(vibrator.Usage.USAGE_TOUCH)
+      expect(getFeedbackHapticUsage(FeedbackType.NOTE)).assertEqual(vibrator.Usage.USAGE_TOUCH)
+      expect(getFeedbackHapticUsage(FeedbackType.ERROR)).assertEqual(vibrator.Usage.USAGE_NOTIFICATION)
+      expect(getFeedbackHapticUsage(FeedbackType.COMPLETE)).assertEqual(vibrator.Usage.USAGE_ALARM)
     })
   })
 }
