@@ -7,7 +7,7 @@ import {
   updateHighlights
 } from '../main/ets/utils/SudokuValidator'
 import { PEERS, applyTopology } from '../main/ets/utils/Topology'
-import { createDiagonalConfig, createStandardConfig } from '../main/ets/models/VariantConfig'
+import { createDiagonalConfig, createKillerConfig, createStandardConfig, KillerCage } from '../main/ets/models/VariantConfig'
 
 // 构建一个有效的完整终盘（用于测试完成判定）
 function getCompleteSolution(): number[][] {
@@ -26,6 +26,15 @@ function getCompleteSolution(): number[][] {
 
 function withDiagonalTopology(block: () => void): void {
   applyTopology(createDiagonalConfig())
+  try {
+    block()
+  } finally {
+    applyTopology(createStandardConfig())
+  }
+}
+
+function withKillerDisplayTopology(cages: KillerCage[], block: () => void): void {
+  applyTopology(createKillerConfig(cages))
   try {
     block()
   } finally {
@@ -91,6 +100,20 @@ export default function validatorTest() {
         expect(count).assertEqual(2)
         expect(cells[0].isError).assertTrue()
         expect(cells[40].isError).assertTrue()
+      })
+    })
+
+    it('killer_cage_repeat_is_not_treated_as_conflict', 0, () => {
+      const cage: KillerCage = { cells: [0, 30], sum: 10 }
+      withKillerDisplayTopology([cage], () => {
+        const cells = createEmptyBoard()
+        cells[0].value = 4
+        cells[30].value = 4
+
+        const count = validateAllCells(cells)
+        expect(count).assertEqual(0)
+        expect(cells[0].isError).assertFalse()
+        expect(cells[30].isError).assertFalse()
       })
     })
 
@@ -204,6 +227,14 @@ export default function validatorTest() {
     it('correct_complete_board_completed', 0, () => {
       const cells = createBoardFromArray(getCompleteSolution())
       expect(isGameCompleted(cells)).assertTrue()
+    })
+
+    it('killer_cage_sum_is_not_checked_for_completion', 0, () => {
+      const cells = createBoardFromArray(getCompleteSolution())
+      const impossibleCage: KillerCage = { cells: [0, 1], sum: 999 }
+      withKillerDisplayTopology([impossibleCage], () => {
+        expect(isGameCompleted(cells)).assertTrue()
+      })
     })
 
     it('has_empty_cells_not_completed', 0, () => {

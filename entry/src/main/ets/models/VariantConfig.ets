@@ -27,7 +27,7 @@ export enum VariantType {
   DIAGONAL = 'diagonal',
   /** 不规则宫数独（Jigsaw）：区域形状不规则 */
   JIGSAW = 'jigsaw',
-  /** 杀手数独（Killer）：笼子内数字不重复 + 求和约束 */
+  /** 杀手数独（Killer）：当前仅提供笼子展示，不接入求和/去重约束 */
   KILLER = 'killer',
 }
 
@@ -151,7 +151,7 @@ export interface RegionConfig {
 
 /**
  * Killer 数独的笼子定义。
- * 笼子内格子数字不能重复（形成一个 unit），且总和必须等于 sum。
+ * 当前仅用于 UI 渲染笼子边框与左上角和数标签，不参与求解/校验。
  */
 export interface KillerCage {
   /** 笼子内格子的一维索引列表 */

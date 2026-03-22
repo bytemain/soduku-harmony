@@ -149,30 +149,30 @@ export default function variantTopologyTest() {
   })
 
   // ============================================================
-  // Killer 笼子拓扑
+  // Killer 笼子展示模式
   // ============================================================
 
   describe('VariantTopology.Killer', () => {
-    it('killer_cages_add_units', 0, () => {
+    it('killer_cages_do_not_add_units', 0, () => {
       const cage1: KillerCage = { cells: [0, 1], sum: 10 }
       const cage2: KillerCage = { cells: [2, 3, 4], sum: 15 }
       const cages: KillerCage[] = [cage1, cage2]
       const topo = buildVariantTopology(createKillerConfig(cages))
-      // 27 standard + 2 cage units
-      expect(topo.allUnits.length).assertEqual(29)
+      expect(topo.allUnits.length).assertEqual(27)
     })
 
-    it('killer_cage_members_are_peers', 0, () => {
+    it('killer_mode_keeps_standard_peer_relationships', 0, () => {
       const cage1: KillerCage = { cells: [0, 9], sum: 10 } // (0,0) and (1,0)
       const cages: KillerCage[] = [cage1]
       const topo = buildVariantTopology(createKillerConfig(cages))
+      const stdTopo = buildVariantTopology(createStandardConfig())
 
-      // Cell 0 and 9 are already peers (same column), but cage reinforces it
       expect(topo.peers[0].indexOf(9) >= 0).assertTrue()
       expect(topo.peers[9].indexOf(0) >= 0).assertTrue()
+      expect(topo.peers[0].length).assertEqual(stdTopo.peers[0].length)
     })
 
-    it('killer_cage_creates_new_peer_relationship', 0, () => {
+    it('killer_cage_does_not_create_new_peer_relationship', 0, () => {
       // Cells 0 and 10 are peers (same box), but let's use non-peer cells
       // Cell (0,0)=0 and Cell (3,3)=30: not in same row/col/box
       const cage1: KillerCage = { cells: [0, 30], sum: 10 }
@@ -183,9 +183,9 @@ export default function variantTopologyTest() {
       const stdTopo = buildVariantTopology(createStandardConfig())
       expect(stdTopo.peers[0].indexOf(30)).assertEqual(-1)
 
-      // With killer cage, they become peers
-      expect(topo.peers[0].indexOf(30) >= 0).assertTrue()
-      expect(topo.peers[30].indexOf(0) >= 0).assertTrue()
+      // Killer 当前仅展示笼子，不新增 peer 关系
+      expect(topo.peers[0].indexOf(30)).assertEqual(-1)
+      expect(topo.peers[30].indexOf(0)).assertEqual(-1)
     })
   })
 
