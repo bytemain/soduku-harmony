@@ -663,6 +663,19 @@ struct Index {
         })
 
         Column() {
+          Text('📚')
+            .fontSize(Sizes.bottomIcon)
+          Text($r('app.string.tab_library'))
+            .fontSize(Sizes.bottomText)
+            .fontColor(Colors.bottomText)
+            .margin({ top: 2 })
+        }
+        .layoutWeight(1)
+        .onClick(() => {
+          router.pushUrl({ url: 'pages/PuzzleLibraryPage' })
+        })
+
+        Column() {
           Text('⚙️')
             .fontSize(Sizes.bottomIcon)
           Text($r('app.string.tab_settings'))

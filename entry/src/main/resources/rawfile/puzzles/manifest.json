@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "libraries": [
+    {
+      "id": "builtin-easy",
+      "name": "入门精选",
+      "description": "适合新手的简单数独，帮助建立基本解题思路",
+      "file": "builtin-easy.sdm",
+      "format": "sdm",
+      "puzzleCount": 20,
+      "difficulty": 1,
+      "tags": ["builtin", "easy"]
+    },
+    {
+      "id": "builtin-medium",
+      "name": "进阶挑战",
+      "description": "需要掌握候选数排除等进阶技巧",
+      "file": "builtin-medium.sdm",
+      "format": "sdm",
+      "puzzleCount": 20,
+      "difficulty": 2,
+      "tags": ["builtin", "medium"]
+    },
+    {
+      "id": "builtin-hard",
+      "name": "高手之路",
+      "description": "考验 Naked Pair、Pointing Pair 等高级技巧",
+      "file": "builtin-hard.sdm",
+      "format": "sdm",
+      "puzzleCount": 20,
+      "difficulty": 3,
+      "tags": ["builtin", "hard"]
+    },
+    {
+      "id": "builtin-expert",
+      "name": "专家难题",
+      "description": "需要 X-Wing 等大师级技巧才能解出",
+      "file": "builtin-expert.sdm",
+      "format": "sdm",
+      "puzzleCount": 15,
+      "difficulty": 4,
+      "tags": ["builtin", "expert"]
+    }
+  ]
+}

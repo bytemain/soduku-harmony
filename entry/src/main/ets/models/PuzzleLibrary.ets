@@ -138,6 +138,13 @@ export function createPuzzleEntry(
   }
 }
 
+/** createPuzzleLibrary 的可选参数 */
+export interface CreateLibraryOptions {
+  sourceUrl?: string
+  difficulty?: Difficulty
+  tags?: string[]
+}
+
 /**
  * 创建题库索引
  */
@@ -148,11 +155,7 @@ export function createPuzzleLibrary(
   source: LibrarySource,
   format: string,
   puzzleCount: number,
-  options?: {
-    sourceUrl?: string
-    difficulty?: Difficulty
-    tags?: string[]
-  },
+  options?: CreateLibraryOptions,
 ): PuzzleLibrary {
   const now = Date.now()
   return {
