@@ -23,8 +23,10 @@ import {
   VariantType,
   createDiagonalConfig,
   createDefaultJigsawConfig,
+  createKillerConfig,
+  KillerCage,
 } from '../models/VariantConfig'
-import { normalizeVariantType } from '../utils/KillerSudoku'
+import { normalizeVariantType, generateRandomCageLayout, buildKillerCagesFromSolution } from '../utils/KillerSudoku'
 import { applyTopology } from '../utils/Topology'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 
@@ -94,6 +96,7 @@ workerPort.onmessage = (e: MessageEvents): void => {
     applyGridConfig(cfg)
   }
   // 根据变种类型构建拓扑（无论是否指定 gridSize 都需要应用）
+  // Killer 模式先用标准拓扑生成题面，再叠加笼子拓扑
   if (variantType === VariantType.DIAGONAL) {
     applyTopology(createDiagonalConfig())
   } else if (variantType === VariantType.JIGSAW) {
@@ -110,6 +113,22 @@ workerPort.onmessage = (e: MessageEvents): void => {
       const symmetry = symmetryStr ? symmetryStr as Symmetry : undefined
       const result = generateVariantPuzzle(difficulty, symmetry)
 
+      // Killer 模式：生成随机笼子并叠加拓扑
+      let killerCagesData: object[] | null = null
+      if (variantType === VariantType.KILLER) {
+        const flatSolution: number[] = []
+        for (const row of result.solution) {
+          for (const v of row) flatSolution.push(v)
+        }
+        const layout = generateRandomCageLayout()
+        const cages = buildKillerCagesFromSolution(flatSolution, layout)
+        applyTopology(createKillerConfig(cages))
+        killerCagesData = cages.map(c => {
+          const cage: KillerCage = { cells: c.cells, sum: c.sum }
+          return cage
+        })
+      }
+
       workerPort.postMessage({
         type: 'result',
         action: 'generate',
@@ -120,12 +139,28 @@ workerPort.onmessage = (e: MessageEvents): void => {
         actualDifficulty: result.actualDifficulty,
         score: result.score,
         difficulty: difficulty,
+        killerCages: killerCagesData,
       })
     } else if (type === 'generateFromSeed') {
       const seedId = msg['seedId'] as string
       const decoded = decodeSeedId(seedId)
       if (decoded !== null) {
         const result = generateVariantPuzzleFromSeed(decoded.seed, decoded.difficulty, decoded.symmetry)
+
+        let killerCagesData: object[] | null = null
+        if (variantType === VariantType.KILLER) {
+          const flatSolution: number[] = []
+          for (const row of result.solution) {
+            for (const v of row) flatSolution.push(v)
+          }
+          const layout = generateRandomCageLayout()
+          const cages = buildKillerCagesFromSolution(flatSolution, layout)
+          applyTopology(createKillerConfig(cages))
+          killerCagesData = cages.map(c => {
+            const cage: KillerCage = { cells: c.cells, sum: c.sum }
+            return cage
+          })
+        }
 
         workerPort.postMessage({
           type: 'result',
@@ -137,6 +172,7 @@ workerPort.onmessage = (e: MessageEvents): void => {
           actualDifficulty: result.actualDifficulty,
           score: result.score,
           difficulty: decoded.difficulty,
+          killerCages: killerCagesData,
         })
       } else {
         workerPort.postMessage({ type: 'error', message: 'Invalid seed ID' })

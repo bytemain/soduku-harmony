@@ -18,6 +18,7 @@
  */
 import { GRID_SIZE, TOTAL_CELLS, BOX_ROWS, BOX_COLS, BOX_COUNT_ROWS, BOX_COUNT_COLS } from '../constants/GameConstants'
 import { PEERS, UNITS_OF, ALL_UNITS, rowOf, colOf, boxOf, indexOf } from './Topology'
+import { KillerCage } from '../models/VariantConfig'
 
 // ============================================================
 // 技巧枚举与分值
@@ -26,6 +27,7 @@ import { PEERS, UNITS_OF, ALL_UNITS, rowOf, colOf, boxOf, indexOf } from './Topo
 export enum Technique {
   NAKED_SINGLE = 'NakedSingle',
   HIDDEN_SINGLE = 'HiddenSingle',
+  CAGE_SUM = 'CageSum',
   NAKED_PAIR = 'NakedPair',
   POINTING_PAIR = 'PointingPair',
   BOX_LINE_REDUCTION = 'BoxLineReduction',
@@ -36,6 +38,7 @@ export enum Technique {
 const TECHNIQUE_SCORE: Record<string, number> = {
   [Technique.NAKED_SINGLE]: 1,
   [Technique.HIDDEN_SINGLE]: 2,
+  [Technique.CAGE_SUM]: 3,
   [Technique.NAKED_PAIR]: 4,
   [Technique.POINTING_PAIR]: 4,
   [Technique.BOX_LINE_REDUCTION]: 5,
@@ -46,6 +49,7 @@ const TECHNIQUE_SCORE: Record<string, number> = {
 const TECHNIQUE_NAME_KEY: Record<string, string> = {
   [Technique.NAKED_SINGLE]: 'technique_naked_single',
   [Technique.HIDDEN_SINGLE]: 'technique_hidden_single',
+  [Technique.CAGE_SUM]: 'technique_cage_sum',
   [Technique.NAKED_PAIR]: 'technique_naked_pair',
   [Technique.POINTING_PAIR]: 'technique_pointing_pair',
   [Technique.BOX_LINE_REDUCTION]: 'technique_box_line_reduction',
@@ -327,6 +331,154 @@ function findHiddenSingle(candidates: number[]): SolveStep | null {
       }
     }
   }
+  return null
+}
+
+// ============================================================
+// Killer 笼子约束候选排除
+// ============================================================
+
+/** 活跃的 Killer 笼子（由外部设置） */
+let activeCages: KillerCage[] = []
+
+/**
+ * 设置当前活跃的 Killer 笼子。
+ * 在开始 Killer 模式求解/提示前调用。
+ */
+export function setActiveCages(cages: KillerCage[]): void {
+  activeCages = cages
+}
+
+/**
+ * 清除活跃笼子（非 Killer 模式时重置）。
+ */
+export function clearActiveCages(): void {
+  activeCages = []
+}
+
+/**
+ * Cage Sum 排除（需要 board 引用版本）：
+ *
+ * 对每个笼子，统计已填数字之和与未填格子列表。
+ * - 若笼子仅剩 1 个空格，其值 = target - filledSum → 直接填入
+ * - 若某候选值放入后，剩余空格无法使总和达到 target → 排除
+ */
+function findCageSumWithBoard(candidates: number[], board: number[][]): SolveStep | null {
+  if (activeCages.length === 0) return null
+
+  for (const cage of activeCages) {
+    const unfilledIndices: number[] = []
+    let filledSum = 0
+
+    for (const idx of cage.cells) {
+      const r = rowOf(idx)
+      const c = colOf(idx)
+      if (board[r][c] !== 0) {
+        filledSum += board[r][c]
+      } else {
+        unfilledIndices.push(idx)
+      }
+    }
+
+    if (unfilledIndices.length === 0) continue
+
+    const remaining = cage.sum - filledSum
+
+    // Case 1: 笼子只剩 1 个空格 → 值确定
+    if (unfilledIndices.length === 1) {
+      const idx = unfilledIndices[0]
+      if (remaining >= 1 && remaining <= GRID_SIZE && (candidates[idx] & bitOf(remaining)) !== 0) {
+        if (countBits(candidates[idx]) > 1) {
+          const r = rowOf(idx)
+          const c = colOf(idx)
+          return new SolveStep(
+            Technique.CAGE_SUM,
+            idx,
+            remaining,
+            [],
+            `Cage sum ${cage.sum}: R${r + 1}C${c + 1} must be ${remaining}`,
+            'step_cage_sum_single',
+            [cage.sum, r + 1, c + 1, remaining]
+          )
+        }
+      }
+      continue
+    }
+
+    // Case 2: 排除使剩余无法达到目标和的候选
+    const otherCount = unfilledIndices.length - 1
+
+    // 笼子内不能重复，基础已用数字（已填格子）
+    const baseUsedDigits = new Set<number>()
+    for (const cellIdx of cage.cells) {
+      const cr = rowOf(cellIdx)
+      const cc = colOf(cellIdx)
+      if (board[cr][cc] !== 0) {
+        baseUsedDigits.add(board[cr][cc])
+      }
+    }
+
+    for (const idx of unfilledIndices) {
+      const cands = getCandidates(candidates[idx])
+      for (const d of cands) {
+        // 如果选择 d，剩余 n-1 个格子需要凑出 remaining - d
+        const needSum = remaining - d
+
+        // 在基础已用数字基础上加入当前候选
+        const usedDigits = new Set<number>(baseUsedDigits)
+        usedDigits.add(d)
+
+        // 计算其他格子可用的数字
+        const availableDigits: number[] = []
+        for (let digit = 1; digit <= GRID_SIZE; digit++) {
+          if (!usedDigits.has(digit)) {
+            availableDigits.push(digit)
+          }
+        }
+
+        if (availableDigits.length < otherCount) {
+          // 没有足够的数字可用 → 这个候选不可行
+          const r = rowOf(idx)
+          const c = colOf(idx)
+          return new SolveStep(
+            Technique.CAGE_SUM,
+            idx,
+            0,
+            [new CandidateElimination(idx, d)],
+            `Cage sum ${cage.sum}: ${d} at R${r + 1}C${c + 1} leaves insufficient digits`,
+            'step_cage_sum_elim',
+            [cage.sum, d, r + 1, c + 1]
+          )
+        }
+
+        // 最小和 = 取最小的 otherCount 个可用数字
+        let minSum = 0
+        for (let k = 0; k < otherCount; k++) {
+          minSum += availableDigits[k]
+        }
+        // 最大和 = 取最大的 otherCount 个可用数字
+        let maxSum = 0
+        for (let k = availableDigits.length - otherCount; k < availableDigits.length; k++) {
+          maxSum += availableDigits[k]
+        }
+
+        if (needSum < minSum || needSum > maxSum) {
+          const r = rowOf(idx)
+          const c = colOf(idx)
+          return new SolveStep(
+            Technique.CAGE_SUM,
+            idx,
+            0,
+            [new CandidateElimination(idx, d)],
+            `Cage sum ${cage.sum}: ${d} at R${r + 1}C${c + 1} makes sum impossible`,
+            'step_cage_sum_elim',
+            [cage.sum, d, r + 1, c + 1]
+          )
+        }
+      }
+    }
+  }
+
   return null
 }
 
@@ -700,15 +852,16 @@ function applyStep(
 // ============================================================
 
 /** 技巧查找函数列表（按从简到难排序） */
-type TechniqueFinder = (candidates: number[]) => SolveStep | null
+type TechniqueFinder = (candidates: number[], board: number[][]) => SolveStep | null
 
 const TECHNIQUE_FINDERS: TechniqueFinder[] = [
-  findNakedSingle,
-  findHiddenSingle,
-  findNakedPair,
-  findPointingPair,
-  findBoxLineReduction,
-  findXWing,
+  (c: number[], _b: number[][]): SolveStep | null => findNakedSingle(c),
+  (c: number[], _b: number[][]): SolveStep | null => findHiddenSingle(c),
+  (c: number[], b: number[][]): SolveStep | null => findCageSumWithBoard(c, b),
+  (c: number[], _b: number[][]): SolveStep | null => findNakedPair(c),
+  (c: number[], _b: number[][]): SolveStep | null => findPointingPair(c),
+  (c: number[], _b: number[][]): SolveStep | null => findBoxLineReduction(c),
+  (c: number[], _b: number[][]): SolveStep | null => findXWing(c),
 ]
 
 /**
@@ -745,7 +898,7 @@ export function logicSolve(board: number[][]): LogicSolveResult {
     // 按顺序尝试技巧
     let found = false
     for (const finder of TECHNIQUE_FINDERS) {
-      const step = finder(candidates)
+      const step = finder(candidates, board)
       if (step !== null) {
         applyStep(candidates, board, step)
         result.steps.push(step)
@@ -779,7 +932,7 @@ export function getNextHint(board: number[][]): SolveStep | null {
   const candidates = initCandidatesFromBoard(board)
 
   for (const finder of TECHNIQUE_FINDERS) {
-    const step = finder(candidates)
+    const step = finder(candidates, board)
     if (step !== null) {
       return step
     }

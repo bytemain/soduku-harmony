@@ -32,6 +32,17 @@ export class CellSerialized {
   }
 }
 
+/** 序列化后的笼子数据 */
+export class CageSerialized {
+  cells: number[] = []
+  sum: number = 0
+
+  constructor(cells: number[] = [], sum: number = 0) {
+    this.cells = cells
+    this.sum = sum
+  }
+}
+
 /** 完整的存档结构 */
 export class GameSaveData {
   cells: CellSerialized[] = []
@@ -50,6 +61,8 @@ export class GameSaveData {
   gridSize: number = 9
   /** 变种类型（standard/diagonal/jigsaw/killer），默认 standard */
   variantType: string = 'standard'
+  /** Killer 笼子数据（仅 Killer 模式使用） */
+  killerCages: CageSerialized[] = []
 
   constructor() {}
 }

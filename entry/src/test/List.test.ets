@@ -13,6 +13,7 @@ import variantConfigTest from './VariantConfig.test'
 import variantTopologyTest from './VariantTopology.test'
 import gameHistoryTest from './GameHistory.test'
 import boardDecorationTest from './BoardDecoration.test'
+import killerSudokuTest from './KillerSudoku.test'
 
 export default function testsuite() {
   localUnitTest()
@@ -30,4 +31,5 @@ export default function testsuite() {
   variantTopologyTest()
   gameHistoryTest()
   boardDecorationTest()
+  killerSudokuTest()
 }
