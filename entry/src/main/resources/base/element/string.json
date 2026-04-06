@@ -81,6 +81,54 @@
       "value": "设置"
     },
     {
+      "name": "tab_library",
+      "value": "题库"
+    },
+    {
+      "name": "library_title",
+      "value": "题库选关"
+    },
+    {
+      "name": "library_subtitle",
+      "value": "先从内置关卡页把选关链路跑通"
+    },
+    {
+      "name": "library_level_section",
+      "value": "关卡列表"
+    },
+    {
+      "name": "library_empty",
+      "value": "当前题库还没有可选关卡"
+    },
+    {
+      "name": "library_status_new",
+      "value": "未开始"
+    },
+    {
+      "name": "library_status_in_progress",
+      "value": "进行中"
+    },
+    {
+      "name": "library_status_completed",
+      "value": "已完成"
+    },
+    {
+      "name": "library_active_badge",
+      "value": "上次游玩"
+    },
+    {
+      "name": "library_count_suffix",
+      "value": "关"
+    },
+    {
+      "name": "library_completed_summary",
+      "value": "已完成"
+    },
+    {
+      "name": "library_in_progress_summary",
+      "value": "进行中"
+    },
+    {
       "name": "diff_easy",
       "value": "简单"
     },

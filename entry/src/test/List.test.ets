@@ -12,6 +12,7 @@ import variantConfigTest from './VariantConfig.test'
 import variantTopologyTest from './VariantTopology.test'
 import gameHistoryTest from './GameHistory.test'
 import puzzleLibraryStorageTest from './PuzzleLibraryStorage.test'
+import builtinPuzzleLibraryTest from './BuiltinPuzzleLibrary.test'
 
 export default function testsuite() {
   localUnitTest()
@@ -28,4 +29,5 @@ export default function testsuite() {
   variantTopologyTest()
   gameHistoryTest()
   puzzleLibraryStorageTest()
+  builtinPuzzleLibraryTest()
 }

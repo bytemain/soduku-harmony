@@ -743,6 +743,19 @@ struct Index {
         .onClick(() => {
           this.showSettings = true
         })
+
+        Column() {
+          Text('📚')
+            .fontSize(Sizes.bottomIcon)
+          Text($r('app.string.tab_library'))
+            .fontSize(Sizes.bottomText)
+            .fontColor(Colors.bottomText)
+            .margin({ top: 2 })
+        }
+        .layoutWeight(1)
+        .onClick(() => {
+          router.pushUrl({ url: 'pages/PuzzleLibraryPage' })
+        })
       }
       .width('100%')
       .margin({ bottom: this.bottomRectHeight + 24 })
