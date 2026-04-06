@@ -349,8 +349,9 @@ export struct SettingsPanel {
           Text('🖐️')
             .fontSize(18)
             .margin({ right: 8 })
+            .scale({ x: this.isLeftHand ? -1 : 1 })
 
-          Text(this.isLeftHand ? $r('app.string.settings_current_left') : $r('app.string.settings_current_right'))
+            Text(this.isLeftHand ? $r('app.string.settings_current_left') : $r('app.string.settings_current_right'))
             .fontSize(14)
             .fontColor(Colors.primaryBtn)
         }

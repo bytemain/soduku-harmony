@@ -13,6 +13,7 @@ import { Colors, Sizes, Difficulty, getDifficultyConfig, GRID_INDICES,
 import { DifficultySegment } from '../components/DifficultySegment'
 import { VariantSegment } from '../components/VariantSegment'
 import { SettingsPanel } from '../components/SettingsPanel'
+import { StatsPanel } from '../components/StatsPanel'
 import { hasSavedGame, clearSave, loadGame, GameSaveData } from '../utils/GameStorage'
 import { Symmetry, decodeSeedId } from '../utils/SudokuGenerator'
 import { parseSudokuInput, ParseResult, countGivens, exportTo81String,
@@ -69,6 +70,7 @@ struct Index {
   @State savedProgress: number = 0
   @State savedTime: string = '00:00'
   @State showSettings: boolean = false
+  @State showStats: boolean = false
   @State selectedSymmetry: string = 'auto'  // 'auto' | Symmetry values
   @State selectedGridSize: number = 9      // 4 | 6 | 9
   @State selectedVariant: VariantType = VariantType.STANDARD
@@ -111,6 +113,15 @@ struct Index {
       context: getContext(this) as common.UIAbilityContext,
       onClose: () => {
         this.showSettings = false
+      },
+    })
+  }
+
+  @Builder
+  statsSheetBuilder() {
+    StatsPanel({
+      onClose: () => {
+        this.showStats = false
       },
     })
   }
@@ -642,7 +653,13 @@ struct Index {
         }
         .layoutWeight(1)
         .onClick(() => {
-          router.pushUrl({ url: 'pages/StatsPage' })
+          this.showStats = true
+        })
+        .bindSheet($$this.showStats, this.statsSheetBuilder(), {
+          height: SheetSize.LARGE,
+          dragBar: true,
+          showClose: false,
+          backgroundColor: Colors.boardBg,
         })
 
         Column() {
@@ -657,6 +674,12 @@ struct Index {
         .onClick(() => {
           this.showSettings = true
         })
+        .bindSheet($$this.showSettings, this.settingsSheetBuilder(), {
+          height: SheetSize.FIT_CONTENT,
+          dragBar: true,
+          showClose: false,
+          backgroundColor: Colors.boardBg,
+        })
       }
       .width('100%')
       .margin({ bottom: this.bottomRectHeight + 24 })
@@ -666,11 +689,5 @@ struct Index {
     .padding({ left: Sizes.pagePadding, right: Sizes.pagePadding })
     .backgroundColor(Colors.pageBg)
     .expandSafeArea([SafeAreaType.SYSTEM, SafeAreaType.CUTOUT], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
-    .bindSheet($$this.showSettings, this.settingsSheetBuilder(), {
-      height: SheetSize.FIT_CONTENT,
-      dragBar: true,
-      showClose: false,
-      backgroundColor: Colors.boardBg,
-    })
   }
 }

@@ -1,26 +1,27 @@
 /**
- * StatsPage.ets — 统计页面
+ * StatsPanel.ets — 统计面板（半模态弹窗）
  *
+ * 从 StatsPage 提取为可复用组件，用于 bindSheet 弹出。
  * 使用 Tabs 组件实现统计总览 + 历史记录两个 Tab，支持左右滑动切换。
  * 统计：各难度的游戏次数、胜率、最佳/平均用时、连胜等。
  * 历史：最近完成的游戏，显示难度、对称、用时、步数、错误，支持重玩。
  */
 import { router, promptAction } from '@kit.ArkUI'
-import { KeyCode } from '@kit.InputKit'
 import { pasteboard } from '@kit.BasicServicesKit'
-import { Colors, Sizes, DIFFICULTY_CONFIGS, DifficultyConfig, getDifficultyConfig, Difficulty } from '../constants/GameConstants'
+import { Colors, Sizes, DIFFICULTY_CONFIGS, DifficultyConfig, getDifficultyConfig,
+  Difficulty } from '../constants/GameConstants'
 import { loadStats, GameStats, DifficultyStats, formatTime } from '../utils/StatsStorage'
 import { loadHistory, GameRecord } from '../utils/HistoryStorage'
 
-@Entry
 @Component
-struct StatsPage {
+export struct StatsPanel {
   @StorageProp('isDarkMode') isDarkMode: boolean = false
-  @StorageProp('topRectHeight') topRectHeight: number = 0
   @StorageProp('bottomRectHeight') bottomRectHeight: number = 0
   @State private stats: GameStats = new GameStats()
   @State private history: GameRecord[] = []
   @State private activeTab: number = 0   // 0=统计, 1=历史
+
+  onClose: () => void = () => {}
 
   aboutToAppear(): void {
     this.stats = loadStats(getContext(this))
@@ -99,27 +100,25 @@ struct StatsPage {
 
   build() {
     Column() {
-      // 顶部导航栏
+      // 标题栏（与 SettingsPanel 风格一致）
       Row() {
-        Text('←')
-          .fontSize(24)
-          .fontColor(Colors.titleText)
-          .onClick(() => {
-            router.back()
-          })
-          .padding({ right: 16 })
-
         Text($r('app.string.stats_title'))
           .fontSize(20)
           .fontWeight(FontWeight.Bold)
           .fontColor(Colors.titleText)
 
         Blank()
+
+        Text('✕')
+          .fontSize(20)
+          .fontColor(Colors.subtitleText)
+          .onClick(() => this.onClose())
       }
       .width('100%')
-      .height(48)
-      .padding({ left: Sizes.pagePadding, right: Sizes.pagePadding })
-      .alignItems(VerticalAlign.Center)
+      .padding({ left: 24, right: 24, top: 20, bottom: 16 })
+
+      // 分割线
+      Divider().color(Colors.divider).height(0.5)
 
       // 使用 Tabs 组件，支持左右滑动切换
       Tabs({ index: this.activeTab, barPosition: BarPosition.Start }) {
@@ -180,7 +179,7 @@ struct StatsPage {
                 })
               }
               .width('100%')
-              .padding({ left: Sizes.pagePadding, right: Sizes.pagePadding, bottom: 24 })
+              .padding({ left: Sizes.pagePadding, right: Sizes.pagePadding, bottom: this.bottomRectHeight + 24 })
             }
             .layoutWeight(1)
             .scrollBar(BarState.Off)
@@ -204,17 +203,20 @@ struct StatsPage {
             .height('100%')
           } else {
             Scroll() {
-              Column({ space: 6 }) {
+              Column({ space: 12 }) {
                 ForEach(this.history, (record: GameRecord, index: number) => {
                   this.HistoryCard(record, index as number)
                 })
               }
               .width('100%')
-              .padding({ left: Sizes.pagePadding, right: Sizes.pagePadding, top: 8, bottom: 24 })
+              .alignItems(HorizontalAlign.Start)
+              .padding({ left: Sizes.pagePadding, right: Sizes.pagePadding, top: 8,
+                bottom: this.bottomRectHeight + 24 })
             }
             .width('100%')
             .height('100%')
             .scrollBar(BarState.Off)
+            .align(Alignment.Top)
           }
         }
         .tabBar(this.TabBarItem($r('app.string.stats_tab_history'), 1))
@@ -230,17 +232,8 @@ struct StatsPage {
       .margin({ left: Sizes.pagePadding, right: Sizes.pagePadding, top: 8 })
     }
     .width('100%')
-    .height('100%')
-    .backgroundColor(Colors.pageBg)
-    .padding({ top: this.topRectHeight + 12, bottom: this.bottomRectHeight })
-    .expandSafeArea([SafeAreaType.SYSTEM, SafeAreaType.CUTOUT], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
-    .focusable(true)
-    .defaultFocus(true)
-    .onKeyEvent((event: KeyEvent) => {
-      if (event.type === KeyType.Down && event.keyCode === KeyCode.KEYCODE_ESCAPE) {
-        router.back()
-      }
-    })
+    .backgroundColor(Colors.boardBg)
+    .borderRadius({ topLeft: 16, topRight: 16 })
   }
 
   @Builder
@@ -251,7 +244,7 @@ struct StatsPage {
         // 左侧难度色条
         Column()
           .width(4)
-          .height('100%')
+          .height(20)
           .borderRadius(2)
           .backgroundColor(
             record.difficulty >= 1 && record.difficulty <= 5
@@ -326,7 +319,7 @@ struct StatsPage {
 
         Blank()
 
-        // 重玩按钮
+        // 重玩按钮（关闭面板后跳转）
         if (record.seedId) {
           Text($r('app.string.stats_replay'))
             .fontSize(11)
@@ -337,6 +330,7 @@ struct StatsPage {
             .borderWidth(1)
             .borderColor(Colors.primaryBtn)
             .onClick(() => {
+              this.onClose()
               router.pushUrl({
                 url: 'pages/GamePage',
                 params: {
@@ -352,7 +346,7 @@ struct StatsPage {
       .margin({ top: 2 })
     }
     .width('100%')
-    .padding({ left: 12, right: 12, top: 6, bottom: 6 })
+    .padding({ left: 12, right: 12, top: 10, bottom: 10 })
     .backgroundColor(Colors.cellDefault)
     .borderRadius(10)
     .shadow({
