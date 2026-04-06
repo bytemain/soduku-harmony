@@ -81,7 +81,7 @@ export struct PauseOverlay {
             .height(48)
             .fontSize(16)
             .fontWeight(FontWeight.Medium)
-            .backgroundColor(Colors.pauseRestartBtn)
+            .backgroundColor(Colors.pauseHelpBtn)
             .fontColor(Colors.pauseOverlayText)
             .onClick(() => this.onHelp())
 
