@@ -5,9 +5,11 @@
  * 点击→填数、上滑→笔记、右滑→删除线、左滑→擦笔记。
  *
  * 仅首次进入游戏页时展示，点击"知道了"后不再出现。
+ * 键盘支持：ESC / Enter / Space 关闭引导
  *
  * 参考：Doc 05 §3 首次引导, Doc 03 任务 1.20
  */
+import { KeyCode } from '@kit.InputKit'
 import { Colors } from '../constants/GameConstants'
 import { saveSettings } from '../utils/SettingsStorage'
 import { common } from '@kit.AbilityKit'
@@ -15,6 +17,12 @@ import { common } from '@kit.AbilityKit'
 @Component
 export struct GestureGuideOverlay {
   onDismiss: () => void = () => {}
+
+  private dismiss(): void {
+    AppStorage.setOrCreate('gestureGuideShown', true)
+    saveSettings(getContext(this) as common.UIAbilityContext)
+    this.onDismiss()
+  }
 
   @Builder
   guideItem(emoji: string, label: ResourceStr, bgColor: string) {
@@ -98,9 +106,7 @@ export struct GestureGuideOverlay {
           .fontColor(Colors.primaryText)
           .margin({ top: 12 })
           .onClick(() => {
-            AppStorage.setOrCreate('gestureGuideShown', true)
-            saveSettings(getContext(this) as common.UIAbilityContext)
-            this.onDismiss()
+            this.dismiss()
           })
       }
       .width('88%')
@@ -114,5 +120,18 @@ export struct GestureGuideOverlay {
     .justifyContent(FlexAlign.Center)
     .alignItems(HorizontalAlign.Center)
     .backgroundColor(Colors.modalOverlayMask)
+    .focusable(true)
+    .defaultFocus(true)
+    .onKeyEvent((event: KeyEvent) => {
+      if (event.type === KeyType.Down) {
+        // ESC / Enter / Space → 关闭引导
+        if (event.keyCode === KeyCode.KEYCODE_ESCAPE ||
+          event.keyCode === KeyCode.KEYCODE_ENTER ||
+          event.keyCode === KeyCode.KEYCODE_NUMPAD_ENTER ||
+          event.keyCode === KeyCode.KEYCODE_SPACE) {
+          this.dismiss()
+        }
+      }
+    })
   }
 }

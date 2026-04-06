@@ -1,6 +1,9 @@
 /**
  * PauseOverlay.ets — 游戏暂停遮罩
+ *
+ * 键盘支持：ESC / Enter / Space 恢复游戏
  */
+import { KeyCode } from '@kit.InputKit'
 import { Colors } from '../constants/GameConstants'
 
 @Component
@@ -124,5 +127,18 @@ export struct PauseOverlay {
     .width('100%')
     .height('100%')
     .position({ x: 0, y: 0 })
+    .focusable(true)
+    .defaultFocus(true)
+    .onKeyEvent((event: KeyEvent) => {
+      if (event.type === KeyType.Down) {
+        // ESC / Enter / Space → 恢复游戏
+        if (event.keyCode === KeyCode.KEYCODE_ESCAPE ||
+          event.keyCode === KeyCode.KEYCODE_ENTER ||
+          event.keyCode === KeyCode.KEYCODE_NUMPAD_ENTER ||
+          event.keyCode === KeyCode.KEYCODE_SPACE) {
+          this.onResume()
+        }
+      }
+    })
   }
 }

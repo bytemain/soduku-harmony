@@ -42,6 +42,7 @@ import { exportTo81String } from '../utils/SudokuFormat'
 import { saveGame, loadGame, clearSave, GameSaveData, CellSerialized, CageSerialized } from '../utils/GameStorage'
 import { recordGameLost, recordGameStarted, recordGameWon } from '../utils/StatsStorage'
 import { addGameRecord, GameRecord } from '../utils/HistoryStorage'
+import { saveSettings } from '../utils/SettingsStorage'
 import { buildKillerCagesFromSolution, generateRandomCageLayout, normalizeVariantType } from '../utils/KillerSudoku'
 import { createKillerConfig } from '../models/VariantConfig'
 import { hilog } from '@kit.PerformanceAnalysisKit'
@@ -122,6 +123,8 @@ struct GamePage {
   @State private multiSelectCount: number = 0
   /** 键盘点击选中的数字（用于高亮所有同数字格子） */
   @State private keypadSelectedDigit: number = 0
+  /** 键盘笔记模式：按 N 切换，数字键在笔记/填数之间切换 */
+  @State private isNoteMode: boolean = false
   private multiSelectIndices: Set<number> = new Set()
   /** 鼠标是否正在拖拽选择 */
   private isMouseDragging: boolean = false
@@ -868,8 +871,68 @@ struct GamePage {
 
   /**
    * 键盘输入回调 — 支持方向键切换格子、数字键填数、Delete/Backspace 擦除
+   *
+   * 全局快捷键（在任何状态下均可用）：
+   * - ESC: 关闭引导/暂停弹窗，或触发暂停
+   * - Space / P: 暂停/恢复
+   * - Enter: 恢复游戏（暂停时）或关闭引导
+   *
+   * 游戏中快捷键（非暂停、非完成）：
+   * - 方向键: 导航棋盘
+   * - 数字 1-9: 填数（笔记模式下为笔记）
+   * - Delete/Backspace/0: 擦除
+   * - Z: 撤销, Y: 重做
+   * - N / Tab: 切换笔记模式
+   * - H: 提示
    */
   private handleKeyboardInput(keyCode: number): void {
+
+    // === 全局快捷键：在遮罩/暂停等任何状态下均可响应 ===
+
+    // ESC: 关闭最上层遮罩，或触发暂停
+    if (keyCode === KeyCode.KEYCODE_ESCAPE) {
+      if (this.showGestureGuide) {
+        this.showGestureGuide = false
+        return
+      }
+      if (this.showPauseOverlay) {
+        this.togglePause() // 恢复游戏
+        return
+      }
+      if (!this.gameState.isCompleted) {
+        this.togglePause() // 暂停游戏
+      }
+      return
+    }
+
+    // Space / P: 切换暂停/恢复
+    if (keyCode === KeyCode.KEYCODE_SPACE || keyCode === KeyCode.KEYCODE_P) {
+      if (this.showGestureGuide) {
+        this.showGestureGuide = false
+        return
+      }
+      if (!this.gameState.isCompleted) {
+        this.togglePause()
+      }
+      return
+    }
+
+    // Enter: 恢复游戏或关闭引导
+    if (keyCode === KeyCode.KEYCODE_ENTER || keyCode === KeyCode.KEYCODE_NUMPAD_ENTER) {
+      if (this.showGestureGuide) {
+        AppStorage.setOrCreate('gestureGuideShown', true)
+        saveSettings(getContext(this) as common.UIAbilityContext)
+        this.showGestureGuide = false
+        return
+      }
+      if (this.showPauseOverlay) {
+        this.togglePause() // 恢复游戏
+        return
+      }
+      return
+    }
+
+    // === 以下为游戏进行中的快捷键 ===
     if (this.gameState.isCompleted) return
     if (this.gameState.isPaused) return
 
@@ -907,7 +970,21 @@ struct GamePage {
       return
     }
 
-    // --- 数字键 1-9 填数（等同于 TAP 手势）---
+    // --- N / Tab = 切换笔记模式 ---
+    if (keyCode === KeyCode.KEYCODE_N || keyCode === KeyCode.KEYCODE_TAB) {
+      this.isNoteMode = !this.isNoteMode
+      // 用手势指示器显示当前模式
+      this.gestureDirection = this.isNoteMode ? GestureDirection.UP : null
+      return
+    }
+
+    // --- H = 提示 ---
+    if (keyCode === KeyCode.KEYCODE_H) {
+      this.onHint()
+      return
+    }
+
+    // --- 数字键 1-9: 笔记模式时等同 UP 手势，否则等同 TAP ---
     const digitMap: Map<number, number> = new Map([
       [KeyCode.KEYCODE_1, 1], [KeyCode.KEYCODE_2, 2], [KeyCode.KEYCODE_3, 3],
       [KeyCode.KEYCODE_4, 4], [KeyCode.KEYCODE_5, 5], [KeyCode.KEYCODE_6, 6],
@@ -918,7 +995,8 @@ struct GamePage {
     ])
     if (digitMap.has(keyCode)) {
       const digit = digitMap.get(keyCode)!
-      this.onGesture(digit, GestureDirection.TAP)
+      const direction = this.isNoteMode ? GestureDirection.UP : GestureDirection.TAP
+      this.onGesture(digit, direction)
       return
     }
 
@@ -1854,6 +1932,13 @@ struct GamePage {
     .backgroundColor(Colors.pageBg)
     .padding({ top: this.topRectHeight + 12, bottom: this.bottomRectHeight + 12 })
     .expandSafeArea([SafeAreaType.SYSTEM, SafeAreaType.CUTOUT], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
+    .focusable(true)
+    .onKeyEvent((event: KeyEvent) => {
+      // 页面级键盘事件兜底：确保遮罩显示时键盘操作仍可用
+      if (event.type === KeyType.Down) {
+        this.handleKeyboardInput(event.keyCode)
+      }
+    })
     .bindSheet($$this.showSettings, this.settingsSheetBuilder(), {
       height: SheetSize.FIT_CONTENT,
       dragBar: true,

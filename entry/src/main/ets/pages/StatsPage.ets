@@ -6,6 +6,7 @@
  * 历史：最近完成的游戏，显示难度、对称、用时、步数、错误，支持重玩。
  */
 import { router, promptAction } from '@kit.ArkUI'
+import { KeyCode } from '@kit.InputKit'
 import { pasteboard } from '@kit.BasicServicesKit'
 import { Colors, Sizes, DIFFICULTY_CONFIGS, DifficultyConfig, getDifficultyConfig, Difficulty } from '../constants/GameConstants'
 import { loadStats, GameStats, DifficultyStats, formatTime } from '../utils/StatsStorage'
@@ -233,6 +234,13 @@ struct StatsPage {
     .backgroundColor(Colors.pageBg)
     .padding({ top: this.topRectHeight + 12, bottom: this.bottomRectHeight })
     .expandSafeArea([SafeAreaType.SYSTEM, SafeAreaType.CUTOUT], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
+    .focusable(true)
+    .defaultFocus(true)
+    .onKeyEvent((event: KeyEvent) => {
+      if (event.type === KeyType.Down && event.keyCode === KeyCode.KEYCODE_ESCAPE) {
+        router.back()
+      }
+    })
   }
 
   @Builder
