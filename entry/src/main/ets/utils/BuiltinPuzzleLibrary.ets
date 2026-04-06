@@ -12,6 +12,7 @@ import { Difficulty } from '../constants/GameConstants'
 import {
   PuzzleLibrary,
   PuzzleEntry,
+  CreateLibraryOptions,
   createPuzzleLibrary,
   createPuzzleEntry,
 } from '../models/PuzzleLibrary'
@@ -179,6 +180,7 @@ const BUILTIN_LIBRARIES: BuiltinLibraryDef[] = [
 export function getBuiltinLibraries(): PuzzleLibrary[] {
   const result: PuzzleLibrary[] = []
   for (const def of BUILTIN_LIBRARIES) {
+    const opts: CreateLibraryOptions = { difficulty: def.difficulty, tags: ['builtin'] }
     const lib = createPuzzleLibrary(
       def.id,
       def.name,
@@ -186,7 +188,7 @@ export function getBuiltinLibraries(): PuzzleLibrary[] {
       'builtin',
       'sdm',
       def.puzzleData.length,
-      { difficulty: def.difficulty, tags: ['builtin'] },
+      opts,
     )
     result.push(lib)
   }
@@ -229,6 +231,7 @@ export async function initBuiltinLibraries(context: Context): Promise<void> {
   for (const def of BUILTIN_LIBRARIES) {
     if (!existingIds.has(def.id)) {
       // 注册新的内置题库
+      const initOpts: CreateLibraryOptions = { difficulty: def.difficulty, tags: ['builtin'] }
       const lib = createPuzzleLibrary(
         def.id,
         def.name,
@@ -236,7 +239,7 @@ export async function initBuiltinLibraries(context: Context): Promise<void> {
         'builtin',
         'sdm',
         def.puzzleData.length,
-        { difficulty: def.difficulty, tags: ['builtin'] },
+        initOpts,
       )
       libraries.push(lib)
 
