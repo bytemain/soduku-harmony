@@ -21,12 +21,20 @@ Run from the current repo root:
 ```zsh
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 
+# Well-known install locations (checked in order)
+DEVECO_HVIGORW="/Applications/DevEco-Studio.app/Contents/tools/hvigor/bin/hvigorw"
+
 if [[ -n "${HVIGORW:-}" ]]; then
 	:
 elif command -v hvigorw >/dev/null 2>&1; then
 	HVIGORW="$(command -v hvigorw)"
+elif [[ -x "$DEVECO_HVIGORW" ]]; then
+	HVIGORW="$DEVECO_HVIGORW"
 else
-	echo "hvigorw not found; export HVIGORW=/path/to/hvigorw or put it in PATH" >&2
+	echo "hvigorw not found." >&2
+	echo "  • Install DevEco Studio, or" >&2
+	echo "  • export HVIGORW=/path/to/hvigorw, or" >&2
+	echo "  • add hvigorw to PATH" >&2
 	exit 1
 fi
 
@@ -66,7 +74,9 @@ After a successful build, check:
 Before building, confirm the tool exists:
 
 ```zsh
-[[ -n "${HVIGORW:-}" ]] || command -v hvigorw
+[[ -n "${HVIGORW:-}" ]] \
+	|| command -v hvigorw >/dev/null 2>&1 \
+	|| [[ -x "/Applications/DevEco-Studio.app/Contents/tools/hvigor/bin/hvigorw" ]]
 ```
 
 To inspect tasks:
@@ -75,10 +85,14 @@ To inspect tasks:
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 cd "$REPO_ROOT"
 
+DEVECO_HVIGORW="/Applications/DevEco-Studio.app/Contents/tools/hvigor/bin/hvigorw"
+
 if [[ -n "${HVIGORW:-}" ]]; then
 	:
 elif command -v hvigorw >/dev/null 2>&1; then
 	HVIGORW="$(command -v hvigorw)"
+elif [[ -x "$DEVECO_HVIGORW" ]]; then
+	HVIGORW="$DEVECO_HVIGORW"
 else
 	echo "hvigorw not found; export HVIGORW=/path/to/hvigorw or put it in PATH" >&2
 	exit 1
