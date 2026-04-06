@@ -346,9 +346,10 @@ export struct SettingsPanel {
 
         // 当前模式预览
         Row() {
-          Text(this.isLeftHand ? '🫲' : '🫱')
+          Text('🖐️')
             .fontSize(18)
             .margin({ right: 8 })
+            .scale({ x: this.isLeftHand ? -1 : 1 })
 
           Text(this.isLeftHand ? $r('app.string.settings_current_left') : $r('app.string.settings_current_right'))
             .fontSize(14)
