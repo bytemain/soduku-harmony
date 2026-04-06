@@ -1,6 +1,6 @@
 import { GRID_SIZE, TOTAL_CELLS } from '../constants/GameConstants'
 import { KillerCage, VariantType } from '../models/VariantConfig'
-import { shuffle } from './Common'
+import { SeededRandom, seededShuffle, shuffle } from './Common'
 
 /** Killer 笼子最小格数 */
 const KILLER_CAGE_MIN_SIZE = 2
@@ -39,9 +39,22 @@ function getOrthogonalNeighbors(cellIndex: number): number[] {
 /**
  * 随机生成笼子大小（在 [KILLER_CAGE_MIN_SIZE, KILLER_CAGE_MAX_SIZE] 范围内）。
  */
-function getRandomCageSize(): number {
-  return KILLER_CAGE_MIN_SIZE +
-    Math.floor(Math.random() * (KILLER_CAGE_MAX_SIZE - KILLER_CAGE_MIN_SIZE + 1))
+function getRandomCageSize(rng?: SeededRandom): number {
+  const range = KILLER_CAGE_MAX_SIZE - KILLER_CAGE_MIN_SIZE + 1
+  if (rng) {
+    return KILLER_CAGE_MIN_SIZE + rng.nextInt(range)
+  }
+  return KILLER_CAGE_MIN_SIZE + Math.floor(Math.random() * range)
+}
+
+/**
+ * 洗牌辅助：有 RNG 就用确定性洗牌，否则用 Math.random()。
+ */
+function shuffleArray<T>(arr: T[], rng?: SeededRandom): T[] {
+  if (rng) {
+    return seededShuffle(arr, rng)
+  }
+  return shuffle(arr)
 }
 
 /**
@@ -53,8 +66,12 @@ function getRandomCageSize(): number {
  *   3. 通过 BFS 式扩展向正交邻居随机生长
  *   4. 笼子大小在 [KILLER_CAGE_MIN_SIZE, KILLER_CAGE_MAX_SIZE] 范围内
  *   5. 确保每个格子恰好属于一个笼子
+ *   6. 如果提供了 solution，则保证同一笼子内不会出现重复数字
+ *
+ * @param solution 可选的一维完整解答，用于避免笼内重复数字
+ * @param rng 可选的播种随机数生成器，用于确定性生成
  */
-export function generateRandomCageLayout(): KillerCage[] {
+export function generateRandomCageLayout(solution?: number[], rng?: SeededRandom): KillerCage[] {
   if (GRID_SIZE !== SUPPORTED_KILLER_GRID_SIZE) {
     return []
   }
@@ -66,7 +83,7 @@ export function generateRandomCageLayout(): KillerCage[] {
   // 随机种子顺序
   const order: number[] = []
   for (let i = 0; i < TOTAL_CELLS; i++) order.push(i)
-  shuffle(order)
+  shuffleArray(order, rng)
 
   for (const startCell of order) {
     if (assignment[startCell] !== -1) continue
@@ -75,8 +92,14 @@ export function generateRandomCageLayout(): KillerCage[] {
     const cells: number[] = [startCell]
     assignment[startCell] = cageId
 
+    // 记录笼内已有数字，防止重复
+    const usedDigits = new Set<number>()
+    if (solution) {
+      usedDigits.add(solution[startCell])
+    }
+
     // 目标大小随机 [min, max]
-    const targetSize = getRandomCageSize()
+    const targetSize = getRandomCageSize(rng)
 
     // BFS 式扩展：维护候选边界
     const frontier: number[] = []
@@ -85,12 +108,20 @@ export function generateRandomCageLayout(): KillerCage[] {
     }
 
     while (cells.length < targetSize && frontier.length > 0) {
-      shuffle(frontier)
+      shuffleArray(frontier, rng)
       const next = frontier.pop()!
       if (assignment[next] !== -1) continue
 
+      // 跳过会导致笼内重复数字的格子
+      if (solution && usedDigits.has(solution[next])) {
+        continue
+      }
+
       cells.push(next)
       assignment[next] = cageId
+      if (solution) {
+        usedDigits.add(solution[next])
+      }
 
       // 添加新邻居到边界
       for (const nb of getOrthogonalNeighbors(next)) {
@@ -116,7 +147,7 @@ export function generateRandomCageLayout(): KillerCage[] {
  * @returns 带正确 sum 的笼子列表
  */
 export function buildKillerCagesFromSolution(solution: number[], layout?: KillerCage[]): KillerCage[] {
-  const sourceLayout = layout ?? generateRandomCageLayout()
+  const sourceLayout = layout ?? generateRandomCageLayout(solution)
   const cages: KillerCage[] = []
 
   for (const cage of sourceLayout) {

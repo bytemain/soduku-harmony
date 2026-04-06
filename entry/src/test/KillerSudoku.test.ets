@@ -17,6 +17,7 @@ import {
   getNextHint,
   Technique,
 } from '../main/ets/utils/LogicSolver'
+import { SeededRandom } from '../main/ets/utils/Common'
 
 // 有效的完整终盘
 function getCompleteSolution(): number[][] {
@@ -297,7 +298,7 @@ export default function killerSudokuTest() {
       applyTopology(createStandardConfig())
       const sol = getCompleteSolution()
       const flatSol = flattenSolution(sol)
-      const layout = generateRandomCageLayout()
+      const layout = generateRandomCageLayout(flatSol)
       const cages = buildKillerCagesFromSolution(flatSol, layout)
 
       // 用 Killer 拓扑验证
@@ -317,13 +318,48 @@ export default function killerSudokuTest() {
       // 9×9 所有数字之和 = 9 × (1+2+...+9) = 9 × 45 = 405
       const sol = getCompleteSolution()
       const flatSol = flattenSolution(sol)
-      const layout = generateRandomCageLayout()
+      const layout = generateRandomCageLayout(flatSol)
       const cages = buildKillerCagesFromSolution(flatSol, layout)
       let totalSum = 0
       for (const cage of cages) {
         totalSum += cage.sum
       }
       expect(totalSum).assertEqual(405)
+    })
+
+    it('no_duplicate_digits_in_any_cage', 0, () => {
+      // 多次验证笼内不出现重复数字
+      const sol = getCompleteSolution()
+      const flatSol = flattenSolution(sol)
+      for (let trial = 0; trial < 10; trial++) {
+        const layout = generateRandomCageLayout(flatSol)
+        for (const cage of layout) {
+          const digits = new Set<number>()
+          for (const cellIndex of cage.cells) {
+            const digit = flatSol[cellIndex]
+            expect(digits.has(digit)).assertFalse()
+            digits.add(digit)
+          }
+        }
+      }
+    })
+
+    it('seeded_cage_generation_is_deterministic', 0, () => {
+      const sol = getCompleteSolution()
+      const flatSol = flattenSolution(sol)
+      const seed = 12345
+      const rng1 = new SeededRandom(seed)
+      const layout1 = generateRandomCageLayout(flatSol, rng1)
+      const rng2 = new SeededRandom(seed)
+      const layout2 = generateRandomCageLayout(flatSol, rng2)
+
+      expect(layout1.length).assertEqual(layout2.length)
+      for (let i = 0; i < layout1.length; i++) {
+        expect(layout1[i].cells.length).assertEqual(layout2[i].cells.length)
+        for (let j = 0; j < layout1[i].cells.length; j++) {
+          expect(layout1[i].cells[j]).assertEqual(layout2[i].cells[j])
+        }
+      }
     })
   })
 }

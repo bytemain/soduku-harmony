@@ -29,6 +29,7 @@ import {
 import { normalizeVariantType, generateRandomCageLayout, buildKillerCagesFromSolution } from '../utils/KillerSudoku'
 import { applyTopology } from '../utils/Topology'
 import { hilog } from '@kit.PerformanceAnalysisKit'
+import { SeededRandom } from '../utils/Common'
 
 const workerPort: ThreadWorkerGlobalScope = worker.workerPort
 
@@ -120,7 +121,8 @@ workerPort.onmessage = (e: MessageEvents): void => {
         for (const row of result.solution) {
           for (const v of row) flatSolution.push(v)
         }
-        const layout = generateRandomCageLayout()
+        const cageRng = new SeededRandom(result.seed)
+        const layout = generateRandomCageLayout(flatSolution, cageRng)
         const cages = buildKillerCagesFromSolution(flatSolution, layout)
         applyTopology(createKillerConfig(cages))
         killerCagesData = cages.map(c => {
@@ -153,7 +155,8 @@ workerPort.onmessage = (e: MessageEvents): void => {
           for (const row of result.solution) {
             for (const v of row) flatSolution.push(v)
           }
-          const layout = generateRandomCageLayout()
+          const cageRng = new SeededRandom(decoded.seed)
+          const layout = generateRandomCageLayout(flatSolution, cageRng)
           const cages = buildKillerCagesFromSolution(flatSolution, layout)
           applyTopology(createKillerConfig(cages))
           killerCagesData = cages.map(c => {
