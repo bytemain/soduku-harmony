@@ -323,6 +323,23 @@ export default function variantConfigTest() {
       expect(decorations[1].border.top > 0).assertTrue()
     })
 
+    it('buildKillerBoardDecorations_suppresses_grid_lines_for_cage_cells', 0, () => {
+      // 笼子格的所有边都隐藏网格线：同笼相邻侧不需要分隔，笼子边界侧由装饰边框替代
+      const cage: KillerCage = { cells: [0, 1, 2], sum: 6 }
+      const decorations = buildKillerBoardDecorations([cage])
+      // cell 0: 所有边网格线都被隐藏
+      expect(decorations[0].gridBorder.left).assertEqual(0)
+      expect(decorations[0].gridBorder.right).assertEqual(0)
+      expect(decorations[0].gridBorder.top).assertEqual(0)
+      expect(decorations[0].gridBorder.bottom).assertEqual(0)
+      // cell 1: 所有边网格线都被隐藏
+      expect(decorations[1].gridBorder.left).assertEqual(0)
+      expect(decorations[1].gridBorder.right).assertEqual(0)
+      // 不属于任何笼子的格子保持默认网格线
+      expect(decorations[9].gridBorder.left).assertEqual(-1)
+      expect(decorations[9].gridBorder.top).assertEqual(-1)
+    })
+
     it('buildJigsawBoardDecorations_marks_region_edges', 0, () => {
       const decorations = buildJigsawBoardDecorations(createDefaultJigsawRegionMap())
       expect(decorations.length).assertEqual(81)
@@ -331,6 +348,46 @@ export default function variantConfigTest() {
       expect(decorations[0].border.right).assertEqual(0)
       expect(decorations[2].border.right > 0).assertTrue()
       expect(decorations[20].border.bottom > 0).assertTrue()
+    })
+
+    it('buildJigsawBoardDecorations_suppresses_grid_lines_for_region_cells', 0, () => {
+      const regionMap = createDefaultJigsawRegionMap()
+      const decorations = buildJigsawBoardDecorations(regionMap)
+      // 宫格内所有格子的所有边网格线都被隐藏（装饰边框替代）
+      expect(decorations[0].gridBorder.left).assertEqual(0)
+      expect(decorations[0].gridBorder.top).assertEqual(0)
+      expect(decorations[0].gridBorder.right).assertEqual(0)
+      expect(decorations[0].gridBorder.bottom).assertEqual(0)
+    })
+
+    it('buildKillerBoardDecorations_computes_corner_patches_for_L_shape', 0, () => {
+      // L 形笼子：cells [0, 9, 18, 19]
+      //   X .      row0: cell 0
+      //   X .      row1: cell 9
+      //   X X      row2: cell 18, 19
+      const cage: KillerCage = { cells: [0, 9, 18, 19], sum: 20 }
+      const decorations = buildKillerBoardDecorations([cage])
+
+      // cell 9 (row1,col0): right=border, bottom=同cage → 右下对角 cell 10 不在 cage
+      // hasRight=false, hasBottom=true, hasBottomRight=false
+      // bottomRight 应该被标记为需要补丁（内凹角）
+      // 但 cell 9 的 hasRight=false && hasBottom=true → !hasRight, 条件是 hasBottom && hasRight = false
+      // 实际上 cell 9 的正交方向：hasTop=true(cell0同cage), hasBottom=true(cell18同cage), hasLeft=false(边界), hasRight=false(cell10不同cage)
+      // topRight: !hasTopRight && hasTop && hasRight = X && true && false = false (正确，不需要)
+      // bottomRight: !hasBottomRight && hasBottom && hasRight = true && true && false = false
+      // 所以 cell 9 没有 corner patch - 正确！因为 cell 9 的右侧有 border(padding-right)
+      // 其 padding-right 覆盖了整个右侧包括右下角
+      expect(decorations[9].cornerPatches.bottomRight).assertFalse()
+
+      // cell 18 (row2,col0): top=同cage(cell9), right=同cage(cell19)
+      // 但右上对角 cell 10 不在 cage → 内凹角需要补丁
+      // hasTop=true, hasRight=true, hasTopRight=false
+      // topRight = !false && true && true = true ✓
+      expect(decorations[18].cornerPatches.topRight).assertTrue()
+      // 其他角不需要补丁
+      expect(decorations[18].cornerPatches.topLeft).assertFalse()
+      expect(decorations[18].cornerPatches.bottomLeft).assertFalse()
+      expect(decorations[18].cornerPatches.bottomRight).assertFalse()
     })
   })
 }

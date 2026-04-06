@@ -131,8 +131,6 @@ export struct SudokuBoard {
             },
           })
         }
-        .borderWidth(Sizes.cellBorderThin)
-        .borderColor(Colors.cellBorderThin)
       })
     }
     .columnsTemplate('1fr '.repeat(BOX_COLS).trim())

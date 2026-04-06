@@ -165,27 +165,92 @@ export struct SudokuCell {
 
   build() {
     Stack() {
-      // 背景
-      Column()
+      if (this.hasKillerBorder()) {
+        // 装饰边框层：用 padding + 子元素背景色实现，角落自然填充不断裂
+        // 外层铺装饰色，padding 在有边框的方向留出空间，内层填白色背景
+        Column() {
+          Column()
+            .width('100%')
+            .height('100%')
+            .backgroundColor(this.getCellBgColor())
+            .animation({ duration: 150 })
+        }
         .width('100%')
         .height('100%')
-        .backgroundColor(this.getCellBgColor())
-        .animation({ duration: 150 })
-
-      if (this.hasKillerBorder()) {
+        .backgroundColor(Colors.killerCageBorder)
+        .padding({
+          left: this.decoration.border.left,
+          top: this.decoration.border.top,
+          right: this.decoration.border.right,
+          bottom: this.decoration.border.bottom,
+        })
+      } else {
+        // 无装饰边框：普通背景 + 网格线
         Column()
           .width('100%')
           .height('100%')
-          .margin(Sizes.killerCageInset)
+          .backgroundColor(this.getCellBgColor())
           .border({
             width: {
-              left: this.decoration.border.left,
-              top: this.decoration.border.top,
-              right: this.decoration.border.right,
-              bottom: this.decoration.border.bottom,
+              left: this.decoration.gridBorder.left < 0 ? Sizes.cellBorderThin : 0,
+              top: this.decoration.gridBorder.top < 0 ? Sizes.cellBorderThin : 0,
+              right: this.decoration.gridBorder.right < 0 ? Sizes.cellBorderThin : 0,
+              bottom: this.decoration.gridBorder.bottom < 0 ? Sizes.cellBorderThin : 0,
             },
-            color: Colors.killerCageBorder,
+            color: Colors.cellBorderThin,
           })
+          .animation({ duration: 150 })
+      }
+
+      // L 形内凹角补丁：两个正交方向都是同组但对角不是时，
+      // padding 无法覆盖角落缝隙，用小方块填补
+      if (this.decoration.cornerPatches.topLeft) {
+        Stack() {
+          Column()
+            .width(this.getCornerPatchSize())
+            .height(this.getCornerPatchSize())
+            .backgroundColor(Colors.killerCageBorder)
+        }
+        .width('100%')
+        .height('100%')
+        .alignContent(Alignment.TopStart)
+        .hitTestBehavior(HitTestMode.None)
+      }
+      if (this.decoration.cornerPatches.topRight) {
+        Stack() {
+          Column()
+            .width(this.getCornerPatchSize())
+            .height(this.getCornerPatchSize())
+            .backgroundColor(Colors.killerCageBorder)
+        }
+        .width('100%')
+        .height('100%')
+        .alignContent(Alignment.TopEnd)
+        .hitTestBehavior(HitTestMode.None)
+      }
+      if (this.decoration.cornerPatches.bottomLeft) {
+        Stack() {
+          Column()
+            .width(this.getCornerPatchSize())
+            .height(this.getCornerPatchSize())
+            .backgroundColor(Colors.killerCageBorder)
+        }
+        .width('100%')
+        .height('100%')
+        .alignContent(Alignment.BottomStart)
+        .hitTestBehavior(HitTestMode.None)
+      }
+      if (this.decoration.cornerPatches.bottomRight) {
+        Stack() {
+          Column()
+            .width(this.getCornerPatchSize())
+            .height(this.getCornerPatchSize())
+            .backgroundColor(Colors.killerCageBorder)
+        }
+        .width('100%')
+        .height('100%')
+        .alignContent(Alignment.BottomEnd)
+        .hitTestBehavior(HitTestMode.None)
       }
 
       if (this.decoration.topLeftLabel.length > 0) {
@@ -247,6 +312,19 @@ export struct SudokuCell {
   private hasKillerBorder(): boolean {
     return this.decoration.border.left > 0 || this.decoration.border.top > 0 ||
       this.decoration.border.right > 0 || this.decoration.border.bottom > 0
+  }
+
+  /**
+   * 角落补丁尺寸：取 decoration border 各方向的最大值。
+   * 对于 Killer 是 1.5vp，Jigsaw 是 2vp。
+   */
+  private getCornerPatchSize(): number {
+    return Math.max(
+      this.decoration.border.left,
+      this.decoration.border.top,
+      this.decoration.border.right,
+      this.decoration.border.bottom
+    )
   }
 
   /**
