@@ -346,7 +346,7 @@ export struct SettingsPanel {
 
         // 当前模式预览
         Row() {
-          Text('🖐️')
+          Text(this.isLeftHand ? '🫲' : '🫱')
             .fontSize(18)
             .margin({ right: 8 })
 
