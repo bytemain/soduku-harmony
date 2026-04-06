@@ -377,6 +377,10 @@
       "value": "Errors"
     },
     {
+      "name": "pause_help",
+      "value": "Help"
+    },
+    {
       "name": "hint_direct_algorithm",
       "value": "No logical step found, used algorithm fallback"
     },

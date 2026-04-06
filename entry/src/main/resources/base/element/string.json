@@ -377,6 +377,10 @@
       "value": "错误"
     },
     {
+      "name": "pause_help",
+      "value": "帮助"
+    },
+    {
       "name": "hint_direct_algorithm",
       "value": "逻辑步不足，已使用算法直算"
     },

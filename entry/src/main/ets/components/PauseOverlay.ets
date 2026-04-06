@@ -18,6 +18,7 @@ export struct PauseOverlay {
   onCopyPuzzle: () => void = () => {}
   onResume: () => void = () => {}
   onRestart: () => void = () => {}
+  onHelp: () => void = () => {}
   onQuit: () => void = () => {}
 
   private getString(name: string): string {
@@ -73,6 +74,16 @@ export struct PauseOverlay {
             .backgroundColor(Colors.pauseRestartBtn)
             .fontColor(Colors.pauseOverlayText)
             .onClick(() => this.onRestart())
+
+          Button($r('app.string.pause_help'))
+            .type(ButtonType.Capsule)
+            .width(220)
+            .height(48)
+            .fontSize(16)
+            .fontWeight(FontWeight.Medium)
+            .backgroundColor(Colors.pauseRestartBtn)
+            .fontColor(Colors.pauseOverlayText)
+            .onClick(() => this.onHelp())
 
           Button($r('app.string.pause_quit'))
             .type(ButtonType.Capsule)

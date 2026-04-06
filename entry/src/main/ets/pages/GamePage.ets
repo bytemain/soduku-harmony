@@ -1917,6 +1917,7 @@ struct GamePage {
           onCopyPuzzle: () => this.copyPuzzle81(),
           onResume: () => this.togglePause(),
           onRestart: () => this.restartGame(),
+          onHelp: () => { this.showGestureGuide = true },
           onQuit: () => this.quitGame(),
         })
       }
