@@ -3,6 +3,7 @@
  *
  * 负责：
  *   - 冲突检测（某格填入后与同行/列/宫是否重复）
+ *   - Killer 笼子求和约束检测
  *   - 全局冲突扫描（高亮所有冲突格）
  *   - 完成判定（81 格全填满且无冲突）
  *
@@ -11,6 +12,7 @@
 import { CellData, CellFlags, hasFlag, setFlag, clearFlag } from '../models/CellData'
 import { PEERS } from './Topology'
 import { TOTAL_CELLS } from '../constants/GameConstants'
+import { KillerCage } from '../models/VariantConfig'
 
 // ============================================================
 // 冲突检测
@@ -32,6 +34,59 @@ function hasConflictWith(cells: CellData[], index: number): boolean {
   return false
 }
 
+// ============================================================
+// Killer 笼子约束
+// ============================================================
+
+/**
+ * 检查某个格子所在的笼子是否存在和约束错误。
+ * 当笼子内全部填满后，总和必须等于 cage.sum。
+ * 部分填入时不标记和约束错误（仅靠 peer/topology 检查重复）。
+ */
+function hasCageSumError(cells: CellData[], index: number, cages: KillerCage[],
+  cageIndexByCell: number[]): boolean {
+  const ci = cageIndexByCell[index]
+  if (ci < 0) return false
+  const cage = cages[ci]
+
+  let allFilled = true
+  let currentSum = 0
+  for (const cellIdx of cage.cells) {
+    if (cells[cellIdx].value === 0) {
+      allFilled = false
+      break
+    }
+    currentSum += cells[cellIdx].value
+  }
+
+  if (allFilled && currentSum !== cage.sum) {
+    return true
+  }
+  return false
+}
+
+/**
+ * 构建格子 → 笼子索引映射表。
+ */
+function buildCageIndexMap(cages: KillerCage[]): number[] {
+  const map: number[] = new Array(TOTAL_CELLS).fill(-1)
+  for (let i = 0; i < cages.length; i++) {
+    for (const cellIdx of cages[i].cells) {
+      if (cellIdx >= 0 && cellIdx < TOTAL_CELLS) {
+        map[cellIdx] = i
+      }
+    }
+  }
+  return map
+}
+
+/**
+ * 检查是否有有效的笼子数据。
+ */
+function hasActiveCages(cages: KillerCage[] | undefined): boolean {
+  return cages !== undefined && cages.length > 0
+}
+
 /**
  * 扫描全部 81 格，更新每个格子的 ERROR 标志。
  * 应该在每次玩家操作后调用。
@@ -39,10 +94,13 @@ function hasConflictWith(cells: CellData[], index: number): boolean {
  * 当提供 solution 时，还会将与答案不符的用户填入格标记为错误
  * （即使该格没有同行/列/宫的重复冲突）。
  *
+ * 当提供 cages 时，还会检查笼子求和约束（填满后总和不等于目标和 → 错误）。
+ *
  * 返回冲突格的数量（用于统计）。
  */
-export function validateAllCells(cells: CellData[], solution?: number[]): number {
+export function validateAllCells(cells: CellData[], solution?: number[], cages?: KillerCage[]): number {
   let errorCount = 0
+  const cageIndexByCell = hasActiveCages(cages) ? buildCageIndexMap(cages!) : undefined
 
   for (let i = 0; i < TOTAL_CELLS; i++) {
     const hasPeerConflict = hasConflictWith(cells, i)
@@ -53,7 +111,12 @@ export function validateAllCells(cells: CellData[], solution?: number[]): number
       !cells[i].isGiven &&
       cells[i].value !== solution[i]
 
-    if (hasPeerConflict || hasSolutionMismatch) {
+    // 若提供了笼子，检查求和约束
+    const hasCageError = cageIndexByCell !== undefined &&
+      cells[i].value !== 0 &&
+      hasCageSumError(cells, i, cages!, cageIndexByCell)
+
+    if (hasPeerConflict || hasSolutionMismatch || hasCageError) {
       cells[i].flags = setFlag(cells[i].flags, CellFlags.ERROR)
       errorCount++
     } else {
@@ -77,15 +140,28 @@ export function isCorrectValue(cells: CellData[], index: number, solution: numbe
 // ============================================================
 
 /**
- * 判断游戏是否完成（所有格子都填满且无冲突）
+ * 判断游戏是否完成（所有格子都填满且无冲突）。
+ * 若提供了 cages，还需要所有笼子求和正确。
  */
-export function isGameCompleted(cells: CellData[]): boolean {
+export function isGameCompleted(cells: CellData[], cages?: KillerCage[]): boolean {
   for (let i = 0; i < TOTAL_CELLS; i++) {
     // 还有空格 → 未完成
     if (cells[i].value === 0) return false
     // 有冲突 → 未完成
     if (hasConflictWith(cells, i)) return false
   }
+
+  // 若有笼子，检查所有笼子求和
+  if (hasActiveCages(cages)) {
+    for (const cage of cages!) {
+      let sum = 0
+      for (const cellIdx of cage.cells) {
+        sum += cells[cellIdx].value
+      }
+      if (sum !== cage.sum) return false
+    }
+  }
+
   return true
 }
 

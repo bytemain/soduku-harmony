@@ -6,7 +6,8 @@ import {
   isGameCompleted, isGameCompletedWithSolution,
   updateHighlights
 } from '../main/ets/utils/SudokuValidator'
-import { PEERS } from '../main/ets/utils/Topology'
+import { PEERS, applyTopology } from '../main/ets/utils/Topology'
+import { createDiagonalConfig, createStandardConfig } from '../main/ets/models/VariantConfig'
 
 // 构建一个有效的完整终盘（用于测试完成判定）
 function getCompleteSolution(): number[][] {
@@ -21,6 +22,15 @@ function getCompleteSolution(): number[][] {
     [8, 1, 4, 2, 5, 3, 7, 6, 9],
     [6, 9, 5, 4, 1, 7, 3, 8, 2],
   ]
+}
+
+function withDiagonalTopology(block: () => void): void {
+  applyTopology(createDiagonalConfig())
+  try {
+    block()
+  } finally {
+    applyTopology(createStandardConfig())
+  }
 }
 
 export default function validatorTest() {
@@ -69,6 +79,19 @@ export default function validatorTest() {
       cells[10].value = 3  // (1,1) — 同宫
       const count = validateAllCells(cells)
       expect(count).assertEqual(2)
+    })
+
+    it('diagonal_conflict_marks_both_cells', 0, () => {
+      withDiagonalTopology(() => {
+        const cells = createEmptyBoard()
+        cells[0].value = 4   // (0,0)
+        cells[40].value = 4  // (4,4) — 仅通过主对角线冲突
+
+        const count = validateAllCells(cells)
+        expect(count).assertEqual(2)
+        expect(cells[0].isError).assertTrue()
+        expect(cells[40].isError).assertTrue()
+      })
     })
 
     it('fixing_conflict_clears_ERROR', 0, () => {
@@ -262,6 +285,15 @@ export default function validatorTest() {
       cells[40].value = 5   // (4,4)=5 — 不同行列宫
       updateHighlights(cells, 0)
       expect(cells[40].isHighlighted).assertTrue()
+    })
+
+    it('diagonal_peer_highlighted_when_selected_cell_is_on_diagonal', 0, () => {
+      withDiagonalTopology(() => {
+        const cells = createEmptyBoard()
+        updateHighlights(cells, 0)
+        expect(cells[40].isHighlighted).assertTrue()
+        expect(cells[80].isHighlighted).assertTrue()
+      })
     })
 
     it('switching_selection_clears_old', 0, () => {

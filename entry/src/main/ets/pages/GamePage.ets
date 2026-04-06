@@ -15,6 +15,7 @@ import { CellData, CellFlags, setFlag, clearFlag,
   getNoteState, setNoteState, NoteState, createEmptyBoard } from '../models/CellData'
 import {
   BoardCellDecoration,
+  buildDiagonalBoardDecorations,
   buildJigsawBoardDecorations,
   buildKillerBoardDecorations,
   createEmptyBoardDecorations,
@@ -35,13 +36,15 @@ import { GestureGuideOverlay } from '../components/GestureGuideOverlay'
 import { GameLoadingView } from '../components/GameLoadingView'
 import { GameMainContent } from '../components/GameMainContent'
 import { PauseOverlay } from '../components/PauseOverlay'
-import { getNextHint, getTechniqueNameKey, SolveStep } from '../utils/LogicSolver'
+import { getNextHint, getTechniqueNameKey, SolveStep, setActiveCages, clearActiveCages } from '../utils/LogicSolver'
 import { formatStr } from '../utils/I18nHelper'
 import { exportTo81String } from '../utils/SudokuFormat'
-import { saveGame, loadGame, clearSave, GameSaveData, CellSerialized } from '../utils/GameStorage'
-import { recordGameStarted, recordGameWon } from '../utils/StatsStorage'
+import { saveGame, loadGame, clearSave, GameSaveData, CellSerialized, CageSerialized } from '../utils/GameStorage'
+import { recordGameLost, recordGameStarted, recordGameWon } from '../utils/StatsStorage'
 import { addGameRecord, GameRecord } from '../utils/HistoryStorage'
-import { buildKillerCagesFromSolution, createDefaultKillerLayout, normalizeVariantType } from '../utils/KillerSudoku'
+import { saveSettings } from '../utils/SettingsStorage'
+import { buildKillerCagesFromSolution, generateRandomCageLayout, normalizeVariantType } from '../utils/KillerSudoku'
+import { createKillerConfig } from '../models/VariantConfig'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 
 interface GamePageParams {
@@ -120,6 +123,8 @@ struct GamePage {
   @State private multiSelectCount: number = 0
   /** 键盘点击选中的数字（用于高亮所有同数字格子） */
   @State private keypadSelectedDigit: number = 0
+  /** 键盘笔记模式：按 N 切换，数字键在笔记/填数之间切换 */
+  @State private isNoteMode: boolean = false
   private multiSelectIndices: Set<number> = new Set()
   /** 鼠标是否正在拖拽选择 */
   private isMouseDragging: boolean = false
@@ -146,9 +151,14 @@ struct GamePage {
 
   /**
    * 刷新棋盘装饰策略产物。
-   * 当前标准/对角线使用空装饰，Jigsaw/Killer 生成对应的边界装饰。
+   * 标准模式使用空装饰；对角线/Jigsaw/Killer 生成对应的视觉装饰。
    */
   private refreshBoardDecorations(): void {
+    if (this.currentVariantType === VariantType.DIAGONAL) {
+      const selectedIndex = this.isMultiSelectMode ? -1 : this.gameState.selectedIndex
+      this.boardDecorations = buildDiagonalBoardDecorations(selectedIndex)
+      return
+    }
     if (this.currentVariantType === VariantType.JIGSAW) {
       this.boardDecorations = buildJigsawBoardDecorations(createDefaultJigsawRegionMap())
       return
@@ -158,6 +168,14 @@ struct GamePage {
       return
     }
     this.boardDecorations = createEmptyBoardDecorations()
+  }
+
+  /**
+   * 同步选中态相关的格子高亮与变种装饰。
+   */
+  private syncSelectionVisuals(): void {
+    updateHighlights(this.gameState.cells, this.gameState.selectedIndex)
+    this.refreshBoardDecorations()
   }
 
   /**
@@ -183,10 +201,10 @@ struct GamePage {
     }
 
     if (variantType === VariantType.KILLER && gridConfig.gridSize === 9) {
-      const cages = createDefaultKillerLayout()
+      const cages = generateRandomCageLayout()
       this.killerCages = cages
       this.refreshBoardDecorations()
-      applyTopology(createSizedConfig(gridConfig.gridSize, gridConfig.boxRows, gridConfig.boxCols))
+      applyTopology(createKillerConfig(cages))
       return
     }
 
@@ -207,13 +225,15 @@ struct GamePage {
     }
 
     if (solution.length === 0) {
-      this.killerCages = createDefaultKillerLayout()
+      this.killerCages = generateRandomCageLayout()
       this.refreshBoardDecorations()
       return
     }
 
-    this.killerCages = buildKillerCagesFromSolution(solution)
+    this.killerCages = buildKillerCagesFromSolution(solution, this.killerCages.length > 0 ? this.killerCages : undefined)
     this.refreshBoardDecorations()
+    // 使用带笼子的拓扑
+    applyTopology(createKillerConfig(this.killerCages))
   }
 
   aboutToAppear(): void {
@@ -365,7 +385,24 @@ struct GamePage {
         }
 
         this.currentVariantType = variantType
-        this.refreshKillerCagesFromSolution(this.gameState.solution)
+
+        // Killer 模式：从 Worker 接收预计算好的笼子
+        const workerCages = msg['killerCages'] as object[] | null
+        if (variantType === VariantType.KILLER && workerCages !== null && workerCages !== undefined) {
+          const cages: KillerCage[] = workerCages.map((c: object) => {
+            const obj = c as Record<string, Object>
+            const cage: KillerCage = {
+              cells: obj['cells'] as number[],
+              sum: obj['sum'] as number,
+            }
+            return cage
+          })
+          this.killerCages = cages
+          this.refreshBoardDecorations()
+          applyTopology(createKillerConfig(cages))
+        } else {
+          this.refreshKillerCagesFromSolution(this.gameState.solution)
+        }
         this.cellsWrapper = new ArrayWrapper(this.gameState.cells)
         recordGameStarted(getContext(this), this.gameState.difficulty)
         this.loadingMessage = this.getString('loading_finalizing')
@@ -430,10 +467,23 @@ struct GamePage {
   }
 
   /**
+   * 获取当前活跃的 Killer 笼子（用于验证）。
+   * 非 Killer 模式返回 undefined。
+   */
+  private getActiveCages(): KillerCage[] | undefined {
+    if (this.currentVariantType === VariantType.KILLER && this.killerCages.length > 0) {
+      return this.killerCages
+    }
+    return undefined
+  }
+
+  /**
    * 初始化完成后的通用逻辑（验证、计时器、动画）
    */
   private finishInit(): void {
-    validateAllCells(this.gameState.cells, this.validateInput ? this.gameState.solution : undefined)
+    validateAllCells(this.gameState.cells, this.validateInput ? this.gameState.solution : undefined,
+      this.getActiveCages())
+    this.syncSelectionVisuals()
     this.updateRemainingCounts()
     this.syncDisplayState()
     this.isLoading = false
@@ -525,13 +575,27 @@ struct GamePage {
     this.gameState.difficulty = saved.difficulty as Difficulty
     this.gameState.elapsedSeconds = saved.elapsedSeconds
     this.gameState.errorCount = saved.errorCount
+    this.gameState.isChallengeFailed = saved.isChallengeFailed ?? false
     this.gameState.selectedIndex = saved.selectedIndex
     this.gameState.isCompleted = false
     this.gameState.isPaused = false
     this.gameState.seed = saved.seed ?? 0
     this.gameState.symmetry = saved.symmetry ?? ''
     this.currentVariantType = variantType
-    this.refreshKillerCagesFromSolution(saved.solution)
+    // 从存档恢复 Killer 笼子
+    if (variantType === VariantType.KILLER && saved.killerCages !== undefined && saved.killerCages.length > 0) {
+      this.killerCages = saved.killerCages.map(c => {
+        const cage: KillerCage = {
+          cells: c.cells.slice(),
+          sum: c.sum,
+        }
+        return cage
+      })
+      this.refreshBoardDecorations()
+      applyTopology(createKillerConfig(this.killerCages))
+    } else {
+      this.refreshKillerCagesFromSolution(saved.solution)
+    }
 
     this.cellsWrapper = new ArrayWrapper(this.gameState.cells)
 
@@ -554,6 +618,7 @@ struct GamePage {
     data.difficulty = this.gameState.difficulty
     data.elapsedSeconds = this.gameState.elapsedSeconds
     data.errorCount = this.gameState.errorCount
+    data.isChallengeFailed = this.gameState.isChallengeFailed
     data.selectedIndex = this.gameState.selectedIndex
     data.undoStack = this.history.undoStack
     data.redoStack = this.history.redoStack
@@ -562,6 +627,10 @@ struct GamePage {
     data.symmetry = this.gameState.symmetry
     data.gridSize = GRID_SIZE
     data.variantType = this.currentVariantType
+    // 保存 Killer 笼子数据
+    if (this.currentVariantType === VariantType.KILLER && this.killerCages.length > 0) {
+      data.killerCages = this.killerCages.map(c => new CageSerialized(c.cells.slice(), c.sum))
+    }
     saveGame(getContext(this), data)
   }
 
@@ -583,6 +652,15 @@ struct GamePage {
       this.gameState.isPaused = true
       this.showPauseOverlay = true
     }
+  }
+
+  /**
+   * 关闭手势引导遮罩并持久化用户偏好
+   */
+  private dismissGestureGuide(): void {
+    AppStorage.setOrCreate('gestureGuideShown', true)
+    saveSettings(getContext(this) as common.UIAbilityContext)
+    this.showGestureGuide = false
   }
 
   private getString(name: string): string {
@@ -655,12 +733,69 @@ struct GamePage {
           this.gameState.resetGame()
           this.history = new GameHistory()
           this.cellsWrapper = new ArrayWrapper(this.gameState.cells)
-          validateAllCells(this.gameState.cells, this.validateInput ? this.gameState.solution : undefined)
+          validateAllCells(this.gameState.cells, this.validateInput ? this.gameState.solution : undefined,
+            this.getActiveCages())
+          this.refreshBoardDecorations()
           this.updateRemainingCounts()
           this.syncDisplayState()
           this.gameState.isPaused = false
           this.showPauseOverlay = false
           // 重启计时器
+          if (this.timerId !== -1) {
+            clearInterval(this.timerId)
+          }
+          this.timerId = setInterval(() => {
+            this.gameState.tick()
+            this.displayTime = this.gameState.formattedTime
+          }, 1000)
+        },
+      },
+    })
+  }
+
+  /**
+   * 第 3 次错误后判定挑战失败，但允许继续完成棋盘。
+   */
+  private handleChallengeFailedIfNeeded(): void {
+    if (this.gameState.isChallengeFailed || this.gameState.errorCount < 3) {
+      return
+    }
+    this.gameState.isChallengeFailed = true
+    recordGameLost(getContext(this), this.gameState.difficulty)
+    this.showChallengeFailedDialog()
+  }
+
+  /**
+   * 挑战失败弹窗：可重新开始或返回主页；关闭弹窗后也可继续当前棋局。
+   */
+  private showChallengeFailedDialog(): void {
+    const ctx = getContext(this)
+    const title = ctx.resourceManager.getStringByNameSync('dialog_challenge_failed_title')
+    const msg = ctx.resourceManager.getStringByNameSync('dialog_challenge_failed_msg')
+    const restart = ctx.resourceManager.getStringByNameSync('dialog_restart')
+    const backHome = ctx.resourceManager.getStringByNameSync('dialog_back_home')
+    AlertDialog.show({
+      title: title,
+      message: msg,
+      autoCancel: true,
+      primaryButton: {
+        value: backHome,
+        action: () => {
+          router.back()
+        },
+      },
+      secondaryButton: {
+        value: restart,
+        action: () => {
+          this.gameState.resetGame()
+          this.history = new GameHistory()
+          this.cellsWrapper = new ArrayWrapper(this.gameState.cells)
+          validateAllCells(this.gameState.cells, this.validateInput ? this.gameState.solution : undefined,
+            this.getActiveCages())
+          this.updateRemainingCounts()
+          this.syncDisplayState()
+          this.gameState.isPaused = false
+          this.showPauseOverlay = false
           if (this.timerId !== -1) {
             clearInterval(this.timerId)
           }
@@ -723,7 +858,7 @@ struct GamePage {
     }
     this.keypadSelectedDigit = 0
     this.gameState.clearSelection()
-    updateHighlights(this.gameState.cells, this.gameState.selectedIndex)
+    this.syncSelectionVisuals()
   }
 
   /**
@@ -740,13 +875,71 @@ struct GamePage {
 
     this.keypadSelectedDigit = 0
     this.gameState.selectCell(index)
-    updateHighlights(this.gameState.cells, this.gameState.selectedIndex)
+    this.syncSelectionVisuals()
   }
 
   /**
    * 键盘输入回调 — 支持方向键切换格子、数字键填数、Delete/Backspace 擦除
+   *
+   * 全局快捷键（在任何状态下均可用）：
+   * - ESC: 关闭引导/暂停弹窗，或触发暂停
+   * - Space / P: 暂停/恢复
+   * - Enter: 恢复游戏（暂停时）或关闭引导
+   *
+   * 游戏中快捷键（非暂停、非完成）：
+   * - 方向键: 导航棋盘
+   * - 数字 1-9: 填数（笔记模式下为笔记）
+   * - Delete/Backspace/0: 擦除
+   * - Z: 撤销, Y: 重做
+   * - N / Tab: 切换笔记模式
+   * - H: 提示
    */
   private handleKeyboardInput(keyCode: number): void {
+
+    // === 全局快捷键：在遮罩/暂停等任何状态下均可响应 ===
+
+    // ESC: 关闭最上层遮罩，或触发暂停
+    if (keyCode === KeyCode.KEYCODE_ESCAPE) {
+      if (this.showGestureGuide) {
+        this.dismissGestureGuide()
+        return
+      }
+      if (this.showPauseOverlay) {
+        this.togglePause() // 恢复游戏
+        return
+      }
+      if (!this.gameState.isCompleted) {
+        this.togglePause() // 暂停游戏
+      }
+      return
+    }
+
+    // Space / P: 切换暂停/恢复
+    if (keyCode === KeyCode.KEYCODE_SPACE || keyCode === KeyCode.KEYCODE_P) {
+      if (this.showGestureGuide) {
+        this.dismissGestureGuide()
+        return
+      }
+      if (!this.gameState.isCompleted) {
+        this.togglePause()
+      }
+      return
+    }
+
+    // Enter: 恢复游戏或关闭引导
+    if (keyCode === KeyCode.KEYCODE_ENTER || keyCode === KeyCode.KEYCODE_NUMPAD_ENTER) {
+      if (this.showGestureGuide) {
+        this.dismissGestureGuide()
+        return
+      }
+      if (this.showPauseOverlay) {
+        this.togglePause() // 恢复游戏
+        return
+      }
+      return
+    }
+
+    // === 以下为游戏进行中的快捷键 ===
     if (this.gameState.isCompleted) return
     if (this.gameState.isPaused) return
 
@@ -780,11 +973,25 @@ struct GamePage {
         this.exitMultiSelect()
       }
       this.gameState.selectedIndex = newIndex
-      updateHighlights(this.gameState.cells, this.gameState.selectedIndex)
+      this.syncSelectionVisuals()
       return
     }
 
-    // --- 数字键 1-9 填数（等同于 TAP 手势）---
+    // --- N / Tab = 切换笔记模式 ---
+    if (keyCode === KeyCode.KEYCODE_N || keyCode === KeyCode.KEYCODE_TAB) {
+      this.isNoteMode = !this.isNoteMode
+      // 复用 GestureModeIndicator 显示笔记模式状态（UP = 笔记模式开启）
+      this.gestureDirection = this.isNoteMode ? GestureDirection.UP : null
+      return
+    }
+
+    // --- H = 提示 ---
+    if (keyCode === KeyCode.KEYCODE_H) {
+      this.onHint()
+      return
+    }
+
+    // --- 数字键 1-9: 笔记模式时等同 UP 手势，否则等同 TAP ---
     const digitMap: Map<number, number> = new Map([
       [KeyCode.KEYCODE_1, 1], [KeyCode.KEYCODE_2, 2], [KeyCode.KEYCODE_3, 3],
       [KeyCode.KEYCODE_4, 4], [KeyCode.KEYCODE_5, 5], [KeyCode.KEYCODE_6, 6],
@@ -795,7 +1002,8 @@ struct GamePage {
     ])
     if (digitMap.has(keyCode)) {
       const digit = digitMap.get(keyCode)!
-      this.onGesture(digit, GestureDirection.TAP)
+      const direction = this.isNoteMode ? GestureDirection.UP : GestureDirection.TAP
+      this.onGesture(digit, direction)
       return
     }
 
@@ -853,7 +1061,7 @@ struct GamePage {
         this.exitMultiSelect()
         if (index >= 0 && index < TOTAL_CELLS) {
           this.gameState.selectCell(index)
-          updateHighlights(this.gameState.cells, this.gameState.selectedIndex)
+          this.syncSelectionVisuals()
         }
       }
       // 否则保持多选模式，等待用户输入笔记
@@ -898,6 +1106,7 @@ struct GamePage {
       cells[idx].flags = setFlag(cells[idx].flags, CellFlags.MULTI_SELECTED)
     })
     this.multiSelectCount = this.multiSelectIndices.size
+    this.refreshBoardDecorations()
   }
 
   /**
@@ -913,7 +1122,7 @@ struct GamePage {
     this.multiSelectCount = 0
     this.isMouseDragging = false
     this.mouseDragStartIndex = -1
-    updateHighlights(cells, this.gameState.selectedIndex)
+    this.syncSelectionVisuals()
   }
 
   /**
@@ -1092,26 +1301,31 @@ struct GamePage {
     this.autoClearPeerNotes(filledIndex)
 
     // 操作后更新冲突 + 高亮 + 剩余计数
-    validateAllCells(this.gameState.cells, this.validateInput ? this.gameState.solution : undefined)
-    updateHighlights(this.gameState.cells, this.gameState.selectedIndex)
+    validateAllCells(this.gameState.cells, this.validateInput ? this.gameState.solution : undefined,
+      this.getActiveCages())
+    this.syncSelectionVisuals()
     this.updateRemainingCounts()
     this.syncDisplayState()
+    this.handleChallengeFailedIfNeeded()
 
     // 检查是否完成
-    if (isGameCompleted(this.gameState.cells)) {
+    if (isGameCompleted(this.gameState.cells, this.getActiveCages())) {
+      const challengeWon = !this.gameState.isChallengeFailed
       this.gameState.isCompleted = true
       if (this.timerId !== -1) {
         clearInterval(this.timerId)
         this.timerId = -1
       }
       clearSave(getContext(this))
-      // 记录胜利统计
-      recordGameWon(
-        getContext(this),
-        this.gameState.difficulty,
-        this.gameState.elapsedSeconds,
-        this.gameState.errorCount
-      )
+      if (challengeWon) {
+        // 记录胜利统计
+        recordGameWon(
+          getContext(this),
+          this.gameState.difficulty,
+          this.gameState.elapsedSeconds,
+          this.gameState.errorCount
+        )
+      }
       // 记录到历史记录（含种子和每步操作）
       const record = new GameRecord()
       record.seedId = encodeSeedId(
@@ -1125,7 +1339,7 @@ struct GamePage {
       record.timeSeconds = this.gameState.elapsedSeconds
       record.errors = this.gameState.errorCount
       record.stepCount = this.history.undoStack.length
-      record.won = true
+      record.won = challengeWon
       record.timestamp = Date.now()
       record.steps = this.history.undoStack.slice() // 复制一份
       addGameRecord(getContext(this), record)
@@ -1306,6 +1520,12 @@ struct GamePage {
     setTimeout(() => {
       try {
         const board = this.buildCurrentBoard()
+        // Killer 模式下设置活跃笼子以启用笼子约束提示
+        if (this.currentVariantType === VariantType.KILLER && this.killerCages.length > 0) {
+          setActiveCages(this.killerCages)
+        } else {
+          clearActiveCages()
+        }
         const hint = getNextHint(board)
 
         if (hint !== null && hint.digit !== 0) {
@@ -1418,7 +1638,7 @@ struct GamePage {
   private focusHintCell(index: number): void {
     this.hintFocusIndex = index
     this.gameState.selectedIndex = index
-    updateHighlights(this.gameState.cells, this.gameState.selectedIndex)
+    this.syncSelectionVisuals()
     setTimeout(() => {
       if (this.hintFocusIndex === index) {
         this.hintFocusIndex = -1
@@ -1589,7 +1809,9 @@ struct GamePage {
    */
   private showCompletionDialog(): void {
     const ctx = getContext(this)
-    const congrats = ctx.resourceManager.getStringByNameSync('dialog_congrats_title')
+    const congrats = this.gameState.isChallengeFailed
+      ? ctx.resourceManager.getStringByNameSync('dialog_completed_failed_title')
+      : ctx.resourceManager.getStringByNameSync('dialog_congrats_title')
     const timeLabel = ctx.resourceManager.getStringByNameSync('dialog_congrats_time')
     const errLabel = ctx.resourceManager.getStringByNameSync('dialog_congrats_errors')
     const unit = ctx.resourceManager.getStringByNameSync('dialog_congrats_unit')
@@ -1695,6 +1917,7 @@ struct GamePage {
           onCopyPuzzle: () => this.copyPuzzle81(),
           onResume: () => this.togglePause(),
           onRestart: () => this.restartGame(),
+          onHelp: () => { this.showGestureGuide = true },
           onQuit: () => this.quitGame(),
         })
       }

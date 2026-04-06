@@ -1,5 +1,6 @@
-import { GRID_SIZE, TOTAL_CELLS } from '../constants/GameConstants'
+import { Colors, GRID_SIZE, TOTAL_CELLS } from '../constants/GameConstants'
 import { KillerCage } from './VariantConfig'
+import { isOnAntiDiagonal, isOnMainDiagonal } from '../utils/VariantTopology'
 
 const KILLER_CAGE_BORDER_WIDTH = 1.5
 const JIGSAW_REGION_BORDER_WIDTH = 2
@@ -29,10 +30,15 @@ export class CellDecorationBorder {
 export class BoardCellDecoration {
   topLeftLabel: string = ''
   border: CellDecorationBorder = new CellDecorationBorder()
+  backgroundColor: string = ''
+  highlightBackgroundColor: string = ''
 
-  constructor(topLeftLabel: string = '', border: CellDecorationBorder = new CellDecorationBorder()) {
+  constructor(topLeftLabel: string = '', border: CellDecorationBorder = new CellDecorationBorder(),
+    backgroundColor: string = '', highlightBackgroundColor: string = '') {
     this.topLeftLabel = topLeftLabel
     this.border = border
+    this.backgroundColor = backgroundColor
+    this.highlightBackgroundColor = highlightBackgroundColor
   }
 }
 
@@ -129,6 +135,35 @@ export function buildJigsawBoardDecorations(regionMap: number[]): BoardCellDecor
     const bottom = row === GRID_SIZE - 1 || regionMap[cellIndex + GRID_SIZE] !== currentRegion
       ? JIGSAW_REGION_BORDER_WIDTH : 0
     decorations[cellIndex] = new BoardCellDecoration('', new CellDecorationBorder(left, top, right, bottom))
+  }
+
+  return decorations
+}
+
+/**
+ * 基于 Sudoku-X 对角线规则构建棋盘视觉装饰。
+ * 对角线格提供淡色底纹；当选中的格位于对角线上时，整条关联对角线使用更强高亮。
+ */
+export function buildDiagonalBoardDecorations(selectedIndex: number = -1): BoardCellDecoration[] {
+  const decorations = createEmptyBoardDecorations()
+  const hasSelectedCell = selectedIndex >= 0 && selectedIndex < TOTAL_CELLS
+  const selectedOnMain = hasSelectedCell && isOnMainDiagonal(selectedIndex, GRID_SIZE)
+  const selectedOnAnti = hasSelectedCell && isOnAntiDiagonal(selectedIndex, GRID_SIZE)
+
+  for (let cellIndex = 0; cellIndex < TOTAL_CELLS; cellIndex++) {
+    const onMain = isOnMainDiagonal(cellIndex, GRID_SIZE)
+    const onAnti = isOnAntiDiagonal(cellIndex, GRID_SIZE)
+    if (!onMain && !onAnti) {
+      continue
+    }
+
+    const isActive = (selectedOnMain && onMain) || (selectedOnAnti && onAnti)
+    decorations[cellIndex] = new BoardCellDecoration(
+      '',
+      new CellDecorationBorder(),
+      Colors.cellDiagonal,
+      isActive ? Colors.cellDiagonalHighlight : ''
+    )
   }
 
   return decorations

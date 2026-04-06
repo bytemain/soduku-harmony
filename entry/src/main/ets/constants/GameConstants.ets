@@ -64,6 +64,7 @@ export interface ColorsConfig {
   pageBg: string
   titleText: string
   subtitleText: string
+  systemBarContent: string
   primaryBtn: string
   primaryPressed: string
   primaryText: string
@@ -75,6 +76,8 @@ export interface ColorsConfig {
   cellBorderThin: string
   cellBorderBold: string
   cellDefault: string
+  cellDiagonal: string
+  cellDiagonalHighlight: string
   cellSelected: string
   cellHighlight: string
   cellSameNumber: string
@@ -115,6 +118,7 @@ export interface ColorsConfig {
   divider: string
   shadowColor: string
   shadowColorLight: string
+  modalOverlayMask: string
 
   // === 暂停遮罩 ===
   pauseOverlayBg: string
@@ -122,6 +126,7 @@ export interface ColorsConfig {
   pauseInfoCardBg: string
   pauseInfoText: string
   pauseRestartBtn: string
+  pauseHelpBtn: string
   pauseQuitBtn: string
 
   // === 多选提示条 ===
@@ -154,6 +159,7 @@ export const LightColors: ColorsConfig = {
   // === 标题 ===
   titleText: '#212121',
   subtitleText: '#9E9E9E',
+  systemBarContent: '#000000',
 
   // === 主按钮（开始游戏） ===
   primaryBtn: '#1976D2',
@@ -173,6 +179,8 @@ export const LightColors: ColorsConfig = {
 
   // === 格子背景（高亮系统） ===
   cellDefault: '#FFFFFF',
+  cellDiagonal: '#F3E5F5',
+  cellDiagonalHighlight: '#E1BEE7',
   cellSelected: '#BBDEFB',
   cellHighlight: '#E3F2FD',
   cellSameNumber: '#C8E6C9',
@@ -229,6 +237,7 @@ export const LightColors: ColorsConfig = {
   divider: '#E0E0E0',
   shadowColor: '#1A000000',
   shadowColorLight: '#0D000000',
+  modalOverlayMask: '#00000099',
 
   // === 暂停遮罩 ===
   pauseOverlayBg: '#1B2838',
@@ -236,6 +245,7 @@ export const LightColors: ColorsConfig = {
   pauseInfoCardBg: '#FFFFFF00',
   pauseInfoText: '#B0BEC5',
   pauseRestartBtn: '#FF7043',
+  pauseHelpBtn: '#78909C',
   pauseQuitBtn: '#546E7A',
 
   // === 多选提示条 ===
@@ -268,6 +278,7 @@ export const DarkColors: ColorsConfig = {
   // === 标题 ===
   titleText: '#E0E0E0',
   subtitleText: '#9E9E9E',
+  systemBarContent: '#FFFFFF',
 
   // === 主按钮（开始游戏） ===
   primaryBtn: '#42A5F5',
@@ -282,11 +293,13 @@ export const DarkColors: ColorsConfig = {
 
   // === 棋盘 ===
   boardBg: '#1E1E1E',
-  cellBorderThin: '#424242',
+  cellBorderThin: '#616161',
   cellBorderBold: '#9E9E9E',
 
   // === 格子背景（高亮系统） ===
   cellDefault: '#1E1E1E',
+  cellDiagonal: '#2A2235',
+  cellDiagonalHighlight: '#3A2F52',
   cellSelected: '#1A3A5C',
   cellHighlight: '#1A2332',
   cellSameNumber: '#1B3B2A',
@@ -323,8 +336,8 @@ export const DarkColors: ColorsConfig = {
   diffHard: '#FFA726',
   diffExpert: '#FF9800',
   diffEvil: '#EF5350',
-  killerCageBorder: '#FFB74D',
-  killerCageLabel: '#FFCC80',
+  killerCageBorder: '#FFD180',
+  killerCageLabel: '#FFE0B2',
 
   // === 分段按钮 ===
   segmentBg: '#2A2A2A',
@@ -343,6 +356,7 @@ export const DarkColors: ColorsConfig = {
   divider: '#333333',
   shadowColor: '#40000000',
   shadowColorLight: '#20000000',
+  modalOverlayMask: '#000000B3',
 
   // === 暂停遮罩 ===
   pauseOverlayBg: '#0D1117',
@@ -350,6 +364,7 @@ export const DarkColors: ColorsConfig = {
   pauseInfoCardBg: '#FFFFFF00',
   pauseInfoText: '#8B949E',
   pauseRestartBtn: '#D84315',
+  pauseHelpBtn: '#455A64',
   pauseQuitBtn: '#30363D',
 
   // === 多选提示条 ===

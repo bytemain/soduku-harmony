@@ -41,6 +41,7 @@ export default function gameStateTest() {
       expect(gs.difficulty).assertEqual(Difficulty.EASY)
       expect(gs.elapsedSeconds).assertEqual(0)
       expect(gs.errorCount).assertEqual(0)
+      expect(gs.isChallengeFailed).assertFalse()
       expect(gs.isCompleted).assertFalse()
       expect(gs.isPaused).assertFalse()
     })
@@ -55,6 +56,7 @@ export default function gameStateTest() {
       expect(gs.selectedIndex).assertEqual(-1)
       expect(gs.elapsedSeconds).assertEqual(0)
       expect(gs.errorCount).assertEqual(0)
+      expect(gs.isChallengeFailed).assertFalse()
 
       // 检查 solution 转一维
       expect(gs.solution[0]).assertEqual(4)  // (0,0)
@@ -155,6 +157,13 @@ export default function gameStateTest() {
       gs.tick()
       expect(gs.elapsedSeconds).assertEqual(0)
     })
+
+    it('tick_failed_challenge_still_timing', 0, () => {
+      const gs = new GameState()
+      gs.isChallengeFailed = true
+      gs.tick()
+      expect(gs.elapsedSeconds).assertEqual(1)
+    })
   })
 
   describe('GameState.HelperMethods', () => {
@@ -188,6 +197,7 @@ export default function gameStateTest() {
       gs.cells[0].value = 4 // (0,0) 是空格
       gs.elapsedSeconds = 100
       gs.errorCount = 2
+      gs.isChallengeFailed = true
       gs.selectedIndex = 10
 
       gs.resetGame()
@@ -202,6 +212,7 @@ export default function gameStateTest() {
       // 状态重置
       expect(gs.elapsedSeconds).assertEqual(0)
       expect(gs.errorCount).assertEqual(0)
+      expect(gs.isChallengeFailed).assertFalse()
       expect(gs.selectedIndex).assertEqual(-1)
       expect(gs.isCompleted).assertFalse()
     })

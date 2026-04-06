@@ -7,7 +7,7 @@ import {
   STANDARD_CONFIG, buildStandardRegionMap, getRegionMap,
 } from '../main/ets/models/VariantConfig'
 import { buildJigsawBoardDecorations, buildKillerBoardDecorations } from '../main/ets/models/BoardDecoration'
-import { buildKillerCagesFromSolution, createDefaultKillerLayout, normalizeVariantType } from '../main/ets/utils/KillerSudoku'
+import { buildKillerCagesFromSolution, generateRandomCageLayout, normalizeVariantType } from '../main/ets/utils/KillerSudoku'
 
 export default function variantConfigTest() {
   describe('VariantConfig.GridPresets', () => {
@@ -240,8 +240,8 @@ export default function variantConfigTest() {
       expect(normalizeVariantType('unknown')).assertEqual(VariantType.STANDARD)
     })
 
-    it('createDefaultKillerLayout_covers_all_81_cells', 0, () => {
-      const cages = createDefaultKillerLayout()
+    it('generateRandomCageLayout_covers_all_81_cells', 0, () => {
+      const cages = generateRandomCageLayout()
       const hitCount: number[] = new Array(81).fill(0)
       for (const cage of cages) {
         for (const cellIndex of cage.cells) {
@@ -249,9 +249,48 @@ export default function variantConfigTest() {
         }
       }
 
-      expect(cages.length).assertEqual(27)
+      expect(cages.length > 0).assertTrue()
       for (const count of hitCount) {
         expect(count).assertEqual(1)
+      }
+    })
+
+    it('generateRandomCageLayout_cages_are_connected', 0, () => {
+      const cages = generateRandomCageLayout()
+      for (const cage of cages) {
+        // 每个笼子的格子应通过正交邻接连通
+        if (cage.cells.length <= 1) continue
+        const visited = new Set<number>()
+        const queue: number[] = [cage.cells[0]]
+        visited.add(cage.cells[0])
+        const cellSet = new Set<number>(cage.cells)
+
+        while (queue.length > 0) {
+          const current = queue.pop()!
+          const row = Math.floor(current / 9)
+          const col = current % 9
+          const neighbors = [
+            row > 0 ? current - 9 : -1,
+            row < 8 ? current + 9 : -1,
+            col > 0 ? current - 1 : -1,
+            col < 8 ? current + 1 : -1,
+          ]
+          for (const nb of neighbors) {
+            if (nb >= 0 && cellSet.has(nb) && !visited.has(nb)) {
+              visited.add(nb)
+              queue.push(nb)
+            }
+          }
+        }
+        expect(visited.size).assertEqual(cage.cells.length)
+      }
+    })
+
+    it('generateRandomCageLayout_cage_sizes_within_bounds', 0, () => {
+      const cages = generateRandomCageLayout()
+      for (const cage of cages) {
+        expect(cage.cells.length >= 1).assertTrue()
+        expect(cage.cells.length <= 5).assertTrue()
       }
     })
 
@@ -263,11 +302,15 @@ export default function variantConfigTest() {
         }
       }
 
-      const cages = buildKillerCagesFromSolution(solution)
-      expect(cages.length).assertEqual(27)
-      expect(cages[0].cells[0]).assertEqual(0)
-      expect(cages[0].cells[1]).assertEqual(1)
-      expect(cages[0].sum).assertEqual(solution[0] + solution[1])
+      const layout = generateRandomCageLayout()
+      const cages = buildKillerCagesFromSolution(solution, layout)
+      expect(cages.length).assertEqual(layout.length)
+      // 验证第一个笼子的和
+      let expectedSum = 0
+      for (const idx of cages[0].cells) {
+        expectedSum += solution[idx]
+      }
+      expect(cages[0].sum).assertEqual(expectedSum)
     })
 
     it('buildKillerBoardDecorations_uses_generic_decoration_model', 0, () => {

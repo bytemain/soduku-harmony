@@ -3,7 +3,7 @@ import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
 import { initHandDetection, stopHandDetection } from '../utils/HandDetector';
 import { loadSettings } from '../utils/SettingsStorage';
-import { applyTheme } from '../constants/GameConstants';
+import { Colors, applyTheme } from '../constants/GameConstants';
 
 const DOMAIN = 0x0000;
 
@@ -115,7 +115,7 @@ export default class EntryAbility extends UIAbility {
    * 深色模式下文字为白色，浅色模式下为黑色
    */
   private updateSystemBarStyle(windowClass: window.Window, isDark: boolean): void {
-    const contentColor = isDark ? '#FFFFFF' : '#000000';
+    const contentColor = Colors.systemBarContent;
     let sysBarProps: window.SystemBarProperties = {
       statusBarColor: '#00000000',
       navigationBarColor: '#00000000',

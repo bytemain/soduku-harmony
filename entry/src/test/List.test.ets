@@ -8,11 +8,14 @@ import generatorTest from './SudokuGenerator.test'
 import gameStateTest from './GameState.test'
 import logicSolverTest from './LogicSolver.test'
 import sudokuFormatTest from './SudokuFormat.test'
+import gameConstantsTest from './GameConstants.test'
 import variantConfigTest from './VariantConfig.test'
 import variantTopologyTest from './VariantTopology.test'
 import gameHistoryTest from './GameHistory.test'
 import puzzleLibraryStorageTest from './PuzzleLibraryStorage.test'
 import builtinPuzzleLibraryTest from './BuiltinPuzzleLibrary.test'
+import boardDecorationTest from './BoardDecoration.test'
+import killerSudokuTest from './KillerSudoku.test'
 
 export default function testsuite() {
   localUnitTest()
@@ -25,9 +28,12 @@ export default function testsuite() {
   gameStateTest()
   logicSolverTest()
   sudokuFormatTest()
+  gameConstantsTest()
   variantConfigTest()
   variantTopologyTest()
   gameHistoryTest()
   puzzleLibraryStorageTest()
   builtinPuzzleLibraryTest()
+  boardDecorationTest()
+  killerSudokuTest()
 }

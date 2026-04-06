@@ -225,6 +225,22 @@
       "value": "返回主页"
     },
     {
+      "name": "dialog_restart",
+      "value": "重新开始"
+    },
+    {
+      "name": "dialog_challenge_failed_title",
+      "value": "挑战失败"
+    },
+    {
+      "name": "dialog_challenge_failed_msg",
+      "value": "你已经累计 3 次错误，本局挑战已失败。你可以重新开始、返回主页，或关闭弹窗继续完成当前棋局。"
+    },
+    {
+      "name": "dialog_completed_failed_title",
+      "value": "题目已完成（挑战失败）"
+    },
+    {
       "name": "stats_title",
       "value": "游戏统计"
     },
@@ -409,6 +425,10 @@
       "value": "错误"
     },
     {
+      "name": "pause_help",
+      "value": "帮助"
+    },
+    {
       "name": "hint_direct_algorithm",
       "value": "逻辑步不足，已使用算法直算"
     },
@@ -451,6 +471,42 @@
     {
       "name": "guide_got_it",
       "value": "知道了"
+    },
+    {
+      "name": "guide_keyboard_title",
+      "value": "键盘快捷键"
+    },
+    {
+      "name": "guide_key_arrows",
+      "value": "方向键 → 移动选格"
+    },
+    {
+      "name": "guide_key_digits",
+      "value": "1-9 → 填入数字"
+    },
+    {
+      "name": "guide_key_delete",
+      "value": "Delete/0 → 擦除"
+    },
+    {
+      "name": "guide_key_note",
+      "value": "N/Tab → 切换笔记模式"
+    },
+    {
+      "name": "guide_key_undo_redo",
+      "value": "Z/Y → 撤销/重做"
+    },
+    {
+      "name": "guide_key_hint",
+      "value": "H → 提示"
+    },
+    {
+      "name": "guide_key_pause",
+      "value": "Space/P → 暂停"
+    },
+    {
+      "name": "guide_key_esc",
+      "value": "ESC → 关闭弹窗/暂停"
     },
     {
       "name": "settings_section_display",

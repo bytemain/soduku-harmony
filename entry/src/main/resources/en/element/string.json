@@ -177,6 +177,22 @@
       "value": "Back to Home"
     },
     {
+      "name": "dialog_restart",
+      "value": "Restart"
+    },
+    {
+      "name": "dialog_challenge_failed_title",
+      "value": "Challenge Failed"
+    },
+    {
+      "name": "dialog_challenge_failed_msg",
+      "value": "You have made 3 mistakes, so this challenge is failed. You can restart, go back home, or dismiss this dialog and keep solving the current board."
+    },
+    {
+      "name": "dialog_completed_failed_title",
+      "value": "Puzzle Completed (Challenge Failed)"
+    },
+    {
       "name": "stats_title",
       "value": "Statistics"
     },
@@ -361,6 +377,10 @@
       "value": "Errors"
     },
     {
+      "name": "pause_help",
+      "value": "Help"
+    },
+    {
       "name": "hint_direct_algorithm",
       "value": "No logical step found, used algorithm fallback"
     },
@@ -403,6 +423,42 @@
     {
       "name": "guide_got_it",
       "value": "Got it"
+    },
+    {
+      "name": "guide_keyboard_title",
+      "value": "Keyboard Shortcuts"
+    },
+    {
+      "name": "guide_key_arrows",
+      "value": "Arrow Keys → Navigate cells"
+    },
+    {
+      "name": "guide_key_digits",
+      "value": "1-9 → Fill number"
+    },
+    {
+      "name": "guide_key_delete",
+      "value": "Delete/0 → Erase"
+    },
+    {
+      "name": "guide_key_note",
+      "value": "N/Tab → Toggle note mode"
+    },
+    {
+      "name": "guide_key_undo_redo",
+      "value": "Z/Y → Undo/Redo"
+    },
+    {
+      "name": "guide_key_hint",
+      "value": "H → Hint"
+    },
+    {
+      "name": "guide_key_pause",
+      "value": "Space/P → Pause"
+    },
+    {
+      "name": "guide_key_esc",
+      "value": "ESC → Close overlay/Pause"
     },
     {
       "name": "settings_section_display",
