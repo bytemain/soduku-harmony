@@ -1,6 +1,6 @@
 import { router } from '@kit.ArkUI'
 import { Colors, Sizes, getDifficultyConfig, Difficulty } from '../constants/GameConstants'
-import { computeLibraryStats, PuzzleEntry, PuzzleLibrary, PuzzleStatus } from '../models/PuzzleLibrary'
+import { computeLibraryStats, LibraryStats, PuzzleEntry, PuzzleLibrary, PuzzleStatus } from '../models/PuzzleLibrary'
 import { getBuiltinPuzzleEntriesWithProgress, getBuiltinPuzzleLibraries } from '../utils/BuiltinPuzzleLibrary'
 import { clearSave, hasSavedGame } from '../utils/GameStorage'
 import { loadActivePuzzle, saveActivePuzzle, ActivePuzzlePointer } from '../utils/PuzzleLibraryStorage'
@@ -15,6 +15,7 @@ struct PuzzleLibraryPage {
   @State private selectedLibraryId: string = ''
   @State private puzzles: PuzzleEntry[] = []
   @State private activePuzzle: ActivePuzzlePointer | null = null
+  @State private libraryStats: LibraryStats = computeLibraryStats([])
 
   aboutToAppear(): void {
     this.libraries = getBuiltinPuzzleLibraries()
@@ -31,6 +32,7 @@ struct PuzzleLibraryPage {
   private switchLibrary(libraryId: string): void {
     this.selectedLibraryId = libraryId
     this.puzzles = getBuiltinPuzzleEntriesWithProgress(getContext(this), libraryId)
+    this.libraryStats = computeLibraryStats(this.puzzles)
   }
 
   private getSelectedLibrary(): PuzzleLibrary | null {
@@ -66,6 +68,12 @@ struct PuzzleLibraryPage {
     })
   }
 
+  private isActivePuzzle(puzzle: PuzzleEntry): boolean {
+    return this.activePuzzle !== null &&
+      this.activePuzzle.libraryId === this.selectedLibraryId &&
+      this.activePuzzle.puzzleIndex === puzzle.index
+  }
+
   @Builder
   LibraryChip(library: PuzzleLibrary) {
     const isActive = this.selectedLibraryId === library.id
@@ -90,9 +98,7 @@ struct PuzzleLibraryPage {
 
   @Builder
   PuzzleCard(puzzle: PuzzleEntry) {
-    const isActivePuzzle = this.activePuzzle !== null &&
-      this.activePuzzle.libraryId === this.selectedLibraryId &&
-      this.activePuzzle.puzzleIndex === puzzle.index
+    const isActivePuzzle = this.isActivePuzzle(puzzle)
     const difficulty = puzzle.difficulty ?? Difficulty.EASY
     const difficultyConfig = getDifficultyConfig(difficulty)
     Row() {
@@ -147,7 +153,7 @@ struct PuzzleLibraryPage {
 
   build() {
     const selectedLibrary = this.getSelectedLibrary()
-    const stats = computeLibraryStats(this.puzzles)
+    const stats = this.libraryStats
 
     Column() {
       Row() {
@@ -254,4 +260,3 @@ struct PuzzleLibraryPage {
     .expandSafeArea([SafeAreaType.SYSTEM, SafeAreaType.CUTOUT], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
   }
 }
-
