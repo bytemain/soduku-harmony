@@ -8,6 +8,7 @@
  */
 import { router } from '@kit.ArkUI'
 import { Colors, Sizes, Difficulty, getDifficultyConfig } from '../constants/GameConstants'
+import { computeStarDisplay } from '../utils/Common'
 import {
   PuzzleLibrary,
   PuzzleEntry,
@@ -276,7 +277,7 @@ struct PuzzleLibraryPage {
           ListItem() {
             this.buildLibraryCard(library)
           }
-        })
+        }, (library: PuzzleLibrary) => library.id)
       }
       .width('100%')
       .layoutWeight(1)
@@ -387,7 +388,7 @@ struct PuzzleLibraryPage {
           ListItem() {
             this.buildPuzzleCard(puzzle)
           }
-        })
+        }, (puzzle: PuzzleEntry) => `${puzzle.index}`)
       }
       .width('100%')
       .layoutWeight(1)
@@ -503,27 +504,4 @@ struct PuzzleLibraryPage {
   private getStarRating(elapsedSeconds: number, errorCount: number): string {
     return computeStarDisplay(elapsedSeconds, errorCount)
   }
-}
-
-/**
- * 计算星级评价（3 星制）
- * 规则：
- * - 3 星：用时 < 5 分钟且错误 < 2
- * - 2 星：用时 < 10 分钟且错误 < 5
- * - 1 星：完成即得
- */
-export function computeStarCount(elapsedSeconds: number, errorCount: number): number {
-  if (elapsedSeconds < 300 && errorCount < 2) return 3
-  if (elapsedSeconds < 600 && errorCount < 5) return 2
-  return 1
-}
-
-/**
- * 星级评价显示
- */
-export function computeStarDisplay(elapsedSeconds: number, errorCount: number): string {
-  const stars = computeStarCount(elapsedSeconds, errorCount)
-  if (stars === 3) return '★★★'
-  if (stars === 2) return '★★☆'
-  return '★☆☆'
 }

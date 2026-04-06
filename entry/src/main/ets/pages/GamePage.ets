@@ -46,6 +46,10 @@ import { saveSettings } from '../utils/SettingsStorage'
 import { buildKillerCagesFromSolution, generateRandomCageLayout, normalizeVariantType } from '../utils/KillerSudoku'
 import { createKillerConfig } from '../models/VariantConfig'
 import { hilog } from '@kit.PerformanceAnalysisKit'
+import { saveProgress } from '../utils/PuzzleLibraryStorage'
+import { loadBuiltinPuzzles } from '../utils/BuiltinPuzzleLibrary'
+import { computeStarDisplay } from '../utils/Common'
+import { PuzzleProgress, createDefaultProgress } from '../models/PuzzleLibrary'
 
 interface GamePageParams {
   difficulty?: Difficulty
@@ -59,6 +63,10 @@ interface GamePageParams {
   gridSize?: number
   /** 变种类型 (standard/diagonal/jigsaw/killer)，默认 standard */
   variantType?: string
+  /** 来自题库的 ID（选关模式） */
+  libraryId?: string
+  /** 题库中的题目索引（选关模式） */
+  puzzleIndex?: number
 }
 
 interface LoadingAttemptInfo {
@@ -125,6 +133,10 @@ struct GamePage {
   @State private keypadSelectedDigit: number = 0
   /** 键盘笔记模式：按 N 切换，数字键在笔记/填数之间切换 */
   @State private isNoteMode: boolean = false
+  /** 题库 ID（选关模式时非空） */
+  private libraryId: string | undefined = undefined
+  /** 题库中的题目索引（选关模式时非负） */
+  private puzzleIndex: number = -1
   private multiSelectIndices: Set<number> = new Set()
   /** 鼠标是否正在拖拽选择 */
   private isMouseDragging: boolean = false
@@ -250,6 +262,10 @@ struct GamePage {
     const gridSize = params?.gridSize ?? 9
     const variantTypeRaw = params?.variantType ?? VariantType.STANDARD
     const variantType = normalizeVariantType(variantTypeRaw)
+
+    // 选关模式参数
+    this.libraryId = params?.libraryId
+    this.puzzleIndex = params?.puzzleIndex ?? -1
 
     // 应用棋盘大小配置
     const gridConfig = getGridConfigBySize(gridSize)
@@ -1343,6 +1359,10 @@ struct GamePage {
       record.timestamp = Date.now()
       record.steps = this.history.undoStack.slice() // 复制一份
       addGameRecord(getContext(this), record)
+      // 选关模式：回写题库进度
+      if (this.libraryId && this.puzzleIndex >= 0) {
+        this.saveLibraryProgress(challengeWon)
+      }
       // 完成庆祝动画：棋盘弹跳 → 弹窗
       this.playCompletionAnimation()
       return // 游戏完成，已 clearSave，不再持久化
@@ -1805,6 +1825,63 @@ struct GamePage {
   }
 
   /**
+   * 选关模式：保存题库进度
+   */
+  private saveLibraryProgress(challengeWon: boolean): void {
+    if (!this.libraryId || this.puzzleIndex < 0) return
+    const progress = createDefaultProgress()
+    progress.status = challengeWon ? 'completed' : 'in_progress'
+    progress.completedAt = challengeWon ? Date.now() : undefined
+    progress.elapsedSeconds = this.gameState.elapsedSeconds
+    progress.errorCount = this.gameState.errorCount
+    progress.percentage = challengeWon ? 100 : 0
+    saveProgress(getContext(this), this.libraryId, this.puzzleIndex, progress)
+  }
+
+  /**
+   * 选关模式：加载下一关
+   */
+  private loadNextPuzzle(): void {
+    if (!this.libraryId) return
+    const nextIndex = this.puzzleIndex + 1
+    const puzzles = loadBuiltinPuzzles(this.libraryId)
+    if (nextIndex >= puzzles.length) {
+      // 已是最后一题，返回题库
+      router.back()
+      return
+    }
+    const nextPuzzle = puzzles[nextIndex]
+    router.replaceUrl({
+      url: 'pages/GamePage',
+      params: {
+        importedPuzzle: nextPuzzle.puzzle81,
+        importedDifficulty: nextPuzzle.difficulty,
+        libraryId: this.libraryId,
+        puzzleIndex: nextIndex,
+      },
+    })
+  }
+
+  /**
+   * 选关模式：重玩当前题目
+   */
+  private replayCurrentPuzzle(): void {
+    if (!this.libraryId) return
+    const puzzles = loadBuiltinPuzzles(this.libraryId)
+    if (this.puzzleIndex >= puzzles.length) return
+    const puzzle = puzzles[this.puzzleIndex]
+    router.replaceUrl({
+      url: 'pages/GamePage',
+      params: {
+        importedPuzzle: puzzle.puzzle81,
+        importedDifficulty: puzzle.difficulty,
+        libraryId: this.libraryId,
+        puzzleIndex: this.puzzleIndex,
+      },
+    })
+  }
+
+  /**
    * 完成弹窗
    */
   private showCompletionDialog(): void {
@@ -1816,6 +1893,33 @@ struct GamePage {
     const errLabel = ctx.resourceManager.getStringByNameSync('dialog_congrats_errors')
     const unit = ctx.resourceManager.getStringByNameSync('dialog_congrats_unit')
     const backHome = ctx.resourceManager.getStringByNameSync('dialog_back_home')
+
+    // 选关模式：增强的完成弹窗
+    if (this.libraryId && this.puzzleIndex >= 0) {
+      const stars = computeStarDisplay(this.gameState.elapsedSeconds, this.gameState.errorCount)
+      const msg = `${stars}\n\n${timeLabel}: ${this.gameState.formattedTime}\n${errLabel}: ${this.gameState.errorCount}${unit ? ' ' + unit : ''}`
+      const nextLabel = ctx.resourceManager.getStringByNameSync('dialog_next_puzzle')
+      const returnLabel = ctx.resourceManager.getStringByNameSync('dialog_return_library')
+      AlertDialog.show({
+        title: congrats,
+        message: msg,
+        primaryButton: {
+          value: returnLabel,
+          action: () => {
+            router.back()
+          },
+        },
+        secondaryButton: {
+          value: nextLabel,
+          action: () => {
+            this.loadNextPuzzle()
+          },
+        },
+      })
+      return
+    }
+
+    // 普通模式：原有弹窗
     const msg = `${timeLabel}: ${this.gameState.formattedTime}, ${errLabel}: ${this.gameState.errorCount}${unit ? ' ' + unit : ''}`
     AlertDialog.show({
       title: congrats,
