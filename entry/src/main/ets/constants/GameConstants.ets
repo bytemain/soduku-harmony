@@ -126,6 +126,7 @@ export interface ColorsConfig {
   pauseInfoCardBg: string
   pauseInfoText: string
   pauseRestartBtn: string
+  pauseHelpBtn: string
   pauseQuitBtn: string
 
   // === 多选提示条 ===
@@ -244,6 +245,7 @@ export const LightColors: ColorsConfig = {
   pauseInfoCardBg: '#FFFFFF00',
   pauseInfoText: '#B0BEC5',
   pauseRestartBtn: '#FF7043',
+  pauseHelpBtn: '#78909C',
   pauseQuitBtn: '#546E7A',
 
   // === 多选提示条 ===
@@ -362,6 +364,7 @@ export const DarkColors: ColorsConfig = {
   pauseInfoCardBg: '#FFFFFF00',
   pauseInfoText: '#8B949E',
   pauseRestartBtn: '#D84315',
+  pauseHelpBtn: '#455A64',
   pauseQuitBtn: '#30363D',
 
   // === 多选提示条 ===
