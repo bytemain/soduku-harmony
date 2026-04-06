@@ -580,10 +580,7 @@ struct GamePage {
     // 页面隐藏时保存（含切后台），确保 flush() 有时间写入磁盘
     if (!this.gameState.isCompleted) {
       this.saveCurrentGame()
-      // 选关模式：同步回写进度到题库，让列表页能看到「进行中」
-      if (this.libraryId && this.puzzleIndex >= 0 && this.gameState.cells.length > 0) {
-        this.saveLibraryProgress(false)
-      }
+      this.saveLibraryProgressIfNeeded()
     }
   }
 
@@ -611,10 +608,7 @@ struct GamePage {
     // 保存游戏状态（已完成的不保存）
     if (!this.gameState.isCompleted) {
       this.saveCurrentGame()
-      // 选关模式：同步回写进度到题库
-      if (this.libraryId && this.puzzleIndex >= 0 && this.gameState.cells.length > 0) {
-        this.saveLibraryProgress(false)
-      }
+      this.saveLibraryProgressIfNeeded()
     }
   }
 
@@ -1880,6 +1874,15 @@ struct GamePage {
     setTimeout(() => {
       this.showCompletionDialog()
     }, 700)
+  }
+
+  /**
+   * 选关模式：页面隐藏/销毁时同步回写进度到题库，让列表页能看到「进行中」
+   */
+  private saveLibraryProgressIfNeeded(): void {
+    if (this.libraryId && this.puzzleIndex >= 0 && this.gameState.cells.length > 0) {
+      this.saveLibraryProgress(false)
+    }
   }
 
   /**

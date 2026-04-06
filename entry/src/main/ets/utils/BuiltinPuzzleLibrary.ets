@@ -255,7 +255,7 @@ const BUILTIN_LIBRARIES: BuiltinLibraryDef[] = [
     'builtin-minimal',
     '极简线索',
     '仅 17-22 条线索的谜题，考验深层逻辑推理能力',
-    Difficulty.EVIL,
+    Difficulty.EVIL, // 极少线索意味着需要大量高级技巧，与地狱级难度相当
     MINIMAL_PUZZLES,
   ),
   new BuiltinLibraryDef(
