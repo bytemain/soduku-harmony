@@ -1840,7 +1840,7 @@ struct GamePage {
       let filledCount = 0
       let totalEditable = 0
       for (const c of this.gameState.cells) {
-        const isGiven = (c.flags & 1) !== 0  // CellFlags.GIVEN = 1 << 0
+        const isGiven = (c.flags & CellFlags.GIVEN) !== 0
         if (!isGiven) {
           totalEditable++
           if (c.value !== 0) {
@@ -1854,46 +1854,39 @@ struct GamePage {
   }
 
   /**
-   * 选关模式：加载下一关
+   * 选关模式：导航到指定题目（复用逻辑）
    */
-  private loadNextPuzzle(): void {
+  private navigateToLibraryPuzzle(puzzleIndex: number): void {
     if (!this.libraryId) return
-    const nextIndex = this.puzzleIndex + 1
     const puzzles = loadLibraryPuzzles(getContext(this), this.libraryId)
-    if (nextIndex >= puzzles.length) {
-      // 已是最后一题，返回题库
+    if (puzzleIndex >= puzzles.length) {
       router.back()
       return
     }
-    const nextPuzzle = puzzles[nextIndex]
-    router.replaceUrl({
-      url: 'pages/GamePage',
-      params: {
-        importedPuzzle: nextPuzzle.puzzle81,
-        importedDifficulty: nextPuzzle.difficulty,
-        libraryId: this.libraryId,
-        puzzleIndex: nextIndex,
-      },
-    })
-  }
-
-  /**
-   * 选关模式：重玩当前题目
-   */
-  private replayCurrentPuzzle(): void {
-    if (!this.libraryId) return
-    const puzzles = loadLibraryPuzzles(getContext(this), this.libraryId)
-    if (this.puzzleIndex >= puzzles.length) return
-    const puzzle = puzzles[this.puzzleIndex]
+    const puzzle = puzzles[puzzleIndex]
     router.replaceUrl({
       url: 'pages/GamePage',
       params: {
         importedPuzzle: puzzle.puzzle81,
         importedDifficulty: puzzle.difficulty,
         libraryId: this.libraryId,
-        puzzleIndex: this.puzzleIndex,
+        puzzleIndex: puzzleIndex,
       },
     })
+  }
+
+  /**
+   * 选关模式：加载下一关
+   */
+  private loadNextPuzzle(): void {
+    this.navigateToLibraryPuzzle(this.puzzleIndex + 1)
+  }
+
+  /**
+   * 选关模式：重玩当前题目
+   */
+  private replayCurrentPuzzle(): void {
+    this.navigateToLibraryPuzzle(this.puzzleIndex)
   }
 
   /**
