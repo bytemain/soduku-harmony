@@ -421,6 +421,42 @@
       "value": "Got it"
     },
     {
+      "name": "guide_keyboard_title",
+      "value": "Keyboard Shortcuts"
+    },
+    {
+      "name": "guide_key_arrows",
+      "value": "Arrow Keys → Navigate cells"
+    },
+    {
+      "name": "guide_key_digits",
+      "value": "1-9 → Fill number"
+    },
+    {
+      "name": "guide_key_delete",
+      "value": "Delete/0 → Erase"
+    },
+    {
+      "name": "guide_key_note",
+      "value": "N/Tab → Toggle note mode"
+    },
+    {
+      "name": "guide_key_undo_redo",
+      "value": "Z/Y → Undo/Redo"
+    },
+    {
+      "name": "guide_key_hint",
+      "value": "H → Hint"
+    },
+    {
+      "name": "guide_key_pause",
+      "value": "Space/P → Pause"
+    },
+    {
+      "name": "guide_key_esc",
+      "value": "ESC → Close overlay/Pause"
+    },
+    {
       "name": "settings_section_display",
       "value": "Display"
     },

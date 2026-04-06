@@ -421,6 +421,42 @@
       "value": "知道了"
     },
     {
+      "name": "guide_keyboard_title",
+      "value": "键盘快捷键"
+    },
+    {
+      "name": "guide_key_arrows",
+      "value": "方向键 → 移动选格"
+    },
+    {
+      "name": "guide_key_digits",
+      "value": "1-9 → 填入数字"
+    },
+    {
+      "name": "guide_key_delete",
+      "value": "Delete/0 → 擦除"
+    },
+    {
+      "name": "guide_key_note",
+      "value": "N/Tab → 切换笔记模式"
+    },
+    {
+      "name": "guide_key_undo_redo",
+      "value": "Z/Y → 撤销/重做"
+    },
+    {
+      "name": "guide_key_hint",
+      "value": "H → 提示"
+    },
+    {
+      "name": "guide_key_pause",
+      "value": "Space/P → 暂停"
+    },
+    {
+      "name": "guide_key_esc",
+      "value": "ESC → 关闭弹窗/暂停"
+    },
+    {
       "name": "settings_section_display",
       "value": "显示"
     },
