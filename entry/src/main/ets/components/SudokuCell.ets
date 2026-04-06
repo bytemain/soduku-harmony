@@ -165,15 +165,29 @@ export struct SudokuCell {
 
   build() {
     Stack() {
+      // 背景层：所有 cell 统一画网格线（gridBorder=-1 的边画灰线，=0 的边不画）
+      Column()
+        .width('100%')
+        .height('100%')
+        .backgroundColor(this.getCellBgColor())
+        .border({
+          width: {
+            left: this.decoration.gridBorder.left < 0 ? Sizes.cellBorderThin : 0,
+            top: this.decoration.gridBorder.top < 0 ? Sizes.cellBorderThin : 0,
+            right: this.decoration.gridBorder.right < 0 ? Sizes.cellBorderThin : 0,
+            bottom: this.decoration.gridBorder.bottom < 0 ? Sizes.cellBorderThin : 0,
+          },
+          color: Colors.cellBorderThin,
+        })
+        .animation({ duration: 150 })
+
+      // 装饰边框层：在网格线之上叠加 cage/region 的彩色边框
       if (this.hasKillerBorder()) {
-        // 装饰边框层：用 padding + 子元素背景色实现，角落自然填充不断裂
-        // 外层铺装饰色，padding 在有边框的方向留出空间，内层填白色背景
         Column() {
           Column()
             .width('100%')
             .height('100%')
             .backgroundColor(this.getCellBgColor())
-            .animation({ duration: 150 })
         }
         .width('100%')
         .height('100%')
@@ -184,22 +198,6 @@ export struct SudokuCell {
           right: this.decoration.border.right,
           bottom: this.decoration.border.bottom,
         })
-      } else {
-        // 无装饰边框：普通背景 + 网格线
-        Column()
-          .width('100%')
-          .height('100%')
-          .backgroundColor(this.getCellBgColor())
-          .border({
-            width: {
-              left: this.decoration.gridBorder.left < 0 ? Sizes.cellBorderThin : 0,
-              top: this.decoration.gridBorder.top < 0 ? Sizes.cellBorderThin : 0,
-              right: this.decoration.gridBorder.right < 0 ? Sizes.cellBorderThin : 0,
-              bottom: this.decoration.gridBorder.bottom < 0 ? Sizes.cellBorderThin : 0,
-            },
-            color: Colors.cellBorderThin,
-          })
-          .animation({ duration: 150 })
       }
 
       // L 形内凹角补丁：两个正交方向都是同组但对角不是时，

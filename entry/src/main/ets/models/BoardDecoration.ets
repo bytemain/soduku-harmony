@@ -189,10 +189,17 @@ export function buildKillerBoardDecorations(cages: KillerCage[]): BoardCellDecor
     const bottom = row < GRID_SIZE - 1 && cageIndexByCell[cellIndex + GRID_SIZE] === cageIndex
       ? 0 : KILLER_CAGE_BORDER_WIDTH
     const border = new CellDecorationBorder(left, top, right, bottom)
-    // 笼子格的所有边都隐藏网格线：
-    // - 同笼相邻（border=0）：不需要任何分隔线
-    // - 笼子边界（border>0）：装饰边框替代网格线，不应叠加
-    const gridBorder = new CellDecorationBorder(0, 0, 0, 0)
+    // 网格线逐边控制：
+    // - 同笼相邻（border=0）：隐藏网格线（gridBorder=0），笼内不需要分隔
+    // - 笼子边界（border>0）：也隐藏网格线（gridBorder=0），装饰边框替代灰线
+    // - 不在笼内的邻居：保留默认灰线（gridBorder=-1）（不会走到这里）
+    const gridLeft = left > 0 ? 0 : (col > 0 && cageIndexByCell[cellIndex - 1] === cageIndex ? 0 : -1)
+    const gridTop = top > 0 ? 0 : (row > 0 && cageIndexByCell[cellIndex - GRID_SIZE] === cageIndex ? 0 : -1)
+    const gridRight = right > 0 ? 0 : (col < GRID_SIZE - 1 && cageIndexByCell[cellIndex + 1] === cageIndex
+      ? 0 : -1)
+    const gridBottom = bottom > 0 ? 0 : (row < GRID_SIZE - 1 &&
+      cageIndexByCell[cellIndex + GRID_SIZE] === cageIndex ? 0 : -1)
+    const gridBorder = new CellDecorationBorder(gridLeft, gridTop, gridRight, gridBottom)
     const cornerPatches = computeCornerPatches(cellIndex, cageIndexByCell, KILLER_CAGE_BORDER_WIDTH)
     const label = cage.cells.length > 0 && cage.cells[0] === cellIndex && cage.sum > 0
       ? cage.sum.toString() : ''
@@ -220,8 +227,14 @@ export function buildJigsawBoardDecorations(regionMap: number[]): BoardCellDecor
     const right = col === GRID_SIZE - 1 || regionMap[cellIndex + 1] !== currentRegion ? JIGSAW_REGION_BORDER_WIDTH : 0
     const bottom = row === GRID_SIZE - 1 || regionMap[cellIndex + GRID_SIZE] !== currentRegion
       ? JIGSAW_REGION_BORDER_WIDTH : 0
-    // 宫格内所有边都隐藏网格线：装饰边框替代网格线
-    const gridBorder = new CellDecorationBorder(0, 0, 0, 0)
+    // 网格线逐边控制：同宫相邻隐藏，边界侧装饰替代灰线
+    const gridLeft = left > 0 ? 0 : (col > 0 && regionMap[cellIndex - 1] === currentRegion ? 0 : -1)
+    const gridTop = top > 0 ? 0 : (row > 0 && regionMap[cellIndex - GRID_SIZE] === currentRegion ? 0 : -1)
+    const gridRight = right > 0 ? 0 :
+      (col < GRID_SIZE - 1 && regionMap[cellIndex + 1] === currentRegion ? 0 : -1)
+    const gridBottom = bottom > 0 ? 0 :
+      (row < GRID_SIZE - 1 && regionMap[cellIndex + GRID_SIZE] === currentRegion ? 0 : -1)
+    const gridBorder = new CellDecorationBorder(gridLeft, gridTop, gridRight, gridBottom)
     const cornerPatches = computeCornerPatches(cellIndex, regionMap, JIGSAW_REGION_BORDER_WIDTH)
     decorations[cellIndex] = new BoardCellDecoration('', new CellDecorationBorder(left, top, right, bottom),
       '', '', gridBorder, cornerPatches)

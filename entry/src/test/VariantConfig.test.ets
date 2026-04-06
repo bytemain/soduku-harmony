@@ -324,15 +324,17 @@ export default function variantConfigTest() {
     })
 
     it('buildKillerBoardDecorations_suppresses_grid_lines_for_cage_cells', 0, () => {
-      // 笼子格的所有边都隐藏网格线：同笼相邻侧不需要分隔，笼子边界侧由装饰边框替代
+      // 笼子格：同笼相邻侧隐藏网格线，笼子边界侧也隐藏（装饰边框替代）
+      // 但如果邻居是不同 cage 或不在 cage 中，保留灰色网格线
       const cage: KillerCage = { cells: [0, 1, 2], sum: 6 }
       const decorations = buildKillerBoardDecorations([cage])
-      // cell 0: 所有边网格线都被隐藏
+      // cell 0 (row0,col0): left=border(边界), top=border(边界), right=同笼(cell1), bottom=border(cell9不在笼)
+      // gridBorder: left=0(边框替代), top=0(边框替代), right=0(同笼), bottom=-1(邻居不在笼→保留灰线)
       expect(decorations[0].gridBorder.left).assertEqual(0)
-      expect(decorations[0].gridBorder.right).assertEqual(0)
       expect(decorations[0].gridBorder.top).assertEqual(0)
-      expect(decorations[0].gridBorder.bottom).assertEqual(0)
-      // cell 1: 所有边网格线都被隐藏
+      expect(decorations[0].gridBorder.right).assertEqual(0)
+      expect(decorations[0].gridBorder.bottom).assertEqual(-1)
+      // cell 1 (row0,col1): left=同笼(cell0), right=同笼(cell2)
       expect(decorations[1].gridBorder.left).assertEqual(0)
       expect(decorations[1].gridBorder.right).assertEqual(0)
       // 不属于任何笼子的格子保持默认网格线
