@@ -855,6 +855,82 @@
     {
       "name": "variant_coming_soon",
       "value": "Coming Soon"
+    },
+    {
+      "name": "tab_library",
+      "value": "Library"
+    },
+    {
+      "name": "library_title",
+      "value": "Puzzle Library"
+    },
+    {
+      "name": "library_tab_builtin",
+      "value": "Built-in"
+    },
+    {
+      "name": "library_tab_imported",
+      "value": "Imported"
+    },
+    {
+      "name": "library_progress_format",
+      "value": "%d/%d"
+    },
+    {
+      "name": "library_empty_hint",
+      "value": "No puzzle libraries yet, loading..."
+    },
+    {
+      "name": "library_filter_all",
+      "value": "All"
+    },
+    {
+      "name": "library_filter_new",
+      "value": "New"
+    },
+    {
+      "name": "library_filter_in_progress",
+      "value": "In Progress"
+    },
+    {
+      "name": "library_filter_completed",
+      "value": "Completed"
+    },
+    {
+      "name": "library_puzzle_new",
+      "value": "New"
+    },
+    {
+      "name": "library_puzzle_in_progress",
+      "value": "In Progress"
+    },
+    {
+      "name": "library_puzzle_completed",
+      "value": "Completed"
+    },
+    {
+      "name": "dialog_next_puzzle",
+      "value": "Next Puzzle"
+    },
+    {
+      "name": "dialog_replay",
+      "value": "Replay"
+    },
+    {
+      "name": "dialog_return_library",
+      "value": "Return to Library"
+    },
+    {
+      "name": "victory_star_rating",
+      "value": "Rating"
+    },
+    {
+      "name": "victory_time_label",
+      "value": "Time"
+    },
+    {
+      "name": "victory_errors_label",
+      "value": "Errors"
     }
   ]
 }

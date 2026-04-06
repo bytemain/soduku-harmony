@@ -855,6 +855,82 @@
     {
       "name": "variant_coming_soon",
       "value": "即将推出"
+    },
+    {
+      "name": "tab_library",
+      "value": "题库"
+    },
+    {
+      "name": "library_title",
+      "value": "题库"
+    },
+    {
+      "name": "library_tab_builtin",
+      "value": "内置题库"
+    },
+    {
+      "name": "library_tab_imported",
+      "value": "已导入"
+    },
+    {
+      "name": "library_progress_format",
+      "value": "%d/%d"
+    },
+    {
+      "name": "library_empty_hint",
+      "value": "暂无题库，内置题库加载中…"
+    },
+    {
+      "name": "library_filter_all",
+      "value": "全部"
+    },
+    {
+      "name": "library_filter_new",
+      "value": "未开始"
+    },
+    {
+      "name": "library_filter_in_progress",
+      "value": "进行中"
+    },
+    {
+      "name": "library_filter_completed",
+      "value": "已完成"
+    },
+    {
+      "name": "library_puzzle_new",
+      "value": "未开始"
+    },
+    {
+      "name": "library_puzzle_in_progress",
+      "value": "进行中"
+    },
+    {
+      "name": "library_puzzle_completed",
+      "value": "已完成"
+    },
+    {
+      "name": "dialog_next_puzzle",
+      "value": "下一关"
+    },
+    {
+      "name": "dialog_replay",
+      "value": "重玩"
+    },
+    {
+      "name": "dialog_return_library",
+      "value": "返回题库"
+    },
+    {
+      "name": "victory_star_rating",
+      "value": "评价"
+    },
+    {
+      "name": "victory_time_label",
+      "value": "用时"
+    },
+    {
+      "name": "victory_errors_label",
+      "value": "错误"
     }
   ]
 }
