@@ -46,8 +46,7 @@ import { saveSettings } from '../utils/SettingsStorage'
 import { buildKillerCagesFromSolution, generateRandomCageLayout, normalizeVariantType } from '../utils/KillerSudoku'
 import { createKillerConfig } from '../models/VariantConfig'
 import { hilog } from '@kit.PerformanceAnalysisKit'
-import { saveProgress } from '../utils/PuzzleLibraryStorage'
-import { loadBuiltinPuzzles } from '../utils/BuiltinPuzzleLibrary'
+import { saveProgress, loadLibraryPuzzles } from '../utils/PuzzleLibraryStorage'
 import { computeStarDisplay } from '../utils/Common'
 import { PuzzleProgress, createDefaultProgress } from '../models/PuzzleLibrary'
 
@@ -1834,7 +1833,23 @@ struct GamePage {
     progress.completedAt = challengeWon ? Date.now() : undefined
     progress.elapsedSeconds = this.gameState.elapsedSeconds
     progress.errorCount = this.gameState.errorCount
-    progress.percentage = challengeWon ? 100 : 0
+    // 计算实际完成百分比
+    if (challengeWon) {
+      progress.percentage = 100
+    } else {
+      let filledCount = 0
+      let totalEditable = 0
+      for (const c of this.gameState.cells) {
+        const isGiven = (c.flags & 1) !== 0  // CellFlags.GIVEN = 1 << 0
+        if (!isGiven) {
+          totalEditable++
+          if (c.value !== 0) {
+            filledCount++
+          }
+        }
+      }
+      progress.percentage = totalEditable > 0 ? Math.round((filledCount / totalEditable) * 100) : 0
+    }
     saveProgress(getContext(this), this.libraryId, this.puzzleIndex, progress)
   }
 
@@ -1844,7 +1859,7 @@ struct GamePage {
   private loadNextPuzzle(): void {
     if (!this.libraryId) return
     const nextIndex = this.puzzleIndex + 1
-    const puzzles = loadBuiltinPuzzles(this.libraryId)
+    const puzzles = loadLibraryPuzzles(getContext(this), this.libraryId)
     if (nextIndex >= puzzles.length) {
       // 已是最后一题，返回题库
       router.back()
@@ -1867,7 +1882,7 @@ struct GamePage {
    */
   private replayCurrentPuzzle(): void {
     if (!this.libraryId) return
-    const puzzles = loadBuiltinPuzzles(this.libraryId)
+    const puzzles = loadLibraryPuzzles(getContext(this), this.libraryId)
     if (this.puzzleIndex >= puzzles.length) return
     const puzzle = puzzles[this.puzzleIndex]
     router.replaceUrl({
