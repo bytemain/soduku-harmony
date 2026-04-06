@@ -104,23 +104,30 @@ export struct CollapsibleSelector {
         .onClick(() => {
           if (this.expanded) {
             if (!option.enabled) return
-            // 展开态：先切高亮，再折叠
             if (this.onExpandChange) {
               this.onExpandChange(false)
             }
-            animateTo({
-              duration: 200, curve: Curve.EaseOut,
-              onFinish: () => {
-                animateTo({ duration: 300, curve: Curve.EaseInOut }, () => {
-                  this.expanded = false
-                })
-              }
-            }, () => {
-              this.selectedKey = option.key
-              if (this.onChange) {
-                this.onChange(option.key)
-              }
-            })
+            if (option.key === this.selectedKey) {
+              // 展开态点击当前选中项：直接折叠，无需切高亮
+              animateTo({ duration: 300, curve: Curve.EaseInOut }, () => {
+                this.expanded = false
+              })
+            } else {
+              // 展开态点击其他项：先切高亮，再折叠
+              animateTo({
+                duration: 200, curve: Curve.EaseOut,
+                onFinish: () => {
+                  animateTo({ duration: 300, curve: Curve.EaseInOut }, () => {
+                    this.expanded = false
+                  })
+                }
+              }, () => {
+                this.selectedKey = option.key
+                if (this.onChange) {
+                  this.onChange(option.key)
+                }
+              })
+            }
           } else if (this.selectedKey === option.key) {
             // 折叠态：点击选中项 → 展开
             if (this.onExpandChange) {
