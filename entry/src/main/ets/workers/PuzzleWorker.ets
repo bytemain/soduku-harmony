@@ -36,9 +36,14 @@ const workerPort: ThreadWorkerGlobalScope = worker.workerPort
 let lastSentPhase: string = ''
 let lastSentProgress: number = -1
 
+/** 变种模式的最大尝试次数（变种拓扑使求解更慢，减少重试以避免长时间卡住） */
+const VARIANT_MAX_ATTEMPTS = 5
+/** 标准模式的最大尝试次数 */
+const STANDARD_MAX_ATTEMPTS = 20
+
 function postProgress(phase: string, progress: number, attempt?: number, totalAttempts?: number): void {
-  // Throttle: only send when phase changes or progress changes by >= 2 points
-  if (phase === lastSentPhase && Math.abs(progress - lastSentProgress) < 2) {
+  // Throttle: only send when phase changes or progress changes by >= 1 point
+  if (phase === lastSentPhase && Math.abs(progress - lastSentProgress) < 1) {
     return
   }
 
@@ -70,9 +75,10 @@ function createProgressCallback(): GenerationProgressCallback {
   }
 }
 
-function generateVariantPuzzle(difficulty: Difficulty, symmetry?: Symmetry) {
+function generateVariantPuzzle(difficulty: Difficulty, variantType: string, symmetry?: Symmetry) {
   const progressCallback = createProgressCallback()
-  return generatePuzzle(difficulty, symmetry, progressCallback)
+  const maxAttempts = variantType === VariantType.STANDARD ? STANDARD_MAX_ATTEMPTS : VARIANT_MAX_ATTEMPTS
+  return generatePuzzle(difficulty, symmetry, progressCallback, maxAttempts)
 }
 
 function generateVariantPuzzleFromSeed(seed: number, difficulty: Difficulty, symmetry: Symmetry) {
@@ -112,7 +118,7 @@ workerPort.onmessage = (e: MessageEvents): void => {
       const difficulty = msg['difficulty'] as number as Difficulty
       const symmetryStr = msg['symmetry'] as string | undefined
       const symmetry = symmetryStr ? symmetryStr as Symmetry : undefined
-      const result = generateVariantPuzzle(difficulty, symmetry)
+      const result = generateVariantPuzzle(difficulty, variantType, symmetry)
 
       // Killer 模式：生成随机笼子并叠加拓扑
       let killerCagesData: object[] | null = null

@@ -20,6 +20,7 @@ import {
   SeededRandom,
 } from './Common'
 import { countSolutions } from './SudokuSolver'
+import { generateRandomSolution } from './SudokuSolver'
 import { evaluateDifficulty } from './DifficultyEvaluator'
 
 export enum Symmetry {
@@ -180,13 +181,26 @@ export function generateFullBoard(
   attempt?: number,
   totalAttempts?: number,
 ): number[][] {
+  const random = rng ?? new SeededRandom(randomSeed())
+
+  // 使用 Norvig 约束传播 + 随机 DFS 快速生成终盘
+  // 比朴素回溯快 10-100 倍，对 Jigsaw 等变种拓扑尤其显著
+  reportProgress(progressCallback, 'generating_solution', GENERATING_SOLUTION_START_PROGRESS, attempt, totalAttempts)
+  const result = generateRandomSolution(random)
+  reportProgress(progressCallback, 'generating_solution', GENERATING_SOLUTION_END_PROGRESS, attempt, totalAttempts)
+
+  if (result !== null) {
+    return result
+  }
+
+  // 极端情况下的回退（理论上不应触发，但防御性编程）
   const board = createEmptyGrid()
   const progressState = progressCallback ? new SolutionGenerationProgressState(
     progressCallback,
     attempt,
     totalAttempts,
   ) : undefined
-  fillBoard(board, rng ?? new SeededRandom(randomSeed()), progressState)
+  fillBoard(board, random, progressState)
   if (progressState !== undefined) {
     reportProgress(progressCallback, 'generating_solution', GENERATING_SOLUTION_END_PROGRESS, attempt, totalAttempts)
   }
@@ -402,9 +416,10 @@ export function generatePuzzle(
   difficulty: Difficulty,
   preferredSymmetry?: Symmetry,
   progressCallback?: GenerationProgressCallback,
+  maxAttemptsOverride?: number,
 ): GeneratedPuzzle {
   const config = getDifficultyConfig(difficulty)
-  const maxAttempts = 20
+  const maxAttempts = maxAttemptsOverride ?? 20
 
   // Wrap callback to produce globally monotonic progress across retries.
   // Uses exponential decay so early attempts get more progress range.

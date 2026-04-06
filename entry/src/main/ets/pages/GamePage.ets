@@ -134,6 +134,8 @@ struct GamePage {
   private history: GameHistory = new GameHistory()
   /** Worker 线程实例（用于异步生成谜题） */
   private puzzleWorker: worker.ThreadWorker | null = null
+  /** Worker 超时定时器，防止 Worker 加载失败后永远卡在 loading */
+  private workerTimeoutId: number = -1
 
   private syncUiPreferencesFromStorage(): void {
     this.showCoordinates = AppStorage.get<boolean>('showCoordinates') ?? false
@@ -345,8 +347,35 @@ struct GamePage {
     importedDifficulty: Difficulty | undefined,
     variantType: VariantType = VariantType.STANDARD,
   ): void {
-    const w = new worker.ThreadWorker('entry/ets/workers/PuzzleWorker.ets')
+    // 先销毁上一个 Worker（防止页面快速返回/重进时旧 Worker 未完全释放导致新 Worker 加载失败）
+    this.terminateWorker()
+
+    let w: worker.ThreadWorker
+    try {
+      w = new worker.ThreadWorker('entry/ets/workers/PuzzleWorker.ets')
+    } catch (e) {
+      hilog.error(0x0000, 'GamePage', 'Failed to create PuzzleWorker: %{public}s', String(e))
+      promptAction.showToast({ message: this.getString('generation_failed'), duration: 2000 })
+      router.back()
+      return
+    }
     this.puzzleWorker = w
+
+    // 活动超时：每次收到 Worker 进度消息都会重置计时器。
+    // 如果 60 秒内无任何进度更新，才视为 Worker 卡死。
+    const WORKER_ACTIVITY_TIMEOUT = 60_000
+    this.resetWorkerActivityTimeout(WORKER_ACTIVITY_TIMEOUT)
+
+    w.onexit = (code: number): void => {
+      hilog.info(0x0000, 'GamePage', 'Worker exited with code: %{public}d, isLoading=%{public}s',
+        code, String(this.isLoading))
+      // Worker 异常退出且仍在 loading 状态 → 视为失败
+      if (this.isLoading) {
+        promptAction.showToast({ message: this.getString('generation_failed'), duration: 2000 })
+        this.terminateWorker()
+        router.back()
+      }
+    }
 
     w.onmessage = (e: MessageEvents): void => {
       const msg = e.data as Record<string, Object>
@@ -360,6 +389,8 @@ struct GamePage {
         if (progress >= this.loadingProgress) {
           this.loadingProgress = progress
         }
+        // 收到进度 → Worker 仍活跃，重置活动超时
+        this.resetWorkerActivityTimeout(WORKER_ACTIVITY_TIMEOUT)
         return
       }
 
@@ -460,10 +491,30 @@ struct GamePage {
    * 安全销毁 Worker
    */
   private terminateWorker(): void {
+    if (this.workerTimeoutId !== -1) {
+      clearTimeout(this.workerTimeoutId)
+      this.workerTimeoutId = -1
+    }
     if (this.puzzleWorker) {
       this.puzzleWorker.terminate()
       this.puzzleWorker = null
     }
+  }
+
+  /**
+   * 重置 Worker 活动超时计时器。
+   * 每次收到 Worker 进度消息时调用，保证只有在 Worker 长时间完全无响应时才超时。
+   */
+  private resetWorkerActivityTimeout(timeoutMs: number): void {
+    if (this.workerTimeoutId !== -1) {
+      clearTimeout(this.workerTimeoutId)
+    }
+    this.workerTimeoutId = setTimeout(() => {
+      hilog.error(0x0000, 'GamePage', 'PuzzleWorker activity timeout: no progress for %{public}d ms', timeoutMs)
+      promptAction.showToast({ message: this.getString('generation_failed'), duration: 2000 })
+      this.terminateWorker()
+      router.back()
+    }, timeoutMs)
   }
 
   /**

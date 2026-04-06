@@ -12,6 +12,7 @@
  */
 import { GRID_SIZE, TOTAL_CELLS } from '../constants/GameConstants'
 import { PEERS, UNITS_OF } from './Topology'
+import { SeededRandom } from './Common'
 
 // ============================================================
 // 位图候选集工具
@@ -297,4 +298,90 @@ export function hasSolution(board: number[][]): boolean {
  */
 export function hasUniqueSolution(board: number[][]): boolean {
   return countSolutions(board, 2) === 1
+}
+
+// ============================================================
+// 随机终盘生成（Norvig 约束传播 + 随机 DFS）
+// ============================================================
+
+/**
+ * 随机搜索：约束传播 + DFS + MRV，候选尝试顺序随机化。
+ * 用于生成随机完整终盘，比 fillBoard 的朴素回溯快 10-100 倍。
+ *
+ * 与 search() 的唯一区别：每次分支时对候选数字做 Fisher-Yates 洗牌，
+ * 从而每次调用产生不同的随机终盘。
+ */
+function randomSearch(candidates: number[], rng: SeededRandom): number[] | null {
+  let allDetermined = true
+  let minCount = 10
+  let minIndex = -1
+
+  for (let i = 0; i < TOTAL_CELLS; i++) {
+    const cnt = countBits(candidates[i])
+    if (cnt > 1) {
+      allDetermined = false
+      if (cnt < minCount) {
+        minCount = cnt
+        minIndex = i
+      }
+    }
+  }
+
+  if (allDetermined) {
+    return candidates
+  }
+
+  // MRV：选候选最少的格子，随机打乱候选顺序
+  const nums = getCandidates(candidates[minIndex])
+  // Fisher-Yates shuffle with seeded RNG
+  for (let i = nums.length - 1; i > 0; i--) {
+    const j = rng.nextInt(i + 1)
+    const tmp = nums[i]
+    nums[i] = nums[j]
+    nums[j] = tmp
+  }
+
+  for (const d of nums) {
+    const copy = candidates.slice()
+    if (fill(copy, minIndex, d)) {
+      const result = randomSearch(copy, rng)
+      if (result !== null) {
+        return result
+      }
+    }
+  }
+
+  return null
+}
+
+/**
+ * 使用 Norvig 约束传播 + 随机 DFS 生成随机完整终盘。
+ *
+ * 核心优势：
+ *   - 约束传播（Naked Single + Hidden Single）在每次"猜测"后自动连锁推导，
+ *     大幅减少搜索空间。标准数独通常 0-5 次猜测即可填满。
+ *   - MRV 启发式选择候选最少的格子优先猜测，搜索树规模从指数级降到线性。
+ *   - 对 Jigsaw 等不规则拓扑尤其有效：朴素回溯可能需要数万次回退，
+ *     而约束传播利用 PEERS/UNITS_OF 一次性消除大量候选，通常 <100ms 完成。
+ *
+ * @param rng 可播种随机数生成器，保证同 seed 生成同一终盘
+ * @returns 完整终盘（9×9 二维数组）
+ */
+export function generateRandomSolution(rng: SeededRandom): number[][] | null {
+  // 全空棋盘 → 所有格子都是全候选
+  const candidates: number[] = new Array(TOTAL_CELLS).fill(allCandidatesMask())
+
+  const result = randomSearch(candidates, rng)
+  if (result === null) return null
+
+  // candidates → 二维数组
+  const board: number[][] = []
+  for (let r = 0; r < GRID_SIZE; r++) {
+    const row: number[] = []
+    for (let c = 0; c < GRID_SIZE; c++) {
+      row.push(lowestBit(result[r * GRID_SIZE + c]))
+    }
+    board.push(row)
+  }
+  return board
 }
