@@ -11,6 +11,7 @@ import { pasteboard } from '@kit.BasicServicesKit'
 import { Colors, Sizes, Difficulty, getDifficultyConfig, GRID_INDICES,
   BOX_ROWS, BOX_COLS, GRID_SIZE } from '../constants/GameConstants'
 import { DifficultySegment } from '../components/DifficultySegment'
+import { VariantSegment } from '../components/VariantSegment'
 import { SettingsPanel } from '../components/SettingsPanel'
 import { hasSavedGame, clearSave, loadGame, GameSaveData } from '../utils/GameStorage'
 import { Symmetry, decodeSeedId } from '../utils/SudokuGenerator'
@@ -53,33 +54,6 @@ const GRID_SIZE_OPTIONS: GridSizeOption[] = [
   new GridSizeOption(GRID_4x4, 'grid_size_4x4'),
   new GridSizeOption(GRID_6x6, 'grid_size_6x6'),
   new GridSizeOption(GRID_9x9, 'grid_size_9x9'),
-]
-
-/**
- * 变种模式选项（单选）。
- * 用户从标准/对角线/锯齿/杀手中选择一种游戏模式。
- */
-class VariantOption {
-  type: VariantType = VariantType.STANDARD
-  icon: string = ''
-  nameKey: string = ''
-  descKey: string = ''
-  enabled: boolean = true
-
-  constructor(type: VariantType, icon: string, nameKey: string, descKey: string, enabled: boolean) {
-    this.type = type
-    this.icon = icon
-    this.nameKey = nameKey
-    this.descKey = descKey
-    this.enabled = enabled
-  }
-}
-
-const VARIANT_OPTIONS: VariantOption[] = [
-  new VariantOption(VariantType.STANDARD, '🔢', 'variant_standard', 'variant_standard_desc', true),
-  new VariantOption(VariantType.DIAGONAL, '╳', 'variant_diagonal', 'variant_diagonal_desc', true),
-  new VariantOption(VariantType.JIGSAW, '🧩', 'variant_jigsaw', 'variant_jigsaw_desc', true),
-  new VariantOption(VariantType.KILLER, '🗡️', 'variant_killer', 'variant_killer_desc', true),
 ]
 
 @Entry
@@ -331,76 +305,16 @@ struct Index {
         .margin({ top: Sizes.btnGap })
 
       // ==================== ③.1 变种模式选择（单选） ====================
-      Column() {
-        Text($r('app.string.variant_section'))
-          .fontSize(12)
-          .fontColor(Colors.subtitleText)
-          .margin({ bottom: 6 })
-
-        Row({ space: 6 }) {
-          ForEach(VARIANT_OPTIONS, (item: VariantOption) => {
-            Column({ space: 2 }) {
-              Text(item.icon)
-                .fontSize(20)
-
-              Text(getContext(this).resourceManager.getStringByNameSync(item.nameKey))
-                .fontSize(12)
-                .fontColor(
-                  !item.enabled
-                    ? Colors.subtitleText
-                    : this.selectedVariant === item.type
-                      ? Colors.primaryText
-                      : Colors.titleText
-                )
-                .fontWeight(
-                  this.selectedVariant === item.type && item.enabled
-                    ? FontWeight.Medium
-                    : FontWeight.Normal
-                )
-
-              if (!item.enabled) {
-                Text(getContext(this).resourceManager.getStringByNameSync('variant_coming_soon'))
-                  .fontSize(8)
-                  .fontColor(Colors.subtitleText)
-              } else {
-                Text(getContext(this).resourceManager.getStringByNameSync(item.descKey))
-                  .fontSize(8)
-                  .fontColor(
-                    this.selectedVariant === item.type
-                      ? Colors.primaryText
-                      : Colors.subtitleText
-                  )
-              }
-            }
-            .layoutWeight(1)
-            .padding({ top: 8, bottom: 8 })
-            .borderRadius(12)
-            .backgroundColor(
-              !item.enabled
-                ? 'transparent'
-                : this.selectedVariant === item.type
-                  ? Colors.primaryBtn
-                  : 'transparent'
-            )
-            .opacity(item.enabled ? 1.0 : 0.5)
-            .onClick(() => {
-              if (item.enabled) {
-                this.selectedVariant = item.type
-                // 非标准变种仅支持 9×9
-                if (item.type !== VariantType.STANDARD && this.selectedGridSize !== 9) {
-                  this.selectedGridSize = 9
-                }
-              }
-            })
-          })
-        }
-        .width('100%')
-        .backgroundColor(Colors.segmentBg)
-        .borderRadius(12)
-        .padding(3)
-      }
-      .width('100%')
-      .margin({ top: 8 })
+      VariantSegment({
+        selectedVariant: $selectedVariant,
+        onVariantChange: (variant: VariantType) => {
+          // 非标准变种仅支持 9×9
+          if (variant !== VariantType.STANDARD && this.selectedGridSize !== 9) {
+            this.selectedGridSize = 9
+          }
+        },
+      })
+        .margin({ top: 8 })
 
       // ==================== ③.2 棋盘大小选择（仅标准模式） ====================
       if (this.selectedVariant === VariantType.STANDARD) {
