@@ -654,6 +654,15 @@ struct GamePage {
     }
   }
 
+  /**
+   * 关闭手势引导遮罩并持久化用户偏好
+   */
+  private dismissGestureGuide(): void {
+    AppStorage.setOrCreate('gestureGuideShown', true)
+    saveSettings(getContext(this) as common.UIAbilityContext)
+    this.showGestureGuide = false
+  }
+
   private getString(name: string): string {
     return getContext(this).resourceManager.getStringByNameSync(name)
   }
@@ -892,7 +901,7 @@ struct GamePage {
     // ESC: 关闭最上层遮罩，或触发暂停
     if (keyCode === KeyCode.KEYCODE_ESCAPE) {
       if (this.showGestureGuide) {
-        this.showGestureGuide = false
+        this.dismissGestureGuide()
         return
       }
       if (this.showPauseOverlay) {
@@ -908,7 +917,7 @@ struct GamePage {
     // Space / P: 切换暂停/恢复
     if (keyCode === KeyCode.KEYCODE_SPACE || keyCode === KeyCode.KEYCODE_P) {
       if (this.showGestureGuide) {
-        this.showGestureGuide = false
+        this.dismissGestureGuide()
         return
       }
       if (!this.gameState.isCompleted) {
@@ -920,9 +929,7 @@ struct GamePage {
     // Enter: 恢复游戏或关闭引导
     if (keyCode === KeyCode.KEYCODE_ENTER || keyCode === KeyCode.KEYCODE_NUMPAD_ENTER) {
       if (this.showGestureGuide) {
-        AppStorage.setOrCreate('gestureGuideShown', true)
-        saveSettings(getContext(this) as common.UIAbilityContext)
-        this.showGestureGuide = false
+        this.dismissGestureGuide()
         return
       }
       if (this.showPauseOverlay) {
@@ -973,7 +980,7 @@ struct GamePage {
     // --- N / Tab = 切换笔记模式 ---
     if (keyCode === KeyCode.KEYCODE_N || keyCode === KeyCode.KEYCODE_TAB) {
       this.isNoteMode = !this.isNoteMode
-      // 用手势指示器显示当前模式
+      // 复用 GestureModeIndicator 显示笔记模式状态（UP = 笔记模式开启）
       this.gestureDirection = this.isNoteMode ? GestureDirection.UP : null
       return
     }
@@ -1932,13 +1939,6 @@ struct GamePage {
     .backgroundColor(Colors.pageBg)
     .padding({ top: this.topRectHeight + 12, bottom: this.bottomRectHeight + 12 })
     .expandSafeArea([SafeAreaType.SYSTEM, SafeAreaType.CUTOUT], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
-    .focusable(true)
-    .onKeyEvent((event: KeyEvent) => {
-      // 页面级键盘事件兜底：确保遮罩显示时键盘操作仍可用
-      if (event.type === KeyType.Down) {
-        this.handleKeyboardInput(event.keyCode)
-      }
-    })
     .bindSheet($$this.showSettings, this.settingsSheetBuilder(), {
       height: SheetSize.FIT_CONTENT,
       dragBar: true,
