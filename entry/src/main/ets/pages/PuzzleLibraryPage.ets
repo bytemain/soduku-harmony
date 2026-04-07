@@ -251,7 +251,7 @@ struct PuzzleLibraryPage {
         .layoutWeight(1)
     }
     .width('100%')
-    .height(56)
+    .height(56 + this.topRectHeight)
     .padding({ left: 16, right: 16, top: this.topRectHeight })
     .alignItems(VerticalAlign.Center)
   }
