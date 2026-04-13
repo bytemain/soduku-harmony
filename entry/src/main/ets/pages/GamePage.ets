@@ -273,8 +273,8 @@ struct GamePage {
     applyGridConfig(gridConfig)
     this.applyVariantTopologyAndState(variantType, gridConfig)
 
-    // 尝试恢复存档（种子模式不恢复存档）
-    const saved = !seedIdParam ? loadGame(getContext(this)) : null
+    // 尝试恢复存档（种子模式、导入谜题、题库模式不恢复存档）
+    const saved = !seedIdParam && !importedPuzzle ? loadGame(getContext(this)) : null
     if (saved && saved.cells.length > 0) {
       // 恢复存档时，先应用存档的棋盘大小配置
       const savedGridSize = saved.gridSize ?? 9
