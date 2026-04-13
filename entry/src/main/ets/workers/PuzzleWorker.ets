@@ -22,11 +22,12 @@ import {
   createSizedConfig,
   VariantType,
   createDiagonalConfig,
-  createDefaultJigsawConfig,
+  createJigsawConfig,
   createKillerConfig,
   KillerCage,
 } from '../models/VariantConfig'
 import { normalizeVariantType, generateRandomCageLayout, buildKillerCagesFromSolution } from '../utils/KillerSudoku'
+import { generateRandomRegionMap } from '../utils/JigsawGenerator'
 import { applyTopology } from '../utils/Topology'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { SeededRandom } from '../utils/Common'
@@ -104,10 +105,14 @@ workerPort.onmessage = (e: MessageEvents): void => {
   }
   // 根据变种类型构建拓扑（无论是否指定 gridSize 都需要应用）
   // Killer 模式先用标准拓扑生成题面，再叠加笼子拓扑
+  // Jigsaw 模式使用随机生成的不规则区域
+  let jigsawRegionMapData: number[] | null = null
   if (variantType === VariantType.DIAGONAL) {
     applyTopology(createDiagonalConfig())
   } else if (variantType === VariantType.JIGSAW) {
-    applyTopology(createDefaultJigsawConfig())
+    const regionMap = generateRandomRegionMap()
+    jigsawRegionMapData = regionMap
+    applyTopology(createJigsawConfig(regionMap))
   } else if (gridSize !== undefined) {
     const cfg = getGridConfigBySize(gridSize)
     applyTopology(createSizedConfig(cfg.gridSize, cfg.boxRows, cfg.boxCols))
@@ -149,6 +154,7 @@ workerPort.onmessage = (e: MessageEvents): void => {
         score: result.score,
         difficulty: difficulty,
         killerCages: killerCagesData,
+        jigsawRegionMap: jigsawRegionMapData,
       })
     } else if (type === 'generateFromSeed') {
       const seedId = msg['seedId'] as string
@@ -184,6 +190,7 @@ workerPort.onmessage = (e: MessageEvents): void => {
           score: result.score,
           difficulty: decoded.difficulty,
           killerCages: killerCagesData,
+          jigsawRegionMap: jigsawRegionMapData,
         })
       } else {
         workerPort.postMessage({ type: 'error', message: 'Invalid seed ID' })

@@ -28,7 +28,7 @@ import { decodeSeedId, Symmetry, encodeSeedId } from '../utils/SudokuGenerator'
 import { validateAllCells, updateHighlights, isGameCompleted } from '../utils/SudokuValidator'
 import { PEERS, applyTopology } from '../utils/Topology'
 import { getGridConfigBySize, createSizedConfig, VariantType, createDiagonalConfig,
-  createDefaultJigsawConfig, createDefaultJigsawRegionMap,
+  createJigsawConfig, createDefaultJigsawRegionMap,
   GridConfig, KillerCage } from '../models/VariantConfig'
 import { ArrayWrapper } from '../components/SudokuBoard'
 import { SettingsPanel } from '../components/SettingsPanel'
@@ -44,6 +44,7 @@ import { recordGameLost, recordGameStarted, recordGameWon } from '../utils/Stats
 import { addGameRecord, GameRecord } from '../utils/HistoryStorage'
 import { saveSettings } from '../utils/SettingsStorage'
 import { buildKillerCagesFromSolution, generateRandomCageLayout, normalizeVariantType } from '../utils/KillerSudoku'
+import { generateRandomRegionMap } from '../utils/JigsawGenerator'
 import { createKillerConfig } from '../models/VariantConfig'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { saveProgress, loadLibraryPuzzles } from '../utils/PuzzleLibraryStorage'
@@ -123,6 +124,7 @@ struct GamePage {
   @State private boardDecorations: BoardCellDecoration[] = createEmptyBoardDecorations()
   @State private currentVariantType: VariantType = VariantType.STANDARD
   @State private killerCages: KillerCage[] = []
+  @State private jigsawRegionMap: number[] = []
   @State private loadingTitle: string = ''
   @State private loadingMessage: string = ''
   @State private loadingProgress: number = 0
@@ -173,7 +175,10 @@ struct GamePage {
       return
     }
     if (this.currentVariantType === VariantType.JIGSAW) {
-      this.boardDecorations = buildJigsawBoardDecorations(createDefaultJigsawRegionMap())
+      const regionMap = this.jigsawRegionMap.length > 0
+        ? this.jigsawRegionMap
+        : createDefaultJigsawRegionMap()
+      this.boardDecorations = buildJigsawBoardDecorations(regionMap)
       return
     }
     if (this.currentVariantType === VariantType.KILLER && this.killerCages.length > 0) {
@@ -208,8 +213,11 @@ struct GamePage {
 
     if (variantType === VariantType.JIGSAW) {
       this.killerCages = []
+      if (this.jigsawRegionMap.length === 0) {
+        this.jigsawRegionMap = generateRandomRegionMap()
+      }
       this.refreshBoardDecorations()
-      applyTopology(createDefaultJigsawConfig())
+      applyTopology(createJigsawConfig(this.jigsawRegionMap))
       return
     }
 
@@ -432,6 +440,14 @@ struct GamePage {
 
         this.currentVariantType = variantType
 
+        // Jigsaw 模式：从 Worker 接收随机生成的区域图
+        const workerRegionMap = msg['jigsawRegionMap'] as number[] | null
+        if (variantType === VariantType.JIGSAW && workerRegionMap !== null && workerRegionMap !== undefined) {
+          this.jigsawRegionMap = workerRegionMap
+          this.refreshBoardDecorations()
+          applyTopology(createJigsawConfig(workerRegionMap))
+        }
+
         // Killer 模式：从 Worker 接收预计算好的笼子
         const workerCages = msg['killerCages'] as object[] | null
         if (variantType === VariantType.KILLER && workerCages !== null && workerCages !== undefined) {
@@ -650,6 +666,12 @@ struct GamePage {
     this.gameState.seed = saved.seed ?? 0
     this.gameState.symmetry = saved.symmetry ?? ''
     this.currentVariantType = variantType
+    // 从存档恢复 Jigsaw 区域图
+    if (variantType === VariantType.JIGSAW && saved.jigsawRegionMap !== undefined && saved.jigsawRegionMap.length > 0) {
+      this.jigsawRegionMap = saved.jigsawRegionMap.slice()
+      this.refreshBoardDecorations()
+      applyTopology(createJigsawConfig(this.jigsawRegionMap))
+    }
     // 从存档恢复 Killer 笼子
     if (variantType === VariantType.KILLER && saved.killerCages !== undefined && saved.killerCages.length > 0) {
       this.killerCages = saved.killerCages.map(c => {
@@ -698,6 +720,10 @@ struct GamePage {
     // 保存 Killer 笼子数据
     if (this.currentVariantType === VariantType.KILLER && this.killerCages.length > 0) {
       data.killerCages = this.killerCages.map(c => new CageSerialized(c.cells.slice(), c.sum))
+    }
+    // 保存 Jigsaw 区域图
+    if (this.currentVariantType === VariantType.JIGSAW && this.jigsawRegionMap.length > 0) {
+      data.jigsawRegionMap = this.jigsawRegionMap.slice()
     }
     saveGame(getContext(this), data)
   }
