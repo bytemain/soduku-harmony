@@ -304,6 +304,7 @@ struct Index {
             url: 'pages/GamePage',
             params: {
               difficulty: this.savedDifficulty,
+              resumeSave: true,
             },
           })
         })

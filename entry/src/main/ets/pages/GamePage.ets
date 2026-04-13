@@ -66,6 +66,8 @@ interface GamePageParams {
   libraryId?: string
   /** 题库中的题目索引（选关模式） */
   puzzleIndex?: number
+  /** 是否恢复存档（仅"继续游戏"入口设为 true） */
+  resumeSave?: boolean
 }
 
 interface LoadingAttemptInfo {
@@ -273,8 +275,8 @@ struct GamePage {
     applyGridConfig(gridConfig)
     this.applyVariantTopologyAndState(variantType, gridConfig)
 
-    // 尝试恢复存档（种子模式不恢复存档）
-    const saved = !seedIdParam ? loadGame(getContext(this)) : null
+    // 仅"继续游戏"入口恢复存档
+    const saved = params?.resumeSave ? loadGame(getContext(this)) : null
     if (saved && saved.cells.length > 0) {
       // 恢复存档时，先应用存档的棋盘大小配置
       const savedGridSize = saved.gridSize ?? 9
