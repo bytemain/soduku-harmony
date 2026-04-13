@@ -13,6 +13,7 @@
  * 参考：Doc 07-变种数独数据结构方案, Doc 13 §2.7
  */
 import { SeededRandom, seededShuffle, shuffle } from './Common'
+import { createDefaultJigsawRegionMap } from '../models/VariantConfig'
 
 const JIGSAW_GRID_SIZE = 9
 const JIGSAW_TOTAL_CELLS = JIGSAW_GRID_SIZE * JIGSAW_GRID_SIZE
@@ -199,17 +200,7 @@ export function generateRandomRegionMap(rng?: SeededRandom): number[] {
   }
 
   // 极端情况回退：返回默认布局（理论上不应到达这里）
-  return [
-    0, 0, 0, 1, 1, 1, 2, 2, 3,
-    0, 0, 1, 1, 1, 2, 2, 2, 3,
-    0, 0, 0, 0, 1, 2, 2, 4, 3,
-    5, 5, 5, 1, 1, 2, 4, 4, 3,
-    5, 5, 5, 5, 5, 2, 4, 4, 3,
-    6, 6, 5, 4, 4, 4, 4, 7, 3,
-    6, 6, 7, 7, 7, 7, 7, 7, 3,
-    6, 6, 6, 7, 8, 8, 8, 7, 3,
-    6, 6, 8, 8, 8, 8, 8, 8, 3,
-  ]
+  return createDefaultJigsawRegionMap()
 }
 
 /**
