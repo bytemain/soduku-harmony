@@ -63,6 +63,8 @@ export class GameSaveData {
   variantType: string = 'standard'
   /** Killer 笼子数据（仅 Killer 模式使用） */
   killerCages: CageSerialized[] = []
+  /** Jigsaw 区域图（仅 Jigsaw 模式使用），长度 81 */
+  jigsawRegionMap: number[] = []
 
   constructor() {}
 }

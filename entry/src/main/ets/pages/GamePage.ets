@@ -28,7 +28,7 @@ import { decodeSeedId, Symmetry, encodeSeedId } from '../utils/SudokuGenerator'
 import { validateAllCells, updateHighlights, isGameCompleted } from '../utils/SudokuValidator'
 import { PEERS, applyTopology } from '../utils/Topology'
 import { getGridConfigBySize, createSizedConfig, VariantType, createDiagonalConfig,
-  createDefaultJigsawConfig, createDefaultJigsawRegionMap,
+  createJigsawConfig, createDefaultJigsawRegionMap,
   GridConfig, KillerCage } from '../models/VariantConfig'
 import { ArrayWrapper } from '../components/SudokuBoard'
 import { SettingsPanel } from '../components/SettingsPanel'
@@ -44,6 +44,7 @@ import { recordGameLost, recordGameStarted, recordGameWon } from '../utils/Stats
 import { addGameRecord, GameRecord } from '../utils/HistoryStorage'
 import { saveSettings } from '../utils/SettingsStorage'
 import { buildKillerCagesFromSolution, generateRandomCageLayout, normalizeVariantType } from '../utils/KillerSudoku'
+import { generateRandomRegionMap } from '../utils/JigsawGenerator'
 import { createKillerConfig } from '../models/VariantConfig'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { saveProgress, loadLibraryPuzzles } from '../utils/PuzzleLibraryStorage'
@@ -125,6 +126,7 @@ struct GamePage {
   @State private boardDecorations: BoardCellDecoration[] = createEmptyBoardDecorations()
   @State private currentVariantType: VariantType = VariantType.STANDARD
   @State private killerCages: KillerCage[] = []
+  @State private jigsawRegionMap: number[] = []
   @State private loadingTitle: string = ''
   @State private loadingMessage: string = ''
   @State private loadingProgress: number = 0
@@ -165,24 +167,34 @@ struct GamePage {
   }
 
   /**
-   * 刷新棋盘装饰策略产物。
-   * 标准模式使用空装饰；对角线/Jigsaw/Killer 生成对应的视觉装饰。
+   * 刷新棋盘装饰（策略分派）。
+   * 根据当前变种类型选择对应的装饰构建策略。
    */
   private refreshBoardDecorations(): void {
-    if (this.currentVariantType === VariantType.DIAGONAL) {
-      const selectedIndex = this.isMultiSelectMode ? -1 : this.gameState.selectedIndex
-      this.boardDecorations = buildDiagonalBoardDecorations(selectedIndex)
-      return
+    switch (this.currentVariantType) {
+      case VariantType.DIAGONAL: {
+        const selectedIndex = this.isMultiSelectMode ? -1 : this.gameState.selectedIndex
+        this.boardDecorations = buildDiagonalBoardDecorations(selectedIndex)
+        break
+      }
+      case VariantType.JIGSAW: {
+        const regionMap = this.jigsawRegionMap.length > 0
+          ? this.jigsawRegionMap
+          : createDefaultJigsawRegionMap()
+        this.boardDecorations = buildJigsawBoardDecorations(regionMap)
+        break
+      }
+      case VariantType.KILLER:
+        if (this.killerCages.length > 0) {
+          this.boardDecorations = buildKillerBoardDecorations(this.killerCages)
+        } else {
+          this.boardDecorations = createEmptyBoardDecorations()
+        }
+        break
+      default:
+        this.boardDecorations = createEmptyBoardDecorations()
+        break
     }
-    if (this.currentVariantType === VariantType.JIGSAW) {
-      this.boardDecorations = buildJigsawBoardDecorations(createDefaultJigsawRegionMap())
-      return
-    }
-    if (this.currentVariantType === VariantType.KILLER && this.killerCages.length > 0) {
-      this.boardDecorations = buildKillerBoardDecorations(this.killerCages)
-      return
-    }
-    this.boardDecorations = createEmptyBoardDecorations()
   }
 
   /**
@@ -194,38 +206,52 @@ struct GamePage {
   }
 
   /**
-   * 按当前变种应用拓扑，并同步更新棋盘展示所需的 Killer 笼子状态。
-   * 标准模式使用尺寸配置；对角线模式启用对角线约束；Jigsaw 使用固定不规则宫布局；
-   * Killer 当前仅接入展示层，题面/校验仍复用标准 9×9 主链路，避免生成异常。
-   * 等后续补齐 Killer 专用生成与校验后，再切回完整拓扑。
+   * 按当前变种应用拓扑，并同步更新变种专有状态。
+   *
+   * 策略分派：
+   *   - DIAGONAL: 对角线约束
+   *   - JIGSAW:   随机不规则区域拓扑
+   *   - KILLER:   随机笼子 + 笼约束拓扑
+   *   - 其他:     标准/尺寸配置拓扑
    */
   private applyVariantTopologyAndState(variantType: VariantType, gridConfig: GridConfig): void {
     this.currentVariantType = variantType
-    if (variantType === VariantType.DIAGONAL) {
-      this.killerCages = []
-      this.refreshBoardDecorations()
-      applyTopology(createDiagonalConfig())
-      return
-    }
 
-    if (variantType === VariantType.JIGSAW) {
-      this.killerCages = []
-      this.refreshBoardDecorations()
-      applyTopology(createDefaultJigsawConfig())
-      return
-    }
+    switch (variantType) {
+      case VariantType.DIAGONAL:
+        this.killerCages = []
+        this.refreshBoardDecorations()
+        applyTopology(createDiagonalConfig())
+        break
 
-    if (variantType === VariantType.KILLER && gridConfig.gridSize === 9) {
-      const cages = generateRandomCageLayout()
-      this.killerCages = cages
-      this.refreshBoardDecorations()
-      applyTopology(createKillerConfig(cages))
-      return
-    }
+      case VariantType.JIGSAW:
+        this.killerCages = []
+        if (this.jigsawRegionMap.length === 0) {
+          this.jigsawRegionMap = generateRandomRegionMap()
+        }
+        this.refreshBoardDecorations()
+        applyTopology(createJigsawConfig(this.jigsawRegionMap))
+        break
 
-    this.killerCages = []
-    this.refreshBoardDecorations()
-    applyTopology(createSizedConfig(gridConfig.gridSize, gridConfig.boxRows, gridConfig.boxCols))
+      case VariantType.KILLER:
+        if (gridConfig.gridSize === 9) {
+          const cages = generateRandomCageLayout()
+          this.killerCages = cages
+          this.refreshBoardDecorations()
+          applyTopology(createKillerConfig(cages))
+        } else {
+          this.killerCages = []
+          this.refreshBoardDecorations()
+          applyTopology(createSizedConfig(gridConfig.gridSize, gridConfig.boxRows, gridConfig.boxCols))
+        }
+        break
+
+      default:
+        this.killerCages = []
+        this.refreshBoardDecorations()
+        applyTopology(createSizedConfig(gridConfig.gridSize, gridConfig.boxRows, gridConfig.boxCols))
+        break
+    }
   }
 
   /**
@@ -247,8 +273,105 @@ struct GamePage {
 
     this.killerCages = buildKillerCagesFromSolution(solution, this.killerCages.length > 0 ? this.killerCages : undefined)
     this.refreshBoardDecorations()
-    // 使用带笼子的拓扑
     applyTopology(createKillerConfig(this.killerCages))
+  }
+
+  /**
+   * 从 Worker 消息中提取并应用变种专有数据。
+   * 按变种类型分发处理：Jigsaw → regionMap, Killer → cages。
+   */
+  private applyWorkerVariantData(msg: Record<string, Object>, variantType: VariantType): void {
+    switch (variantType) {
+      case VariantType.JIGSAW: {
+        const workerRegionMap = msg['jigsawRegionMap'] as number[] | null
+        if (workerRegionMap !== null && workerRegionMap !== undefined) {
+          this.jigsawRegionMap = workerRegionMap
+          this.refreshBoardDecorations()
+          applyTopology(createJigsawConfig(workerRegionMap))
+        }
+        break
+      }
+      case VariantType.KILLER: {
+        const workerCages = msg['killerCages'] as object[] | null
+        if (workerCages !== null && workerCages !== undefined) {
+          const cages: KillerCage[] = workerCages.map((c: object) => {
+            const obj = c as Record<string, Object>
+            const cage: KillerCage = {
+              cells: obj['cells'] as number[],
+              sum: obj['sum'] as number,
+            }
+            return cage
+          })
+          this.killerCages = cages
+          this.refreshBoardDecorations()
+          applyTopology(createKillerConfig(cages))
+        } else {
+          this.refreshKillerCagesFromSolution(this.gameState.solution)
+        }
+        break
+      }
+      default:
+        this.refreshKillerCagesFromSolution(this.gameState.solution)
+        break
+    }
+  }
+
+  /**
+   * 从存档恢复变种专有数据。
+   * 按变种类型分发处理，统一管理 regionMap / cages 的反序列化与拓扑重建。
+   */
+  private restoreVariantDataFromSave(variantType: VariantType, saved: GameSaveData): void {
+    switch (variantType) {
+      case VariantType.JIGSAW:
+        if (saved.jigsawRegionMap !== undefined && saved.jigsawRegionMap.length > 0) {
+          this.jigsawRegionMap = saved.jigsawRegionMap.slice()
+          this.refreshBoardDecorations()
+          applyTopology(createJigsawConfig(this.jigsawRegionMap))
+        }
+        break
+
+      case VariantType.KILLER:
+        if (saved.killerCages !== undefined && saved.killerCages.length > 0) {
+          this.killerCages = saved.killerCages.map(c => {
+            const cage: KillerCage = {
+              cells: c.cells.slice(),
+              sum: c.sum,
+            }
+            return cage
+          })
+          this.refreshBoardDecorations()
+          applyTopology(createKillerConfig(this.killerCages))
+        } else {
+          this.refreshKillerCagesFromSolution(saved.solution)
+        }
+        break
+
+      default:
+        break
+    }
+  }
+
+  /**
+   * 将变种专有数据序列化到存档。
+   * 按变种类型分发处理，避免在保存逻辑中散落 if-chain。
+   */
+  private saveVariantData(data: GameSaveData): void {
+    switch (this.currentVariantType) {
+      case VariantType.KILLER:
+        if (this.killerCages.length > 0) {
+          data.killerCages = this.killerCages.map(c => new CageSerialized(c.cells.slice(), c.sum))
+        }
+        break
+
+      case VariantType.JIGSAW:
+        if (this.jigsawRegionMap.length > 0) {
+          data.jigsawRegionMap = this.jigsawRegionMap.slice()
+        }
+        break
+
+      default:
+        break
+    }
   }
 
   aboutToAppear(): void {
@@ -434,23 +557,8 @@ struct GamePage {
 
         this.currentVariantType = variantType
 
-        // Killer 模式：从 Worker 接收预计算好的笼子
-        const workerCages = msg['killerCages'] as object[] | null
-        if (variantType === VariantType.KILLER && workerCages !== null && workerCages !== undefined) {
-          const cages: KillerCage[] = workerCages.map((c: object) => {
-            const obj = c as Record<string, Object>
-            const cage: KillerCage = {
-              cells: obj['cells'] as number[],
-              sum: obj['sum'] as number,
-            }
-            return cage
-          })
-          this.killerCages = cages
-          this.refreshBoardDecorations()
-          applyTopology(createKillerConfig(cages))
-        } else {
-          this.refreshKillerCagesFromSolution(this.gameState.solution)
-        }
+        // 从 Worker 接收变种专有数据并应用拓扑
+        this.applyWorkerVariantData(msg, variantType)
         this.cellsWrapper = new ArrayWrapper(this.gameState.cells)
         recordGameStarted(getContext(this), this.gameState.difficulty)
         this.loadingMessage = this.getString('loading_finalizing')
@@ -652,20 +760,8 @@ struct GamePage {
     this.gameState.seed = saved.seed ?? 0
     this.gameState.symmetry = saved.symmetry ?? ''
     this.currentVariantType = variantType
-    // 从存档恢复 Killer 笼子
-    if (variantType === VariantType.KILLER && saved.killerCages !== undefined && saved.killerCages.length > 0) {
-      this.killerCages = saved.killerCages.map(c => {
-        const cage: KillerCage = {
-          cells: c.cells.slice(),
-          sum: c.sum,
-        }
-        return cage
-      })
-      this.refreshBoardDecorations()
-      applyTopology(createKillerConfig(this.killerCages))
-    } else {
-      this.refreshKillerCagesFromSolution(saved.solution)
-    }
+    // 从存档恢复变种专有数据
+    this.restoreVariantDataFromSave(variantType, saved)
 
     this.cellsWrapper = new ArrayWrapper(this.gameState.cells)
 
@@ -697,10 +793,7 @@ struct GamePage {
     data.symmetry = this.gameState.symmetry
     data.gridSize = GRID_SIZE
     data.variantType = this.currentVariantType
-    // 保存 Killer 笼子数据
-    if (this.currentVariantType === VariantType.KILLER && this.killerCages.length > 0) {
-      data.killerCages = this.killerCages.map(c => new CageSerialized(c.cells.slice(), c.sum))
-    }
+    this.saveVariantData(data)
     saveGame(getContext(this), data)
   }
 
