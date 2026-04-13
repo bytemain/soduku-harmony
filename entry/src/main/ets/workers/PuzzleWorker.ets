@@ -128,7 +128,8 @@ workerPort.onmessage = (e: MessageEvents): void => {
           for (const v of row) flatSolution.push(v)
         }
         const cageRng = new SeededRandom(result.seed)
-        const layout = generateRandomCageLayout(flatSolution, cageRng)
+        const noSingleCell = difficulty >= Difficulty.HARD
+        const layout = generateRandomCageLayout(flatSolution, cageRng, noSingleCell)
         const cages = buildKillerCagesFromSolution(flatSolution, layout)
         applyTopology(createKillerConfig(cages))
         killerCagesData = cages.map(c => {
@@ -162,7 +163,8 @@ workerPort.onmessage = (e: MessageEvents): void => {
             for (const v of row) flatSolution.push(v)
           }
           const cageRng = new SeededRandom(decoded.seed)
-          const layout = generateRandomCageLayout(flatSolution, cageRng)
+          const noSingleCell = decoded.difficulty >= Difficulty.HARD
+          const layout = generateRandomCageLayout(flatSolution, cageRng, noSingleCell)
           const cages = buildKillerCagesFromSolution(flatSolution, layout)
           applyTopology(createKillerConfig(cages))
           killerCagesData = cages.map(c => {

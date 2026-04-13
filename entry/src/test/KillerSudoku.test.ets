@@ -101,6 +101,45 @@ export default function killerSudokuTest() {
       }
     })
 
+    it('noSingleCellCages_eliminates_size_1_cages', 0, () => {
+      const flatSol = flattenSolution(getCompleteSolution())
+      // 运行多次确保无单格笼
+      for (let trial = 0; trial < 10; trial++) {
+        const cages = generateRandomCageLayout(flatSol, undefined, true)
+        for (const cage of cages) {
+          expect(cage.cells.length >= 2).assertTrue()
+        }
+        // 仍需覆盖所有 81 格
+        const hitCount: number[] = new Array(81).fill(0)
+        for (const cage of cages) {
+          for (const cellIndex of cage.cells) {
+            hitCount[cellIndex]++
+          }
+        }
+        for (let i = 0; i < 81; i++) {
+          expect(hitCount[i]).assertEqual(1)
+        }
+      }
+    })
+
+    it('noSingleCellCages_with_seeded_rng_is_deterministic', 0, () => {
+      const flatSol = flattenSolution(getCompleteSolution())
+      const seed = 42
+      const rng1 = new SeededRandom(seed)
+      const layout1 = generateRandomCageLayout(flatSol, rng1, true)
+      const rng2 = new SeededRandom(seed)
+      const layout2 = generateRandomCageLayout(flatSol, rng2, true)
+
+      expect(layout1.length).assertEqual(layout2.length)
+      for (let i = 0; i < layout1.length; i++) {
+        expect(layout1[i].cells.length).assertEqual(layout2[i].cells.length)
+      }
+      // 无单格笼
+      for (const cage of layout1) {
+        expect(cage.cells.length >= 2).assertTrue()
+      }
+    })
+
     it('multiple_runs_produce_different_layouts', 0, () => {
       const layout1 = generateRandomCageLayout()
       const layout2 = generateRandomCageLayout()
