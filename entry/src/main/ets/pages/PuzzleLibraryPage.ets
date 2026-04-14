@@ -277,7 +277,7 @@ struct PuzzleLibraryPage {
           ListItem() {
             this.buildLibraryCard(library)
           }
-        }, (library: PuzzleLibrary) => library.id)
+        }, (library: PuzzleLibrary) => `${library.id}_${this.getLibraryProgressPercent(library)}`)
       }
       .width('100%')
       .layoutWeight(1)
@@ -388,7 +388,7 @@ struct PuzzleLibraryPage {
           ListItem() {
             this.buildPuzzleCard(puzzle)
           }
-        }, (puzzle: PuzzleEntry) => `${puzzle.index}`)
+        }, (puzzle: PuzzleEntry) => `${puzzle.index}_${puzzle.progress.status}_${puzzle.progress.percentage}`)
       }
       .width('100%')
       .layoutWeight(1)
