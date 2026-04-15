@@ -51,7 +51,7 @@ A feature-rich Sudoku game built for **HarmonyOS** using **ArkUI** and **ETS** (
 │       │   ├── SudokuGenerator.ets    # Puzzle generation
 │       │   ├── LogicSolver.ets        # Human-logic hint engine
 │       │   ├── SudokuValidator.ets    # Conflict & completion checks
-│       │   ├── DifficultyEvaluator.ets# Difficulty rating
+│       │   ├── DifficultyEvaluator.ets # Difficulty rating
 │       │   ├── KillerSudoku.ets       # Killer cage generation
 │       │   ├── JigsawGenerator.ets    # Jigsaw region generation
 │       │   └── ...
