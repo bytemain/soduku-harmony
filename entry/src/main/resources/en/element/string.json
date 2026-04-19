@@ -517,6 +517,14 @@
       "value": "Show auto-candidates button in the toolbar to fill all empty cells with possible digits"
     },
     {
+      "name": "settings_aux_buttons_on_top",
+      "value": "Tool buttons above keypad"
+    },
+    {
+      "name": "settings_aux_buttons_on_top_desc",
+      "value": "Place undo/redo/erase and other tools in a single row above the number pad to avoid accidental taps next to the keypad"
+    },
+    {
       "name": "multi_select_hint",
       "value": "Multi-select: tap number to add notes"
     },

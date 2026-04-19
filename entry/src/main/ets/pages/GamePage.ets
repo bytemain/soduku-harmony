@@ -100,6 +100,7 @@ struct GamePage {
   @StorageProp('topRectHeight') topRectHeight: number = 0
   @StorageProp('bottomRectHeight') bottomRectHeight: number = 0
   @StorageProp('isLeftHand') isLeftHand: boolean = false
+  @StorageProp('auxButtonsOnTop') auxButtonsOnTop: boolean = false
   @StorageProp('validateInput') validateInput: boolean = true
   @State private gameState: GameState = new GameState()
   @State private cellsWrapper: ArrayWrapper = new ArrayWrapper([])
@@ -2152,6 +2153,7 @@ struct GamePage {
         autoNotesDisabled: this.gameState.isCompleted,
         autoNotesVisible: this.showAutoNotes,
         gridHeight: this.numPadHeight,
+        auxButtonsOnTop: this.auxButtonsOnTop,
         onBlankAreaClick: () => { this.onBlankAreaClick() },
         onPause: () => this.togglePause(),
         onCellClick: (index: number) => { this.onCellClick(index) },

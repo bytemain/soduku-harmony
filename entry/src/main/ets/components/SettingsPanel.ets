@@ -21,6 +21,7 @@ export struct SettingsPanel {
   @StorageLink('showCoordinates') showCoordinates: boolean = false
   @StorageLink('validateInput') validateInput: boolean = true
   @StorageLink('showAutoNotes') showAutoNotes: boolean = false
+  @StorageLink('auxButtonsOnTop') auxButtonsOnTop: boolean = false
   @StorageLink('themeMode') themeMode: string = 'system'
   @StorageProp('isDarkMode') isDarkMode: boolean = false
   @StorageProp('bottomRectHeight') bottomRectHeight: number = 0
@@ -360,6 +361,34 @@ export struct SettingsPanel {
         .margin({ top: 8 })
         .backgroundColor(Colors.secondaryPress)
         .borderRadius(8)
+
+        // 工具按钮置顶开关
+        Row() {
+          Column() {
+            Text($r('app.string.settings_aux_buttons_on_top'))
+              .fontSize(16)
+              .fontColor(Colors.titleText)
+            Text($r('app.string.settings_aux_buttons_on_top_desc'))
+              .fontSize(12)
+              .fontColor(Colors.subtitleText)
+              .margin({ top: 2 })
+          }
+          .alignItems(HorizontalAlign.Start)
+          .layoutWeight(1)
+
+          Toggle({ type: ToggleType.Switch, isOn: this.auxButtonsOnTop })
+            .selectedColor(Colors.primaryBtn)
+            .switchStyle({ unselectedColor: Colors.switchTrackOff })
+            .onChange((isOn: boolean) => {
+              this.auxButtonsOnTop = isOn
+              hilog.info(0x0000, 'SettingsPanel', 'Aux buttons on top: %{public}s', isOn.toString())
+              if (this.context) {
+                saveSettings(this.context)
+              }
+            })
+        }
+        .width('100%')
+        .padding({ top: 12, bottom: 12 })
 
         // ====== 显示设置 ======
         Text($r('app.string.settings_section_display'))
