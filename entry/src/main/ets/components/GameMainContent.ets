@@ -39,6 +39,7 @@ export struct GameMainContent {
   @Prop autoNotesDisabled: boolean = false
   @Prop autoNotesVisible: boolean = false
   @Prop gridHeight: number = 0
+  @Prop auxButtonsOnTop: boolean = false
 
   onBlankAreaClick: () => void = () => {}
   onPause: () => void = () => {}
@@ -117,6 +118,7 @@ export struct GameMainContent {
         autoNotesDisabled: this.autoNotesDisabled,
         autoNotesVisible: this.autoNotesVisible,
         gridHeight: this.gridHeight,
+        auxButtonsOnTop: this.auxButtonsOnTop,
         onUndo: () => { this.onUndo() },
         onRedo: () => { this.onRedo() },
         onErase: () => { this.onErase() },

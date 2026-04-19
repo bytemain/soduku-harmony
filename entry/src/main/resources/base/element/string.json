@@ -517,6 +517,14 @@
       "value": "启用后在操作区显示候选数按钮，一键填入所有空格的候选数字"
     },
     {
+      "name": "settings_aux_buttons_on_top",
+      "value": "工具按钮置于键盘上方"
+    },
+    {
+      "name": "settings_aux_buttons_on_top_desc",
+      "value": "将撤销/前进/擦除等工具按钮排成一行放在数字键盘上方，避免在键盘旁边误触"
+    },
+    {
       "name": "multi_select_hint",
       "value": "多选模式，点击数字添加笔记"
     },

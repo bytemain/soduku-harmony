@@ -17,6 +17,8 @@ export struct GameActionPanel {
   @Prop autoNotesDisabled: boolean = false
   @Prop autoNotesVisible: boolean = false
   @Prop gridHeight: number = 0
+  /** 工具按钮是否横排显示在键盘上方 */
+  @Prop auxButtonsOnTop: boolean = false
 
   onUndo: () => void = () => {}
   onRedo: () => void = () => {}
@@ -45,6 +47,7 @@ export struct GameActionPanel {
       autoNotesDisabled: this.autoNotesDisabled,
       autoNotesVisible: this.autoNotesVisible,
       gridHeight: this.gridHeight,
+      horizontal: this.auxButtonsOnTop,
     })
   }
 
@@ -65,12 +68,27 @@ export struct GameActionPanel {
   }
 
   build() {
-    // 使用 direction 切换左右手布局，避免 if/else 触发 ArkUI 默认滑入过渡效果
-    Row({ space: 8 }) {
-      this.buildAuxButtons()
-      this.buildNumberPad()
+    if (this.auxButtonsOnTop) {
+      // 工具按钮置于键盘上方一排，避免在键盘旁边误触。
+      // 数字键盘居中显示，根据剩余高度自适应（aspectRatio 保持正方形）。
+      Column({ space: 8 }) {
+        this.buildAuxButtons()
+        Column() {
+          this.buildNumberPad()
+        }
+        .width('100%')
+        .layoutWeight(1)
+        .alignItems(HorizontalAlign.Center)
+      }
+      .width('100%')
+    } else {
+      // 使用 direction 切换左右手布局，避免 if/else 触发 ArkUI 默认滑入过渡效果
+      Row({ space: 8 }) {
+        this.buildAuxButtons()
+        this.buildNumberPad()
+      }
+      .width('100%')
+      .direction(this.isLeftHand ? Direction.Rtl : Direction.Ltr)
     }
-    .width('100%')
-    .direction(this.isLeftHand ? Direction.Rtl : Direction.Ltr)
   }
 }

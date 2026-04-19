@@ -60,43 +60,85 @@ export struct AuxButtonGrid {
   @Prop autoNotesDisabled: boolean = false
   @Prop autoNotesVisible: boolean = false
   @Prop gridHeight: number = 0
+  /** 是否使用横排布局（一行 6 个按钮，置于键盘上方） */
+  @Prop horizontal: boolean = false
+  /** 横排布局时的行高 */
+  @Prop rowHeight: number = 56
 
   build() {
-    Grid() {
-      GridItem() {
-        AuxButton({ icon: '↩️', label: $r('app.string.aux_undo'), disabled: this.undoDisabled, onTap: () => this.onUndo() })
-      }
-      GridItem() {
-        AuxButton({ icon: '↪️', label: $r('app.string.aux_redo'), disabled: this.redoDisabled, onTap: () => this.onRedo() })
-      }
-      GridItem() {
-        AuxButton({ icon: '🗑️', label: $r('app.string.aux_erase'), disabled: this.eraseDisabled, onTap: () => this.onErase() })
-      }
-      GridItem() {
-        AuxButton({
-          icon: '💡',
-          label: this.hintLoading ? $r('app.string.aux_hint_loading') : $r('app.string.aux_hint'),
-          disabled: this.hintDisabled,
-          loading: this.hintLoading,
-          onTap: () => this.onHint()
-        })
-      }
-      GridItem() {
-        AuxButton({ icon: '⚙️', label: $r('app.string.aux_settings'), disabled: false, onTap: () => this.onSettings() })
-      }
-      GridItem() {
+    if (this.horizontal) {
+      // 横排布局：一行 5~6 个按钮（autoNotesVisible 时为 6），置于键盘上方。
+      // 与 2×3 模式不同，这里按可见按钮数动态调整列数，避免出现空占位。
+      Grid() {
+        GridItem() {
+          AuxButton({ icon: '↩️', label: $r('app.string.aux_undo'), disabled: this.undoDisabled, onTap: () => this.onUndo() })
+        }
+        GridItem() {
+          AuxButton({ icon: '↪️', label: $r('app.string.aux_redo'), disabled: this.redoDisabled, onTap: () => this.onRedo() })
+        }
+        GridItem() {
+          AuxButton({ icon: '🗑️', label: $r('app.string.aux_erase'), disabled: this.eraseDisabled, onTap: () => this.onErase() })
+        }
+        GridItem() {
+          AuxButton({
+            icon: '💡',
+            label: this.hintLoading ? $r('app.string.aux_hint_loading') : $r('app.string.aux_hint'),
+            disabled: this.hintDisabled,
+            loading: this.hintLoading,
+            onTap: () => this.onHint()
+          })
+        }
+        GridItem() {
+          AuxButton({ icon: '⚙️', label: $r('app.string.aux_settings'), disabled: false, onTap: () => this.onSettings() })
+        }
         if (this.autoNotesVisible) {
-          AuxButton({ icon: '✏️', label: $r('app.string.aux_auto_notes'), disabled: this.autoNotesDisabled, onTap: () => this.onAutoNotes() })
-        } else {
-          AuxButton({ icon: '', label: '', disabled: true })
+          GridItem() {
+            AuxButton({ icon: '✏️', label: $r('app.string.aux_auto_notes'), disabled: this.autoNotesDisabled, onTap: () => this.onAutoNotes() })
+          }
         }
       }
+      .columnsTemplate(this.autoNotesVisible ? '1fr 1fr 1fr 1fr 1fr 1fr' : '1fr 1fr 1fr 1fr 1fr')
+      .rowsTemplate('1fr')
+      .columnsGap(4)
+      .width('100%')
+      .height(this.rowHeight)
+    } else {
+      Grid() {
+        GridItem() {
+          AuxButton({ icon: '↩️', label: $r('app.string.aux_undo'), disabled: this.undoDisabled, onTap: () => this.onUndo() })
+        }
+        GridItem() {
+          AuxButton({ icon: '↪️', label: $r('app.string.aux_redo'), disabled: this.redoDisabled, onTap: () => this.onRedo() })
+        }
+        GridItem() {
+          AuxButton({ icon: '🗑️', label: $r('app.string.aux_erase'), disabled: this.eraseDisabled, onTap: () => this.onErase() })
+        }
+        GridItem() {
+          AuxButton({
+            icon: '💡',
+            label: this.hintLoading ? $r('app.string.aux_hint_loading') : $r('app.string.aux_hint'),
+            disabled: this.hintDisabled,
+            loading: this.hintLoading,
+            onTap: () => this.onHint()
+          })
+        }
+        GridItem() {
+          AuxButton({ icon: '⚙️', label: $r('app.string.aux_settings'), disabled: false, onTap: () => this.onSettings() })
+        }
+        GridItem() {
+          if (this.autoNotesVisible) {
+            AuxButton({ icon: '✏️', label: $r('app.string.aux_auto_notes'), disabled: this.autoNotesDisabled, onTap: () => this.onAutoNotes() })
+          } else {
+            AuxButton({ icon: '', label: '', disabled: true })
+          }
+        }
+      }
+      .columnsTemplate('1fr 1fr')
+      .rowsTemplate('1fr 1fr 1fr')
+      .columnsGap(4)
+      .rowsGap(4)
+      .width(this.gridHeight > 0 ? this.gridHeight * 2 / 3 : 0)
+      .height(this.gridHeight > 0 ? this.gridHeight : 0)
     }
-    .columnsTemplate('1fr 1fr')
-    .rowsTemplate('1fr 1fr 1fr')
-    .columnsGap(4)
-    .rowsGap(4)
-    .width(this.gridHeight > 0 ? this.gridHeight * 2 / 3 : 0)
-    .height(this.gridHeight > 0 ? this.gridHeight : 0)
   }
 }
