@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="好的数独，为 HarmonyOS 手机准备的离线数独应用。多档难度、候选笔记、提示、撤销和深浅色外观，给日常片刻留一点专注。即将上线。">
+<meta name="theme-color" content="#16796f">
+<title>好的数独 · 给日常片刻，一道数独</title>
+<link rel="icon" type="image/svg+xml" href="assets/icon.svg">
+<link rel="stylesheet" href="assets/site.css">
+<script src="assets/site.js" defer>
+</script>
+</head>
+<body class="chinese">
+<a class="skip" href="#main">跳到正文</a>
+<header class="header">
+<div class="wrap header-inner">
+<a class="brand" href="./" aria-label="好的数独 首页">
+<img src="assets/icon.svg" width="34" height="34" alt="">好的数独</a>
+<nav class="nav" aria-label="主导航">
+<a class="nav-experience" href="./#experience">功能体验</a>
+<a href="support/">使用支持</a>
+<a class="language" href="en/" lang="en">EN</a>
+</nav>
+</div>
+</header>
+<main id="main">
+<div class="wrap">
+<section class="hero">
+<div>
+<span class="eyebrow">
+<span class="status-dot">
+</span>为 HarmonyOS 而作 · 即将上线</span>
+<h1>格与格之间，<br>留一点<em>专注。</em>
+</h1>
+<p class="hero-copy">给日常片刻，一道数独。<br>从确定的数字开始，顺着自己的思路，<br>享受每一次恰好填上的小发现。</p>
+<div class="actions">
+<button class="button" type="button" disabled>华为应用市场<small>即将上线</small>
+</button>
+<a class="secondary" href="#experience">了解功能体验 ↘</a>
+</div>
+<p class="availability">适用于手机 · 正在准备应用市场上架</p>
+</div>
+<div class="demo">
+<div class="board-paper">
+<div class="board-top">
+<span class="board-title">一刻专注</span>
+<span>9 × 9 / SUDOKU</span>
+</div>
+<div class="sudoku" role="img" aria-label="数独规则示意棋盘，非应用截图">
+<span class="cell">5</span>
+<span class="cell">3</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">7</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">6</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">1</span>
+<span class="cell">9</span>
+<span class="cell">5</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">9</span>
+<span class="cell">8</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">6</span>
+<span class="cell">
+</span>
+<span class="cell">8</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">6</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">3</span>
+<span class="cell mark">4</span>
+<span class="cell mark">
+</span>
+<span class="cell mark">
+</span>
+<span class="cell mark">8</span>
+<span class="cell mark selected">5</span>
+<span class="cell mark">3</span>
+<span class="cell mark">
+</span>
+<span class="cell mark">
+</span>
+<span class="cell mark">1</span>
+<span class="cell">7</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">2</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">6</span>
+<span class="cell">
+</span>
+<span class="cell">6</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell notes">3 5</span>
+<span class="cell">
+</span>
+<span class="cell">2</span>
+<span class="cell">8</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">4</span>
+<span class="cell">1</span>
+<span class="cell">9</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">5</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">8</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">7</span>
+<span class="cell">9</span>
+</div>
+<div class="board-bottom">
+<span>每一格，都有它的理由</span>
+<span>01 — 09</span>
+</div>
+<div class="annotation">从确定的一格开始。</div>
+</div>
+<div class="demo-controls" aria-label="查看数独规则示意">
+<button type="button" data-rule="row" aria-pressed="true">行</button>
+<button type="button" data-rule="column" aria-pressed="false">列</button>
+<button type="button" data-rule="box" aria-pressed="false">宫</button>
+</div>
+<p class="demo-caption" aria-live="polite">同一行，1—9 各出现一次。</p>
+<p class="demo-caption">可交互规则示意 · 非应用截图</p>
+</div>
+</section>
+<div class="strip">
+<span>
+<b>01</b>离线游玩</span>
+<span>
+<b>02</b>无需注册</span>
+<span>
+<b>03</b>无广告 · 无内购</span>
+</div>
+<section class="section" id="experience">
+<div class="section-heading">
+<div>
+<span class="eyebrow">一题数独，一段自己的时间</span>
+<h2>简单的规则，<br>足够舒展的思考。</h2>
+</div>
+<p>选择一道题，把纷杂暂时放在格子之外。熟悉的辅助工具，让你轻松记录可能，继续自己的推理。</p>
+</div>
+<div class="features">
+<article class="feature">
+<span class="feature-number">01</span>
+<h3>难度，合自己的节奏。</h3>
+<p>从简单入手，也可以挑战更复杂的局面。在不同难度中，找到今天想投入的那一点专注。</p>
+<div class="feature-visual difficulty" aria-hidden="true">
+<i>
+</i>
+<i>
+</i>
+<i>
+</i>
+<i>
+</i>
+<i>
+</i>
+</div>
+</article>
+<article class="feature">
+<span class="feature-number">02</span>
+<h3>把思路，留在格子里。</h3>
+<p>记下候选数字，用提示寻找下一步，也可以撤销重来。让每一次尝试都有迹可循。</p>
+<div class="feature-visual " aria-hidden="true">
+<div class="notes-grid">
+<span>1</span>
+<span>
+</span>
+<span>3</span>
+<span>
+</span>
+<span>5</span>
+<span>
+</span>
+<span>7</span>
+<span>
+</span>
+<span>9</span>
+</div>
+</div>
+</article>
+<article class="feature">
+<span class="feature-number">03</span>
+<h3>让界面，顺着你的习惯。</h3>
+<p>浅色、深色，或跟随系统外观。左右手布局可以手动调整，把注意力留给题目本身。</p>
+<div class="feature-visual theme-pair" aria-hidden="true">
+<div class="theme-swatch ">
+<i>
+</i>
+<i>
+</i>
+<i>
+</i>
+<i>
+</i>
+<i>
+</i>
+<i>
+</i>
+<i>
+</i>
+<i>
+</i>
+<i>
+</i>
+</div>
+<div class="theme-swatch dark">
+<i>
+</i>
+<i>
+</i>
+<i>
+</i>
+<i>
+</i>
+<i>
+</i>
+<i>
+</i>
+<i>
+</i>
+<i>
+</i>
+<i>
+</i>
+</div>
+</div>
+</article>
+</div>
+</section>
+</div>
+<section class="privacy-band">
+<div class="wrap privacy-inner">
+<div>
+<span class="eyebrow">关于数据，也尽量简单</span>
+<h2>进度留在设备里，<br>安心把注意力放在题上。</h2>
+<p>不必创建账号。游戏进度、偏好和统计保存在本地，应用没有广告或分析上报服务。</p>
+<a class="secondary" href="privacy/">阅读完整隐私政策 ↗</a>
+</div>
+<div class="privacy-list">
+<div class="privacy-row">
+<span>01</span>
+<div>本地保存进度<small>用于继续题目，恢复你的操作偏好。</small>
+</div>
+</div>
+<div class="privacy-row">
+<span>02</span>
+<div>剪贴板由你主动使用<small>只有点击导入或复制时，才读取或写入。</small>
+</div>
+</div>
+<div class="privacy-row">
+<span>03</span>
+<div>握持感知可选，默认关闭<small>系统备份与恢复遵循你的设备设置。</small>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section class="wrap closing">
+<div>
+<span class="eyebrow">从下一格，开始</span>
+<h2>给自己，留一道数独的时间。</h2>
+<p>首个 HarmonyOS 手机版正在准备中。</p>
+</div>
+<button class="button" type="button" disabled>华为应用市场<small>即将上线</small>
+</button>
+</section>
+</main>
+<footer class="footer">
+<div class="wrap">
+<div class="footer-top">
+<span>© 2026 杭州幻橙网络科技有限公司</span>
+<div class="footer-links">
+<a href="privacy/">隐私政策</a>
+<a href="support/">帮助与支持</a>
+<a href="./">返回首页 ↑</a>
+</div>
+</div>
+<small>HarmonyOS 手机版 · 正在准备上线，具体可用地区以应用市场审核与展示为准。</small>
+<!-- 部署前由运营者填入已核实的备案信息及官方查询链接；不得编造号码。 -->
+</div>
+</footer>
+</body>
+</html>

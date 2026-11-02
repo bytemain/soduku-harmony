@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="An offline Sudoku app for HarmonyOS phones. Multiple difficulties, notes, hints, undo and themes. Coming soon.">
+<meta name="theme-color" content="#16796f">
+<title>Oranix Sudoku · A little space for focus</title>
+<link rel="icon" type="image/svg+xml" href="../assets/icon.svg">
+<link rel="stylesheet" href="../assets/site.css">
+<script src="../assets/site.js" defer>
+</script>
+</head>
+<body class="english">
+<a class="skip" href="#main">Skip to content</a>
+<header class="header">
+<div class="wrap header-inner">
+<a class="brand" href="./" aria-label="Oranix Sudoku home">
+<img src="../assets/icon.svg" width="34" height="34" alt="">Oranix Sudoku</a>
+<nav class="nav" aria-label="Main navigation">
+<a class="nav-experience" href="./#experience">Experience</a>
+<a href="support/">Support</a>
+<a class="language" href="../" lang="zh-CN">中文</a>
+</nav>
+</div>
+</header>
+<main id="main">
+<div class="wrap">
+<section class="hero">
+<div>
+<span class="eyebrow">
+<span class="status-dot">
+</span>For HarmonyOS · Coming soon</span>
+<h1>A little space.<br>A little <em>focus.</em>
+</h1>
+<p class="hero-copy">A quiet Sudoku companion for your everyday pauses. Find a number, follow a thought, and enjoy the next small discovery.</p>
+<div class="actions">
+<button class="button" type="button" disabled>AppGallery<small>Coming soon</small>
+</button>
+<a class="secondary" href="#experience">Explore the experience ↘</a>
+</div>
+<p class="availability">Phone edition · Store listing in preparation</p>
+</div>
+<div class="demo">
+<div class="board-paper">
+<div class="board-top">
+<span class="board-title">A quiet moment</span>
+<span>9 × 9 / SUDOKU</span>
+</div>
+<div class="sudoku" role="img" aria-label="Illustrative Sudoku grid, not an app screenshot">
+<span class="cell">5</span>
+<span class="cell">3</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">7</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">6</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">1</span>
+<span class="cell">9</span>
+<span class="cell">5</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">9</span>
+<span class="cell">8</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">6</span>
+<span class="cell">
+</span>
+<span class="cell">8</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">6</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">3</span>
+<span class="cell mark">4</span>
+<span class="cell mark">
+</span>
+<span class="cell mark">
+</span>
+<span class="cell mark">8</span>
+<span class="cell mark selected">5</span>
+<span class="cell mark">3</span>
+<span class="cell mark">
+</span>
+<span class="cell mark">
+</span>
+<span class="cell mark">1</span>
+<span class="cell">7</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">2</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">6</span>
+<span class="cell">
+</span>
+<span class="cell">6</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell notes">3 5</span>
+<span class="cell">
+</span>
+<span class="cell">2</span>
+<span class="cell">8</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">4</span>
+<span class="cell">1</span>
+<span class="cell">9</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">5</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">8</span>
+<span class="cell">
+</span>
+<span class="cell">
+</span>
+<span class="cell">7</span>
+<span class="cell">9</span>
+</div>
+<div class="board-bottom">
+<span>ONE NUMBER AT A TIME</span>
+<span>01 — 09</span>
+</div>
+<div class="annotation">Start with what you know.</div>
+</div>
+<div class="demo-controls" aria-label="Explore Sudoku rules">
+<button type="button" data-rule="row" aria-pressed="true">Row</button>
+<button type="button" data-rule="column" aria-pressed="false">Column</button>
+<button type="button" data-rule="box" aria-pressed="false">Box</button>
+</div>
+<p class="demo-caption" aria-live="polite">A row: each digit from 1 to 9 appears once.</p>
+<p class="demo-caption">Interactive rule illustration · Not an app screenshot</p>
+</div>
+</section>
+<div class="strip">
+<span>
+<b>01</b>Offline play</span>
+<span>
+<b>02</b>No account needed</span>
+<span>
+<b>03</b>No ads or in-app purchases</span>
+</div>
+<section class="section" id="experience">
+<div class="section-heading">
+<div>
+<span class="eyebrow">Made for the next step</span>
+<h2>A simple game.<br>Room to think.</h2>
+</div>
+<p>Pick a puzzle and settle in. Familiar tools help you keep track of possibilities without interrupting your train of thought.</p>
+</div>
+<div class="features">
+<article class="feature">
+<span class="feature-number">01</span>
+<h3>Find your own pace.</h3>
+<p>Choose a difficulty that suits the moment. Start with a few clear numbers, then work through the possibilities.</p>
+<div class="feature-visual difficulty" aria-hidden="true">
+<i>
+</i>
+<i>
+</i>
+<i>
+</i>
+<i>
+</i>
+<i>
+</i>
+</div>
+</article>
+<article class="feature">
+<span class="feature-number">02</span>
+<h3>Make room for an idea.</h3>
+<p>Pencil in candidates, use a hint, or undo a move. Keep your reasoning visible as you explore the next step.</p>
+<div class="feature-visual " aria-hidden="true">
+<div class="notes-grid">
+<span>1</span>
+<span>
+</span>
+<span>3</span>
+<span>
+</span>
+<span>5</span>
+<span>
+</span>
+<span>7</span>
+<span>
+</span>
+<span>9</span>
+</div>
+</div>
+</article>
+<article class="feature">
+<span class="feature-number">03</span>
+<h3>A view that feels right.</h3>
+<p>Choose a light or dark appearance, or follow your system. Adjust the layout to suit your preferred hand.</p>
+<div class="feature-visual theme-pair" aria-hidden="true">
+<div class="theme-swatch ">
+<i>
+</i>
+<i>
+</i>
+<i>
+</i>
+<i>
+</i>
+<i>
+</i>
+<i>
+</i>
+<i>
+</i>
+<i>
+</i>
+<i>
+</i>
+</div>
+<div class="theme-swatch dark">
+<i>
+</i>
+<i>
+</i>
+<i>
+</i>
+<i>
+</i>
+<i>
+</i>
+<i>
+</i>
+<i>
+</i>
+<i>
+</i>
+<i>
+</i>
+</div>
+</div>
+</article>
+</div>
+</section>
+</div>
+<section class="privacy-band">
+<div class="wrap privacy-inner">
+<div>
+<span class="eyebrow">Your progress, on your device</span>
+<h2>A quieter place<br>for your data, too.</h2>
+<p>Play without an account. Progress, preferences and statistics are stored locally. The app has no advertising or analytics service.</p>
+<a class="secondary" href="privacy/">Read our privacy policy ↗</a>
+</div>
+<div class="privacy-list">
+<div class="privacy-row">
+<span>01</span>
+<div>Local progress<small>Continue your puzzle and keep your preferences.</small>
+</div>
+</div>
+<div class="privacy-row">
+<span>02</span>
+<div>Clipboard by choice<small>Only when you choose to import or copy.</small>
+</div>
+</div>
+<div class="privacy-row">
+<span>03</span>
+<div>Optional hand awareness<small>Off by default. System backup follows your device settings.</small>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section class="wrap closing">
+<div>
+<span class="eyebrow">One square at a time</span>
+<h2>Your next quiet moment.</h2>
+<p>We are preparing the first release for HarmonyOS phones.</p>
+</div>
+<button class="button" type="button" disabled>AppGallery<small>Coming soon</small>
+</button>
+</section>
+</main>
+<footer class="footer">
+<div class="wrap">
+<div class="footer-top">
+<span>© 2026 杭州幻橙网络科技有限公司</span>
+<div class="footer-links">
+<a href="privacy/">Privacy policy</a>
+<a href="support/">Help & support</a>
+<a href="./">Back to home ↑</a>
+</div>
+</div>
+<small>HarmonyOS phone edition · Preparing for launch. Availability is subject to store review.</small>
+<!-- 部署前由运营者填入已核实的备案信息及官方查询链接；不得编造号码。 -->
+</div>
+</footer>
+</body>
+</html>
