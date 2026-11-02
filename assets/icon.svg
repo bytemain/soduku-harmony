@@ -1,7 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="128 128 768 768" role="img" aria-labelledby="title desc">
 <title id="title">不错的数独 · Not Bad Sudoku</title>
-<desc id="desc">A cream paper Sudoku board with continuous fine green grid lines, serif digits, and a teal selected five, on a deep forest-green background.</desc>
-<rect width="1024" height="1024" fill="#153E39"/>
+<desc id="desc">A cream paper Sudoku board with continuous fine green grid lines, serif digits, and a teal selected five, with a transparent outer background for the website.</desc>
 <g transform="rotate(-3 512 512)">
 <rect x="166" y="178" width="704" height="704" rx="8" fill="#082F2A" opacity=".32"/>
 <rect x="160" y="160" width="704" height="704" rx="8" fill="#FFFEF8"/>
