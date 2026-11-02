@@ -1,10 +1,18 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="128 128 768 768" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="64 64 896 896" role="img" aria-labelledby="title desc">
 <title id="title">不错的数独 · Not Bad Sudoku</title>
-<desc id="desc">A cream paper Sudoku board with continuous fine green grid lines, serif digits, and a teal selected five, with a transparent outer background and a tighter paper margin.</desc>
+<desc id="desc">A cream paper Sudoku board with continuous fine green grid lines, serif digits, and a teal selected five, with a transparent outer background, a larger grid, tight paper margins, and a soft floating shadow.</desc>
+<defs>
+<filter id="paper-shadow" x="-30%" y="-30%" width="160%" height="170%" color-interpolation-filters="sRGB">
+  <feGaussianBlur in="SourceAlpha" stdDeviation="14" result="blur"/>
+  <feOffset in="blur" dx="0" dy="24" result="offset"/>
+  <feFlood flood-color="#153E39" flood-opacity=".28" result="shadowColor"/>
+  <feComposite in="shadowColor" in2="offset" operator="in" result="shadow"/>
+  <feMerge><feMergeNode in="shadow"/><feMergeNode in="SourceGraphic"/></feMerge>
+</filter>
+</defs>
 <g transform="rotate(-3 512 512)">
-<rect x="166" y="178" width="704" height="704" rx="8" fill="#082F2A" opacity=".32"/>
-<rect x="160" y="160" width="704" height="704" rx="8" fill="#FFFEF8"/>
-<g transform="translate(512 512) scale(1.1111111111) translate(-512 -512)">
+<rect x="128" y="128" width="768" height="768" rx="16" fill="#FFFEF8" filter="url(#paper-shadow)"/>
+<g transform="translate(512 512) scale(1.2222222222) translate(-512 -512)">
 <rect x="224" y="416" width="576" height="192" fill="#E1ECD9"/>
 <rect x="416" y="416" width="192" height="192" fill="#16796F"/>
 <path d="M416 224V800 M608 224V800 M224 416H800 M224 608H800" fill="none" stroke="#789486" stroke-width="7"/>
