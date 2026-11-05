@@ -6,6 +6,8 @@ import {
   initFormatSolver, validateUniqueness,
 } from '../main/ets/utils/SudokuFormat'
 import { countSolutions } from '../main/ets/utils/SudokuSolver'
+import { applyGridConfig, GRID_SIZE } from '../main/ets/constants/GameConstants'
+import { GRID_4x4, GRID_6x6, GRID_9x9 } from '../main/ets/models/VariantConfig'
 
 // ============================================================
 // 测试数据
@@ -96,6 +98,32 @@ function boardsEqual(a: number[][], b: number[][]): boolean {
 }
 
 export default function sudokuFormatTest() {
+
+  describe('SudokuFormat.ActiveGridIndependence', () => {
+    it('standard_formats_remain_9x9_after_playing_small_boards', 0, () => {
+      try {
+        for (const grid of [GRID_4x4, GRID_6x6]) {
+          applyGridConfig(grid)
+          const inputs: string[] = [VALID_81, VALID_SDM, VALID_SDK, VALID_SS, VALID_JSON_ARRAY]
+          const formats: string[] = ['81string', 'sdm', 'sdk', 'ss', 'json']
+          for (let i = 0; i < inputs.length; i++) {
+            expect(detectFormat(inputs[i])).assertEqual(formats[i])
+            const parsed = parseSudokuInput(inputs[i])
+            expect(parsed.success).assertTrue()
+            expect(boardsEqual(parsed.puzzles[0].board, getExpectedBoard())).assertTrue()
+          }
+          expect(parse81String(VALID_81).board.length).assertEqual(GRID_9x9.gridSize)
+          expect(exportTo81String(getExpectedBoard())).assertEqual(VALID_81)
+          expect(parseSudokuInput(exportToSs(getExpectedBoard())).success).assertTrue()
+          expect(countGivens(getExpectedBoard())).assertEqual(32)
+          // 解析不能靠修改正在进行的游戏的全局尺寸来实现。
+          expect(GRID_SIZE).assertEqual(grid.gridSize)
+        }
+      } finally {
+        applyGridConfig(GRID_9x9)
+      }
+    })
+  })
 
   // ============================================================
   // parse81String

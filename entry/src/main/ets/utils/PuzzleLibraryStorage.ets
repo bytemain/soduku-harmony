@@ -15,6 +15,7 @@ import {
   PuzzleEntry,
   PuzzleProgress,
   createDefaultProgress,
+  mergePuzzleProgress,
 } from '../models/PuzzleLibrary'
 
 const STORE_NAME = 'sudoku_puzzle_library'
@@ -189,7 +190,7 @@ export async function saveProgress(
     // 更新或新增
     const existing = map.entries.findIndex((e: ProgressMapEntry) => e.index === puzzleIndex)
     if (existing >= 0) {
-      map.entries[existing].progress = progress
+      map.entries[existing].progress = mergePuzzleProgress(map.entries[existing].progress, progress)
     } else {
       const entry = new ProgressMapEntry(puzzleIndex, progress)
       map.entries.push(entry)

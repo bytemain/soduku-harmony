@@ -9,14 +9,22 @@
 import { CellData } from '../models/CellData'
 import { BoardCellDecoration, createEmptyBoardCellDecoration } from '../models/BoardDecoration'
 import { VariantType } from '../models/VariantConfig'
-import { Colors, Sizes, BOX_ROWS, BOX_COLS, BOX_COUNT_COLS, BOX_COUNT_ROWS,
+import { ColorsConfig, getThemeColors, Sizes, BOX_ROWS, BOX_COLS, BOX_COUNT_COLS, BOX_COUNT_ROWS,
   GRID_SIZE, DIGITS, BOX_INDICES, BOX_CELL_INDICES } from '../constants/GameConstants'
 import { SudokuCell } from './SudokuCell'
+import { COORDINATE_GUTTER, hitTestBoardCell } from '../utils/AdaptiveLayout'
 
 @Component
 export struct SudokuBoard {
+  @StorageProp('isDarkMode') private isDarkMode: boolean = false
+
+  private getPalette(): ColorsConfig {
+    return getThemeColors(this.isDarkMode)
+  }
+
   @ObjectLink cells: ArrayWrapper
   @Prop selectedValue: number = 0
+  @Prop showErrors: boolean = true
   @Prop hintFocusIndex: number = -1
   @Prop showCoordinates: boolean = false
   @Prop boardDecorations: BoardCellDecoration[] = []
@@ -26,6 +34,8 @@ export struct SudokuBoard {
   onMouseDragSelect: (index: number, action: string) => void = () => {}
   /** 触摸长按拖拽多选：action = 'start' | 'move' | 'end' */
   onTouchDragSelect: (index: number, action: string) => void = () => {}
+  /** 长按多选期间由外层暂停滚动，避免拖选和 Scroll 同时消费移动。 */
+  onDragSelectionActiveChange: (active: boolean) => void = () => {}
   onKeyboardInput: (keyCode: number) => void = () => {}
 
   @State private boardHeight: number = 0
@@ -39,16 +49,20 @@ export struct SudokuBoard {
   /** 上一次触摸命中的格索引（避免重复回调） */
   private lastTouchCellIndex: number = -1
 
+  aboutToDisappear(): void {
+    this.finishBoardTouch()
+  }
+
   build() {
     Column() {
       // 顶部列号 — 坐标轴开启时显示
       if (this.showCoordinates) {
         Row() {
-          Blank().width(18)
+          Blank().width(COORDINATE_GUTTER)
           ForEach(DIGITS, (index: number) => {
             Text(index.toString())
               .fontSize(11)
-              .fontColor(Colors.subtitleText)
+              .fontColor(this.getPalette().subtitleText)
               .textAlign(TextAlign.Center)
               .layoutWeight(1)
           })
@@ -65,14 +79,14 @@ export struct SudokuBoard {
               Row() {
                 Text(index.toString())
                   .fontSize(11)
-                  .fontColor(Colors.subtitleText)
+                  .fontColor(this.getPalette().subtitleText)
                   .textAlign(TextAlign.Center)
               }
               .layoutWeight(1)
               .justifyContent(FlexAlign.Center)
             })
           }
-          .width(18)
+          .width(COORDINATE_GUTTER)
           .height(this.boardHeight > 0 ? this.boardHeight : undefined)
         }
 
@@ -92,10 +106,16 @@ export struct SudokuBoard {
         .aspectRatio(1)
         .backgroundColor(this.getInnerGridBorderColor())
         .borderWidth(Sizes.cellBorderBold)
-        .borderColor(Colors.cellBorderBold)
+        .borderColor(this.getPalette().cellBorderBold)
         .onAreaChange((_old, newArea) => {
-          this.boardHeight = newArea.height as number
-          this.boardWidth = newArea.width as number
+          const width = Number(newArea.width)
+          const height = Number(newArea.height)
+          // 折叠/旋转期间取消旧坐标系上的长按；新触摸只使用最终 Grid 的实测大小。
+          if (Math.abs(width - this.boardWidth) > 0.5 || Math.abs(height - this.boardHeight) > 0.5) {
+            this.finishBoardTouch()
+            this.boardHeight = height
+            this.boardWidth = width
+          }
         })
         .onTouch((event: TouchEvent) => {
           this.handleBoardTouch(event)
@@ -118,6 +138,7 @@ export struct SudokuBoard {
       ForEach(BOX_CELL_INDICES, (cellInBox: number) => {
         GridItem() {
           SudokuCell({
+            showErrors: this.showErrors,
             cellData: this.cells.data[this.getBoxCellIndex(boxIndex, cellInBox)],
             selectedValue: this.selectedValue,
             isHintTarget: this.hintFocusIndex === this.getBoxCellIndex(boxIndex, cellInBox),
@@ -137,7 +158,7 @@ export struct SudokuBoard {
     .rowsTemplate('1fr '.repeat(BOX_ROWS).trim())
     .width('100%')
     .height('100%')
-    .backgroundColor(Colors.boardBg)
+    .backgroundColor(this.getPalette().boardBg)
   }
 
   /**
@@ -177,16 +198,16 @@ export struct SudokuBoard {
 
   private getBoxBorderColor(): string {
     if (this.currentVariantType === VariantType.JIGSAW) {
-      return Colors.cellBorderThin
+      return this.getPalette().cellBorderThin
     }
-    return Colors.cellBorderBold
+    return this.getPalette().cellBorderBold
   }
 
   private getInnerGridBorderColor(): string {
     if (this.currentVariantType === VariantType.JIGSAW) {
-      return Colors.cellBorderThin
+      return this.getPalette().cellBorderThin
     }
-    return Colors.cellBorderBold
+    return this.getPalette().cellBorderBold
   }
 
   /**
@@ -194,13 +215,21 @@ export struct SudokuBoard {
    * 返回 -1 表示超出棋盘范围
    */
   private hitTestCellIndex(x: number, y: number): number {
-    if (this.boardWidth <= 0 || this.boardHeight <= 0) return -1
-    const cellW = this.boardWidth / GRID_SIZE
-    const cellH = this.boardHeight / GRID_SIZE
-    const col = Math.floor(x / cellW)
-    const row = Math.floor(y / cellH)
-    if (row < 0 || row >= GRID_SIZE || col < 0 || col >= GRID_SIZE) return -1
-    return row * GRID_SIZE + col
+    return hitTestBoardCell(x, y, this.boardWidth, this.boardHeight, GRID_SIZE, Sizes.cellBorderBold)
+  }
+
+  private finishBoardTouch(): void {
+    if (this.touchTimerId !== -1) {
+      clearTimeout(this.touchTimerId)
+      this.touchTimerId = -1
+    }
+    if (this.isTouchLongPressed && this.lastTouchCellIndex >= 0) {
+      this.onTouchDragSelect(this.lastTouchCellIndex, 'end')
+    }
+    if (this.isTouchLongPressed) this.onDragSelectionActiveChange(false)
+    this.isTouchLongPressed = false
+    this.touchStartIndex = -1
+    this.lastTouchCellIndex = -1
   }
 
   /**
@@ -210,19 +239,28 @@ export struct SudokuBoard {
    * Up/Cancel: 清理状态
    */
   private handleBoardTouch(event: TouchEvent): void {
+    // Up/Cancel 可能没有 touches；必须先清理，否则滚动/折叠会留下长按计时器。
+    if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+      this.finishBoardTouch()
+      return
+    }
     const touch = event.touches[0]
     if (touch === undefined) return
 
     if (event.type === TouchType.Down) {
+      this.finishBoardTouch()
       const index = this.hitTestCellIndex(touch.x, touch.y)
+      if (index < 0) return
       this.touchStartIndex = index
       this.lastTouchCellIndex = index
       this.isTouchLongPressed = false
 
       // 启动长按计时器
       this.touchTimerId = setTimeout(() => {
+        this.touchTimerId = -1
         this.isTouchLongPressed = true
         if (this.touchStartIndex >= 0) {
+          this.onDragSelectionActiveChange(true)
           this.onTouchDragSelect(this.touchStartIndex, 'start')
           this.lastTouchCellIndex = this.touchStartIndex
         }
@@ -246,20 +284,6 @@ export struct SudokuBoard {
         this.onTouchDragSelect(index, 'move')
       }
 
-    } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
-      // 清理计时器
-      if (this.touchTimerId !== -1) {
-        clearTimeout(this.touchTimerId)
-        this.touchTimerId = -1
-      }
-
-      if (this.isTouchLongPressed) {
-        this.onTouchDragSelect(this.lastTouchCellIndex, 'end')
-      }
-
-      this.isTouchLongPressed = false
-      this.touchStartIndex = -1
-      this.lastTouchCellIndex = -1
     }
   }
 }

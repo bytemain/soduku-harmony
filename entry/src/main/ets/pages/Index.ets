@@ -1,27 +1,26 @@
 /**
  * Index.ets — 主页（HomePage）
  *
- * 纵向居中布局：标题区 → 继续按钮 → 难度选择 → 开始按钮 → 底部入口。
+ * 先继续当前一局；新局、导入与高级配置按需展开。
  *
  * 参考：Doc 05 §一
  */
 import { router, promptAction } from '@kit.ArkUI'
 import { common } from '@kit.AbilityKit'
 import { pasteboard } from '@kit.BasicServicesKit'
-import { Colors, Sizes, Difficulty, getDifficultyConfig, GRID_INDICES,
-  BOX_ROWS, BOX_COLS, GRID_SIZE } from '../constants/GameConstants'
-import { DifficultySegment } from '../components/DifficultySegment'
-import { VariantSegment } from '../components/VariantSegment'
+import { ColorsConfig, getThemeColors, Difficulty, DifficultyConfig, DIFFICULTY_CONFIGS, getDifficultyConfig } from '../constants/GameConstants'
 import { SettingsPanel } from '../components/SettingsPanel'
+import { HistoryList } from '../components/HistoryList'
 import { StatsPanel } from '../components/StatsPanel'
-import { hasSavedGame, clearSave, loadGame, GameSaveData } from '../utils/GameStorage'
+import { HomeDisclosureRow } from '../components/HomeDisclosureRow'
+import { hasSavedGame, loadGame } from '../utils/GameStorage'
 import { Symmetry, decodeSeedId } from '../utils/SudokuGenerator'
 import { parseSudokuInput, ParseResult, countGivens, exportTo81String,
-  getFormatDisplayNameKey, SudokuFormatType } from '../utils/SudokuFormat'
-import { formatStr } from '../utils/I18nHelper'
-import { evaluateDifficulty } from '../utils/DifficultyEvaluator'
+  getFormatDisplayNameKey } from '../utils/SudokuFormat'
+import { formatStr, getLocalizedString } from '../utils/I18nHelper'
 import { GridConfig, GRID_4x4, GRID_6x6, GRID_9x9, VariantType } from '../models/VariantConfig'
 import { hilog } from '@kit.PerformanceAnalysisKit'
+import { computeHomeLayout, HomeLayoutPlan } from '../utils/AdaptiveLayout'
 
 class SymmetryOption {
   key: string = ''
@@ -51,6 +50,10 @@ class GridSizeOption {
   }
 }
 
+const HOME_VARIANTS: VariantType[] = [VariantType.STANDARD, VariantType.DIAGONAL, VariantType.JIGSAW, VariantType.KILLER]
+
+const PREVIEW_INDICES: number[] = GRID_9x9.digits.map((digit: number): number => digit - 1)
+
 const GRID_SIZE_OPTIONS: GridSizeOption[] = [
   new GridSizeOption(GRID_4x4, 'grid_size_4x4'),
   new GridSizeOption(GRID_6x6, 'grid_size_6x6'),
@@ -60,19 +63,33 @@ const GRID_SIZE_OPTIONS: GridSizeOption[] = [
 @Entry
 @Component
 struct Index {
+  private getPalette(): ColorsConfig {
+    return getThemeColors(this.isDarkMode)
+  }
+
+  @StorageProp('localeRevision') private localeRevision: number = 0
   @StorageProp('isDarkMode') isDarkMode: boolean = false
   @StorageProp('topRectHeight') topRectHeight: number = 0
   @StorageProp('bottomRectHeight') bottomRectHeight: number = 0
+  @StorageProp('leftRectWidth') leftRectWidth: number = 0
+  @StorageProp('rightRectWidth') rightRectWidth: number = 0
+  @State private viewportWidth: number = 0
+  @State private viewportHeight: number = 0
   @State selectedDifficulty: Difficulty = Difficulty.MEDIUM
-  @State isStartPressed: boolean = false
   @State hasSave: boolean = false
   @State savedDifficulty: Difficulty = Difficulty.MEDIUM
   @State savedProgress: number = 0
   @State savedTime: string = '00:00'
-  @State showSettings: boolean = false
-  @State showStats: boolean = false
+  @State private selectedTab: number = 0
+  @State private pageRevision: number = 0
+  private tabController: TabsController = new TabsController()
+  @State private showNewGame: boolean = false
+  @State private showAdvancedOptions: boolean = false
+  @State private showImport: boolean = false
+  @State private showDifficulty: boolean = false
+  @State private showVariants: boolean = false
   @State selectedSymmetry: string = 'auto'  // 'auto' | Symmetry values
-  @State selectedGridSize: number = 9      // 4 | 6 | 9
+  @State selectedGridSize: number = GRID_9x9.gridSize
   @State selectedVariant: VariantType = VariantType.STANDARD
   @State seedInput: string = ''
   /** 导入解析结果 */
@@ -81,12 +98,19 @@ struct Index {
   @State importSelectedIndex: number = 0
 
   onPageShow(): void {
+    this.pageRevision++
+    // 回到首页先呈现当前局；用户的配置值保留，展开状态复位。
+    this.showNewGame = false
+    this.showAdvancedOptions = false
+    this.showImport = false
+    this.showDifficulty = false
+    this.showVariants = false
     this.hasSave = hasSavedGame(getContext(this))
     if (this.hasSave) {
       const saved = loadGame(getContext(this))
       if (saved) {
         this.savedDifficulty = saved.difficulty as Difficulty
-        // Calculate progress: count filled cells / total non-given cells
+        // 仅统计玩家可填写的格子。
         let filledCount = 0
         let totalEditable = 0
         for (const c of saved.cells) {
@@ -99,7 +123,7 @@ struct Index {
           }
         }
         this.savedProgress = totalEditable > 0 ? Math.round((filledCount / totalEditable) * 100) : 0
-        // Format time
+        // 恢复本局累计用时。
         const m = Math.floor(saved.elapsedSeconds / 60)
         const s = saved.elapsedSeconds % 60
         this.savedTime = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
@@ -107,23 +131,10 @@ struct Index {
     }
   }
 
-  @Builder
-  settingsSheetBuilder() {
-    SettingsPanel({
-      context: getContext(this) as common.UIAbilityContext,
-      onClose: () => {
-        this.showSettings = false
-      },
-    })
-  }
-
-  @Builder
-  statsSheetBuilder() {
-    StatsPanel({
-      onClose: () => {
-        this.showStats = false
-      },
-    })
+  onBackPress(): boolean {
+    if (this.selectedTab === 0) return false
+    this.tabController.changeIndex(0)
+    return true
   }
 
   /**
@@ -166,7 +177,7 @@ struct Index {
    */
 
   private getString(name: string): string {
-    return getContext(this).resourceManager.getStringByNameSync(name)
+    return getLocalizedString(getContext(this), name, this.localeRevision)
   }
 
   /**
@@ -194,25 +205,25 @@ struct Index {
   @Builder
   MiniPreview(board: number[][]) {
     Column({ space: 0 }) {
-      ForEach(GRID_INDICES, (r: number) => {
+      ForEach(PREVIEW_INDICES, (r: number) => {
         Row({ space: 0 }) {
-          ForEach(GRID_INDICES, (c: number) => {
+          ForEach(PREVIEW_INDICES, (c: number) => {
             Text(board[r][c] > 0 ? board[r][c].toString() : '')
               .width(16)
               .height(16)
               .fontSize(9)
               .textAlign(TextAlign.Center)
-              .fontColor(Colors.titleText)
+              .fontColor(this.getPalette().titleText)
               .fontWeight(FontWeight.Medium)
-              .backgroundColor(board[r][c] > 0 ? Colors.cellDefault : Colors.pageBg)
+              .backgroundColor(board[r][c] > 0 ? this.getPalette().cellDefault : this.getPalette().pageBg)
               .border({
                 width: {
-                  left: c % BOX_COLS === 0 ? 1 : 0.3,
-                  top: r % BOX_ROWS === 0 ? 1 : 0.3,
-                  right: c === GRID_SIZE - 1 ? 1 : 0,
-                  bottom: r === GRID_SIZE - 1 ? 1 : 0,
+                  left: c % GRID_9x9.boxCols === 0 ? 1 : 0.3,
+                  top: r % GRID_9x9.boxRows === 0 ? 1 : 0.3,
+                  right: c === GRID_9x9.gridSize - 1 ? 1 : 0,
+                  bottom: r === GRID_9x9.gridSize - 1 ? 1 : 0,
                 },
-                color: Colors.cellBorderBold,
+                color: this.getPalette().cellBorderBold,
               })
           })
         }
@@ -223,232 +234,561 @@ struct Index {
     .alignSelf(ItemAlign.Center)
   }
 
-  build() {
-    Column() {
-      // ==================== ① 标题区 ====================
-      Column() {
-        Text('🔢')
-          .fontSize(Sizes.appIcon)
+  private getHomeLayout(): HomeLayoutPlan {
+    return computeHomeLayout(this.viewportWidth, this.viewportHeight)
+  }
 
-        Text($r('app.string.app_title'))
-          .fontSize(Sizes.titleFont)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(Colors.titleText)
-          .margin({ top: 12 })
+  private variantName(type: VariantType): string {
+    switch (type) {
+      case VariantType.DIAGONAL: return 'variant_diagonal'
+      case VariantType.JIGSAW: return 'variant_jigsaw'
+      case VariantType.KILLER: return 'variant_killer'
+      default: return 'variant_standard'
+    }
+  }
 
-        Text($r('app.string.app_subtitle'))
-          .fontSize(Sizes.subtitleFont)
-          .fontColor(Colors.subtitleText)
-          .letterSpacing(4)
-          .margin({ top: 4 })
+  private configSummary(): string {
+    let summary = `${this.getString(this.variantName(this.selectedVariant))} · ${this.selectedGridSize} × ${this.selectedGridSize}`
+    if (this.selectedSymmetry !== 'auto') {
+      const option = SYMMETRY_OPTIONS.find((item: SymmetryOption) => item.key === this.selectedSymmetry)
+      if (option) summary += ` · ${this.getString(option.label)}`
+    }
+    return summary
+  }
+
+  /** 新局和导入共用覆盖确认，展开配置本身不会清除存档。 */
+  private confirmNewPuzzle(start: () => void): void {
+    if (!this.hasSave) {
+      start()
+      return
+    }
+    AlertDialog.show({
+      title: this.getString('home_replace_title'),
+      message: this.getString('home_replace_message'),
+      primaryButton: {
+        value: this.getString('home_keep_current'),
+        action: () => {},
+      },
+      secondaryButton: {
+        value: this.getString('home_replace_confirm'),
+        action: start,
+      },
+    })
+  }
+
+  private startNewGame(): void {
+    this.confirmNewPuzzle(() => {
+      router.pushUrl({
+        url: 'pages/GamePage',
+        params: {
+          difficulty: this.selectedDifficulty,
+          symmetry: this.selectedSymmetry === 'auto' ? undefined : this.selectedSymmetry,
+          gridSize: this.selectedGridSize,
+          variantType: this.selectedVariant,
+        },
+      })
+    })
+  }
+
+  /** 导入是独立动作，不让折叠区里残留的文本影响新题配置。 */
+  private startImportedGame(): void {
+    const trimmedInput = this.seedInput.trim()
+    const decoded = decodeSeedId(trimmedInput)
+    if (decoded !== null) {
+      this.confirmNewPuzzle(() => {
+        router.pushUrl({
+          url: 'pages/GamePage',
+          params: {
+            difficulty: decoded.difficulty,
+            seedId: trimmedInput,
+            gridSize: this.selectedGridSize,
+            variantType: this.selectedVariant,
+          },
+        })
+      })
+      return
+    }
+    const result = this.importResult
+    if (result && result.success && result.puzzles.length > 0) {
+      const puzzle81 = exportTo81String(result.puzzles[this.importSelectedIndex].board)
+      this.confirmNewPuzzle(() => {
+        // 导入题始终由 Worker 按标准 9×9 拓扑检查。
+        router.pushUrl({ url: 'pages/GamePage', params: { importedPuzzle: puzzle81 } })
+      })
+    } else {
+      promptAction.showToast({ message: $r('app.string.import_invalid'), duration: 2000 })
+    }
+  }
+
+  private pastePuzzle(): void {
+    try {
+      const text = pasteboard.getSystemPasteboard().getDataSync().getPrimaryText()
+      if (text) {
+        this.seedInput = text
+        this.tryParseInput(text)
+      } else {
+        promptAction.showToast({ message: $r('app.string.home_clipboard_empty'), duration: 2000 })
       }
-      .margin({ top: this.topRectHeight + 40 })
+    } catch (_e) {
+      promptAction.showToast({ message: $r('app.string.home_clipboard_unavailable'), duration: 2000 })
+    }
+  }
 
-      Blank()
+  @Builder
+  private HomeHeader() {
+    Row({ space: 12 }) {
+      Image($r('app.media.startIcon'))
+        .width(64)
+        .height(64)
+        .objectFit(ImageFit.Contain)
+        .accessibilityLevel('no')
+      Column({ space: 3 }) {
+        Text($r('app.string.app_title'))
+          .fontSize(22)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(this.getPalette().titleText)
+        Text($r('app.string.home_tagline'))
+          .fontSize(13)
+          .fontColor(this.getPalette().subtitleText)
+      }
+      .alignItems(HorizontalAlign.Start)
+      .layoutWeight(1)
+    }
+    .width('100%')
+    .alignItems(VerticalAlign.Center)
+  }
 
-      // ==================== ② 继续游戏卡片（有存档时显示） ======================================
-      if (this.hasSave) {
-        Row() {
-          // 左侧难度色条
-          Column()
-            .width(4)
-            .height(36)
-            .borderRadius(2)
-            .backgroundColor(getDifficultyConfig(this.savedDifficulty).color)
-            .margin({ right: 12 })
-
-          // 中部信息
-          Column() {
-            Text($r('app.string.btn_continue'))
-              .fontSize(16)
-              .fontWeight(FontWeight.Medium)
-              .fontColor(Colors.titleText)
-
-            Row({ space: 8 }) {
-              Text(getContext(this).resourceManager.getStringByNameSync(
-                getDifficultyConfig(this.savedDifficulty).name
-              ))
-                .fontSize(12)
-                .fontColor(getDifficultyConfig(this.savedDifficulty).color)
-
-              Text('·')
-                .fontSize(12)
-                .fontColor(Colors.subtitleText)
-
-              Text(`${this.savedProgress}%`)
-                .fontSize(12)
-                .fontColor(Colors.subtitleText)
-            }
-            .margin({ top: 2 })
-          }
-          .alignItems(HorizontalAlign.Start)
-
-          Blank()
-
-          // 右侧时间
-          Text(this.savedTime)
-            .fontSize(18)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(Colors.subtitleText)
-        }
+  @Builder
+  private ResumeSection() {
+    Column({ space: 12 }) {
+      Text($r('app.string.home_in_progress'))
+        .fontSize(13)
+        .fontColor(this.getPalette().subtitleText)
         .width('100%')
-        .height(Sizes.btnHeight + 8)
-        .padding({ left: 16, right: 16 })
-        .alignItems(VerticalAlign.Center)
-        .backgroundColor(Colors.secondaryBtn)
-        .borderRadius(Sizes.btnRadius)
-        .borderWidth(1.5)
-        .borderColor(Colors.secondaryBorder)
+      Text(this.getString(getDifficultyConfig(this.savedDifficulty).name))
+        .fontSize(28)
+        .fontWeight(FontWeight.Medium)
+        .fontColor(this.getPalette().titleText)
+        .width('100%')
+      Row({ space: 12 }) {
+        Text(formatStr(this.getString('home_progress'), `${this.savedProgress}%`))
+          .fontSize(14)
+          .fontColor(this.getPalette().subtitleText)
+        Text('·')
+          .fontSize(14)
+          .fontColor(this.getPalette().subtitleText)
+          .accessibilityLevel('no')
+        Text(formatStr(this.getString('home_elapsed'), this.savedTime))
+          .fontSize(14)
+          .fontColor(this.getPalette().subtitleText)
+      }
+      .width('100%')
+      Button($r('app.string.home_resume'), { type: ButtonType.Normal })
+        .width('100%')
+        .height(52)
+        .borderRadius(6)
+        .fontSize(18)
+        .fontWeight(FontWeight.Medium)
+        .fontColor(this.getPalette().primaryText)
+        .backgroundColor(this.getPalette().primaryBtn)
+        .margin({ top: 8 })
         .onClick(() => {
           router.pushUrl({
             url: 'pages/GamePage',
-            params: {
-              difficulty: this.savedDifficulty,
-              resumeSave: true,
-            },
+            params: { difficulty: this.savedDifficulty, resumeSave: true },
           })
         })
+    }
+    .width('100%')
+    .alignItems(HorizontalAlign.Start)
+  }
+
+  @Builder
+  private DifficultyPicker() {
+    Column() {
+      Text($r('app.string.home_difficulty'))
+        .fontSize(13)
+        .fontColor(this.getPalette().subtitleText)
+        .width('100%')
+        .margin({ bottom: 4 })
+      Button({ type: ButtonType.Normal }) {
+        Row({ space: 12 }) {
+          Column({ space: 4 }) {
+            Text(this.getString(getDifficultyConfig(this.selectedDifficulty).name))
+              .fontSize(17)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(this.getPalette().titleText)
+            Text(this.getString(getDifficultyConfig(this.selectedDifficulty).descName))
+              .fontSize(12)
+              .fontColor(this.getPalette().subtitleText)
+          }
+          .layoutWeight(1)
+          .alignItems(HorizontalAlign.Start)
+          Image($r('app.media.paper_arrow_right'))
+            .width(18)
+            .height(18)
+            .fillColor(this.getPalette().subtitleText)
+            .rotate({ angle: this.showDifficulty ? -90 : 90 })
+            .accessibilityLevel('no')
+        }
+        .width('100%')
+      }
+      .width('100%')
+      .constraintSize({ minHeight: 64 })
+      .padding({ left: 14, right: 14, top: 10, bottom: 10 })
+      .borderRadius(6)
+      .backgroundColor(this.getPalette().cardBg)
+      .border({ width: 1, color: this.getPalette().cardBorder })
+      .accessibilityText(`${this.getString('home_difficulty')}，${this.getString(getDifficultyConfig(this.selectedDifficulty).name)}`)
+      .accessibilityDescription(this.showDifficulty ? $r('app.string.home_expanded') : $r('app.string.home_collapsed'))
+      .onClick(() => { this.showDifficulty = !this.showDifficulty })
+
+      if (this.showDifficulty) {
+        Column() {
+          ForEach(DIFFICULTY_CONFIGS, (config: DifficultyConfig) => {
+            Button({ type: ButtonType.Normal }) {
+              Row({ space: 8 }) {
+                Column({ space: 3 }) {
+                  Text(this.getString(config.name))
+                    .fontSize(15)
+                    .fontColor(this.getPalette().titleText)
+                  Text(this.getString(config.descName))
+                    .fontSize(12)
+                    .fontColor(this.getPalette().subtitleText)
+                }
+                .layoutWeight(1)
+                .alignItems(HorizontalAlign.Start)
+                if (this.selectedDifficulty === config.level) {
+                  Image($r('app.media.paper_check'))
+                    .width(18)
+                    .height(18)
+                    .fillColor(this.getPalette().toolbarActive)
+                    .accessibilityLevel('no')
+                }
+              }
+              .width('100%')
+            }
+            .width('100%')
+            .constraintSize({ minHeight: 58 })
+            .padding({ left: 14, right: 14, top: 8, bottom: 8 })
+            .borderRadius(0)
+            .backgroundColor(this.selectedDifficulty === config.level ? this.getPalette().segmentSelected : Color.Transparent)
+            .accessibilityText(this.getString(config.name))
+            .accessibilityDescription(this.selectedDifficulty === config.level ? this.getString('home_selected') : this.getString(config.descName))
+            .onClick(() => {
+              this.selectedDifficulty = config.level
+              this.showDifficulty = false
+            })
+          }, (config: DifficultyConfig) => config.level.toString())
+        }
+        .width('100%')
+        .padding({ top: 4, bottom: 4 })
+      }
+    }
+    .width('100%')
+  }
+
+  @Builder
+  private AdvancedOptions() {
+    Column({ space: 16 }) {
+      Column() {
+        Text($r('app.string.home_variant'))
+          .fontSize(13)
+          .fontColor(this.getPalette().subtitleText)
+          .width('100%')
+        HomeDisclosureRow({
+          labelKey: this.variantName(this.selectedVariant),
+          expanded: this.showVariants,
+          onToggle: () => { this.showVariants = !this.showVariants },
+        })
+        if (this.showVariants) {
+          ForEach(HOME_VARIANTS, (variant: VariantType) => {
+            Button(this.getString(this.variantName(variant)), { type: ButtonType.Normal })
+              .width('100%')
+              .height(44)
+              .fontSize(15)
+              .fontWeight(this.selectedVariant === variant ? FontWeight.Medium : FontWeight.Normal)
+              .fontColor(this.getPalette().titleText)
+              .backgroundColor(this.selectedVariant === variant ? this.getPalette().segmentSelected : Color.Transparent)
+              .borderRadius(0)
+              .accessibilityDescription(this.selectedVariant === variant ? this.getString('home_selected') : '')
+              .onClick(() => {
+                this.selectedVariant = variant
+                // 变种只能使用 9×9；标准模式允许选择小棋盘。
+                if (variant !== VariantType.STANDARD) this.selectedGridSize = GRID_9x9.gridSize
+                this.showVariants = false
+              })
+          }, (variant: VariantType) => variant)
+        }
+        Text(this.getString(`${this.variantName(this.selectedVariant)}_desc`))
+          .fontSize(12)
+          .lineHeight(18)
+          .fontColor(this.getPalette().subtitleText)
+          .width('100%')
+      }
+      .width('100%')
+
+      if (this.selectedVariant === VariantType.STANDARD) {
+        Column({ space: 6 }) {
+          Text($r('app.string.grid_size_section'))
+            .fontSize(13)
+            .fontColor(this.getPalette().subtitleText)
+            .width('100%')
+          Row({ space: 8 }) {
+            ForEach(GRID_SIZE_OPTIONS, (item: GridSizeOption) => {
+              Button(this.getString(item.label), { type: ButtonType.Normal })
+                .height(44)
+                .layoutWeight(1)
+                .fontSize(15)
+                .fontColor(this.getPalette().titleText)
+                .backgroundColor(this.selectedGridSize === item.config.gridSize ? this.getPalette().segmentSelected : Color.Transparent)
+                .borderRadius(4)
+                .border({ width: { bottom: 1 }, color: this.selectedGridSize === item.config.gridSize ? this.getPalette().toolbarActive : this.getPalette().divider })
+                .accessibilityDescription(this.selectedGridSize === item.config.gridSize ? this.getString('home_selected') : '')
+                .onClick(() => { this.selectedGridSize = item.config.gridSize })
+            }, (item: GridSizeOption) => item.config.gridSize.toString())
+          }
+          .width('100%')
+        }
+        .width('100%')
       }
 
-      // ==================== ③ 难度选择器 ====================
-      DifficultySegment({
-        selectedDifficulty: $selectedDifficulty,
-      })
-        .margin({ top: Sizes.btnGap })
+      Column({ space: 6 }) {
+        Text($r('app.string.sym_section'))
+          .fontSize(13)
+          .fontColor(this.getPalette().subtitleText)
+          .width('100%')
+        Flex({ wrap: FlexWrap.Wrap }) {
+          ForEach(SYMMETRY_OPTIONS, (item: SymmetryOption) => {
+            Button(this.getString(item.label), { type: ButtonType.Normal })
+              .height(44)
+              .padding({ left: 12, right: 12 })
+              .margin({ right: 6, bottom: 6 })
+              .fontSize(14)
+              .fontColor(this.getPalette().titleText)
+              .backgroundColor(this.selectedSymmetry === item.key ? this.getPalette().segmentSelected : Color.Transparent)
+              .borderRadius(4)
+              .border({ width: { bottom: 1 }, color: this.selectedSymmetry === item.key ? this.getPalette().toolbarActive : this.getPalette().divider })
+              .accessibilityDescription(this.selectedSymmetry === item.key ? this.getString('home_selected') : '')
+              .onClick(() => { this.selectedSymmetry = item.key })
+          }, (item: SymmetryOption) => item.key)
+        }
+        .width('100%')
+      }
+      .width('100%')
+    }
+    .width('100%')
+    .padding({ bottom: 16 })
+  }
 
-      // ==================== ③.1 变种模式选择（单选） ====================
-      VariantSegment({
-        selectedVariant: $selectedVariant,
-        onVariantChange: (variant: VariantType) => {
-          // 非标准变种仅支持 9×9
-          if (variant !== VariantType.STANDARD && this.selectedGridSize !== 9) {
-            this.selectedGridSize = 9
+  @Builder
+  private NewGameSection() {
+    Column({ space: 12 }) {
+      if (!this.hasSave) {
+        Text($r('app.string.home_start_heading'))
+          .fontSize(26)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(this.getPalette().titleText)
+          .width('100%')
+          .margin({ bottom: 6 })
+      }
+      Text($r('app.string.home_random_source'))
+        .fontSize(13)
+        .fontColor(this.getPalette().subtitleText)
+        .width('100%')
+      this.DifficultyPicker()
+      Text(this.configSummary())
+        .fontSize(13)
+        .fontColor(this.getPalette().subtitleText)
+        .width('100%')
+      Button($r('app.string.home_start_new'), { type: ButtonType.Normal })
+        .width('100%')
+        .height(52)
+        .fontSize(17)
+        .fontWeight(FontWeight.Medium)
+        .fontColor(this.hasSave ? this.getPalette().titleText : this.getPalette().primaryText)
+        .backgroundColor(this.hasSave ? Color.Transparent : this.getPalette().primaryBtn)
+        .border({ width: this.hasSave ? 1 : 0, color: this.getPalette().cellBorderBold })
+        .borderRadius(6)
+        .onClick(() => { this.startNewGame() })
+      Column() {
+        HomeDisclosureRow({
+          labelKey: 'home_advanced',
+          expanded: this.showAdvancedOptions,
+          onToggle: () => { this.showAdvancedOptions = !this.showAdvancedOptions },
+        })
+        if (this.showAdvancedOptions) {
+          this.AdvancedOptions()
+        }
+      }
+      .width('100%')
+      Divider().color(this.getPalette().divider)
+      Button({ type: ButtonType.Normal }) {
+        Row({ space: 12 }) {
+          Text($r('app.string.home_library_source'))
+            .fontSize(16)
+            .fontColor(this.getPalette().titleText)
+            .layoutWeight(1)
+            .textAlign(TextAlign.Start)
+          Image($r('app.media.paper_arrow_right'))
+            .width(18)
+            .height(18)
+            .fillColor(this.getPalette().subtitleText)
+            .accessibilityLevel('no')
+        }
+        .width('100%')
+      }
+      .width('100%')
+      .height(48)
+      .padding(0)
+      .borderRadius(0)
+      .backgroundColor(Color.Transparent)
+      .accessibilityText($r('app.string.home_library_source'))
+      .onClick(() => { router.pushUrl({ url: 'pages/PuzzleLibraryPage' }) })
+      Column() {
+        HomeDisclosureRow({
+          labelKey: 'home_import',
+          expanded: this.showImport,
+          onToggle: () => { this.showImport = !this.showImport },
+        })
+        if (this.showImport) {
+          this.ImportSection()
+        }
+      }
+      .width('100%')
+    }
+    .width('100%')
+    .padding({ bottom: 4 })
+  }
+
+  @Builder
+  private ImportPreview() {
+    if (this.importResult !== null && this.importResult.success && this.importResult.format !== 'seed') {
+      Column({ space: 12 }) {
+        Row({ space: 6 }) {
+          Image($r('app.media.paper_check'))
+            .width(16)
+            .height(16)
+            .fillColor(this.getPalette().toolbarActive)
+            .accessibilityLevel('no')
+          Text(this.getString(getFormatDisplayNameKey(this.importResult.format)))
+            .fontSize(13)
+            .fontColor(this.getPalette().titleText)
+          if (this.importResult.puzzles.length > 1) {
+            Text(formatStr(this.getString('import_puzzle_count'), this.importResult.puzzles.length))
+              .fontSize(13)
+              .fontColor(this.getPalette().subtitleText)
           }
-        },
-      })
-        .margin({ top: 8 })
-
-      // ==================== ③.2 棋盘大小选择（仅标准模式） ====================
-      if (this.selectedVariant === VariantType.STANDARD) {
-        Column() {
-          Text($r('app.string.grid_size_section'))
-            .fontSize(12)
-            .fontColor(Colors.subtitleText)
-            .margin({ bottom: 6 })
-
-          Row({ space: 0 }) {
-            ForEach(GRID_SIZE_OPTIONS, (item: GridSizeOption) => {
-              Text(getContext(this).resourceManager.getStringByNameSync(item.label))
-                .fontSize(13)
-                .fontColor(
-                  this.selectedGridSize === item.config.gridSize
-                    ? Colors.primaryText
-                    : Colors.subtitleText
-                )
-                .fontWeight(
-                  this.selectedGridSize === item.config.gridSize
-                    ? FontWeight.Medium
-                    : FontWeight.Normal
-                )
-                .backgroundColor(
-                  this.selectedGridSize === item.config.gridSize
-                    ? Colors.primaryBtn
-                    : 'transparent'
-                )
-                .borderRadius(8)
-                .padding({ left: 10, right: 10, top: 6, bottom: 6 })
-                .layoutWeight(1)
-                .textAlign(TextAlign.Center)
-                .onClick(() => {
-                  this.selectedGridSize = item.config.gridSize
-                })
+        }
+        .width('100%')
+        if (this.importResult.puzzles.length > 1) {
+          Row({ space: 12 }) {
+            Button({ type: ButtonType.Normal }) {
+              Image($r('app.media.paper_arrow_left'))
+                .width(18)
+                .height(18)
+                .fillColor(this.getPalette().titleText)
+            }
+            .width(44)
+            .height(44)
+            .backgroundColor(Color.Transparent)
+            .enabled(this.importSelectedIndex > 0)
+            .accessibilityText($r('app.string.home_previous_puzzle'))
+            .onClick(() => { if (this.importSelectedIndex > 0) this.importSelectedIndex-- })
+            Text(`${this.importSelectedIndex + 1} / ${this.importResult.puzzles.length}`)
+              .fontSize(14)
+              .fontColor(this.getPalette().titleText)
+            Button({ type: ButtonType.Normal }) {
+              Image($r('app.media.paper_arrow_right'))
+                .width(18)
+                .height(18)
+                .fillColor(this.getPalette().titleText)
+            }
+            .width(44)
+            .height(44)
+            .backgroundColor(Color.Transparent)
+            .enabled(this.importSelectedIndex < this.importResult.puzzles.length - 1)
+            .accessibilityText($r('app.string.home_next_puzzle'))
+            .onClick(() => {
+              if (this.importResult !== null && this.importSelectedIndex < this.importResult.puzzles.length - 1) {
+                this.importSelectedIndex++
+              }
             })
           }
           .width('100%')
-          .backgroundColor(Colors.segmentBg)
-          .borderRadius(12)
-          .padding(3)
+          .justifyContent(FlexAlign.Center)
         }
-        .width('100%')
-        .margin({ top: 8 })
-      }
-
-      // ==================== ③.5 对称模式选择 ====================
-      Column() {
-        Text($r('app.string.sym_section'))
-          .fontSize(12)
-          .fontColor(Colors.subtitleText)
-          .margin({ bottom: 6 })
-
-        Row({ space: 0 }) {
-          ForEach(SYMMETRY_OPTIONS, (item: SymmetryOption) => {
-            Text(getContext(this).resourceManager.getStringByNameSync(item.label))
+        if (this.importResult.puzzles.length > 0) {
+          this.MiniPreview(this.importResult.puzzles[this.importSelectedIndex].board)
+          Text(formatStr(this.getString('import_givens_count'), countGivens(this.importResult.puzzles[this.importSelectedIndex].board)))
+            .fontSize(12)
+            .fontColor(this.getPalette().subtitleText)
+          if (this.importResult.puzzles[this.importSelectedIndex].metadata?.description) {
+            Text(this.importResult.puzzles[this.importSelectedIndex].metadata!.description!)
               .fontSize(13)
-              .fontColor(
-                this.selectedSymmetry === item.key
-                  ? Colors.primaryText
-                  : Colors.subtitleText
-              )
-              .fontWeight(
-                this.selectedSymmetry === item.key
-                  ? FontWeight.Medium
-                  : FontWeight.Normal
-              )
-              .backgroundColor(
-                this.selectedSymmetry === item.key
-                  ? Colors.primaryBtn
-                  : 'transparent'
-              )
-              .borderRadius(8)
-              .padding({ left: 10, right: 10, top: 6, bottom: 6 })
-              .layoutWeight(1)
-              .textAlign(TextAlign.Center)
-              .onClick(() => {
-                this.selectedSymmetry = item.key
-              })
-          })
+              .fontColor(this.getPalette().subtitleText)
+              .width('100%')
+          }
+          if (this.importResult.puzzles[this.importSelectedIndex].metadata?.author) {
+            Text(`— ${this.importResult.puzzles[this.importSelectedIndex].metadata!.author!}`)
+              .fontSize(12)
+              .fontColor(this.getPalette().subtitleText)
+              .width('100%')
+          }
         }
-        .width('100%')
-        .backgroundColor(Colors.segmentBg)
-        .borderRadius(12)
-        .padding(3)
       }
       .width('100%')
-      .margin({ top: 8 })
+      .padding({ top: 8, bottom: 8 })
+    } else if (decodeSeedId(this.seedInput.trim()) !== null) {
+      Text($r('app.string.home_seed_ready'))
+        .fontSize(13)
+        .fontColor(this.getPalette().toolbarActive)
+        .width('100%')
+    } else if (this.importResult !== null && !this.importResult.success && this.seedInput.trim().length > 0) {
+      Text(this.resolveErrorMessage(this.importResult.error) ?? this.getString('import_format_unknown'))
+        .fontSize(13)
+        .fontColor(this.getPalette().textError)
+        .width('100%')
+    }
+  }
 
-      // ==================== ③.6 谜题输入（种子 / 导入） ====================
+  @Builder
+  private ImportSection() {
+    Column({ space: 12 }) {
+      Text($r('app.string.home_import_help'))
+        .fontSize(13)
+        .lineHeight(20)
+        .fontColor(this.getPalette().subtitleText)
+        .width('100%')
+      TextInput({ text: this.seedInput, placeholder: $r('app.string.import_placeholder') })
+        .width('100%')
+        .height(48)
+        .fontSize(14)
+        .fontColor(this.getPalette().titleText)
+        .placeholderColor(this.getPalette().subtitleText)
+        .backgroundColor(this.getPalette().cardBg)
+        .border({ width: 1, color: this.getPalette().cardBorder })
+        .borderRadius(6)
+        .padding({ left: 12, right: 12 })
+        .accessibilityText($r('app.string.home_import_input'))
+        .onChange((value: string) => {
+          this.seedInput = value
+          this.tryParseInput(value)
+        })
       Row({ space: 8 }) {
-        TextInput({ text: this.seedInput, placeholder: $r('app.string.import_placeholder') })
-          .fontSize(13)
-          .fontColor(Colors.titleText)
-          .placeholderColor(Colors.subtitleText)
-          .placeholderFont({ size: 12 })
-          .backgroundColor(Colors.cellDefault)
-          .borderRadius(8)
-          .height(36)
-          .layoutWeight(1)
-          .padding({ left: 10, right: 10 })
-          .onChange((value: string) => {
-            this.seedInput = value
-            this.tryParseInput(value)
-          })
-
-        Text('📋')
-          .fontSize(20)
-          .onClick(() => {
-            const pb = pasteboard.getSystemPasteboard()
-            const data = pb.getDataSync()
-            const text = data.getPrimaryText()
-            if (text) {
-              this.seedInput = text
-              this.tryParseInput(text)
-            }
-          })
-
+        Button($r('app.string.home_paste'), { type: ButtonType.Normal })
+          .height(44)
+          .fontSize(14)
+          .fontColor(this.getPalette().toolbarActive)
+          .backgroundColor(Color.Transparent)
+          .padding({ left: 0, right: 12 })
+          .onClick(() => { this.pastePuzzle() })
         if (this.seedInput.length > 0) {
-          Text('✕')
-            .fontSize(16)
-            .fontColor(Colors.subtitleText)
+          Button($r('app.string.home_clear'), { type: ButtonType.Normal })
+            .height(44)
+            .fontSize(14)
+            .fontColor(this.getPalette().subtitleText)
+            .backgroundColor(Color.Transparent)
             .onClick(() => {
               this.seedInput = ''
               this.importResult = null
@@ -457,251 +797,140 @@ struct Index {
         }
       }
       .width('100%')
-      .margin({ top: 8 })
+      this.ImportPreview()
+      Button($r('app.string.home_start_import'), { type: ButtonType.Normal })
+        .width('100%')
+        .height(48)
+        .fontSize(16)
+        .fontColor(this.getPalette().titleText)
+        .backgroundColor(Color.Transparent)
+        .border({ width: 1, color: this.getPalette().cellBorderBold })
+        .borderRadius(6)
+        .enabled(this.seedInput.trim().length > 0)
+        .onClick(() => { this.startImportedGame() })
+    }
+    .width('100%')
+    .padding({ bottom: 20 })
+  }
 
-      // ==================== 导入预览卡片 ====================
-      if (this.importResult !== null && this.importResult.success && this.importResult.format !== 'seed') {
-        Column({ space: 6 }) {
-          // 格式 + 题数信息
-          Row() {
-            Text(`✅ ${this.getString(getFormatDisplayNameKey(this.importResult.format))}`)
-              .fontSize(12)
-              .fontColor(Colors.primaryBtn)
-              .fontWeight(FontWeight.Medium)
-
-            if (this.importResult.puzzles.length > 1) {
-              Text(formatStr(this.getString('import_puzzle_count'), this.importResult.puzzles.length))
-                .fontSize(12)
-                .fontColor(Colors.subtitleText)
+  @Builder
+  private PlayTab() {
+    Scroll() {
+      if (this.getHomeLayout().measured) {
+        // 宽窗保留舒适阅读宽度；主操作始终先于折叠配置。
+        Column() {
+          Column() {
+            this.HomeHeader()
+            Column() {
+              if (this.hasSave) {
+                this.ResumeSection()
+                Divider().color(this.getPalette().divider).margin({ top: 28 })
+                HomeDisclosureRow({
+                  labelKey: 'home_new_game',
+                  expanded: this.showNewGame,
+                  onToggle: () => { this.showNewGame = !this.showNewGame },
+                })
+                if (this.showNewGame) {
+                  this.NewGameSection()
+                }
+              } else {
+                this.NewGameSection()
+              }
+              Divider().color(this.getPalette().divider)
             }
-
-            Blank()
-
-            // 给定数计数
-            if (this.importResult.puzzles.length > 0) {
-              Text(formatStr(this.getString('import_givens_count'), countGivens(this.importResult.puzzles[this.importSelectedIndex].board)))
-                .fontSize(11)
-                .fontColor(Colors.subtitleText)
-            }
+            .width('100%')
+            .margin({ top: 32 })
           }
           .width('100%')
-
-          // SDM 多题选择器
-          if (this.importResult.puzzles.length > 1) {
-            Row({ space: 4 }) {
-              Text('◀')
-                .fontSize(14)
-                .fontColor(this.importSelectedIndex > 0 ? Colors.titleText : Colors.subtitleText)
-                .onClick(() => {
-                  if (this.importSelectedIndex > 0) this.importSelectedIndex--
-                })
-
-              Text(`#${this.importSelectedIndex + 1}`)
-                .fontSize(13)
-                .fontColor(Colors.titleText)
-                .fontWeight(FontWeight.Medium)
-
-              Text('▶')
-                .fontSize(14)
-                .fontColor(
-                  this.importResult !== null && this.importSelectedIndex < this.importResult.puzzles.length - 1
-                    ? Colors.titleText : Colors.subtitleText
-                )
-                .onClick(() => {
-                  if (this.importResult !== null && this.importSelectedIndex < this.importResult.puzzles.length - 1) {
-                    this.importSelectedIndex++
-                  }
-                })
-            }
-            .width('100%')
-            .justifyContent(FlexAlign.Center)
-          }
-
-          // 3x3 迷你预览
-          if (this.importResult.puzzles.length > 0) {
-            this.MiniPreview(this.importResult.puzzles[this.importSelectedIndex].board)
-          }
-
-          // 元数据显示
-          if (this.importResult.puzzles.length > 0 &&
-            this.importResult.puzzles[this.importSelectedIndex].metadata) {
-            Column({ space: 2 }) {
-              if (this.importResult.puzzles[this.importSelectedIndex].metadata?.description) {
-                Text(this.importResult.puzzles[this.importSelectedIndex].metadata!.description!)
-                  .fontSize(11)
-                  .fontColor(Colors.subtitleText)
-                  .maxLines(1)
-                  .textOverflow({ overflow: TextOverflow.Ellipsis })
-              }
-              if (this.importResult.puzzles[this.importSelectedIndex].metadata?.author) {
-                Text(`— ${this.importResult.puzzles[this.importSelectedIndex].metadata!.author!}`)
-                  .fontSize(10)
-                  .fontColor(Colors.subtitleText)
-                  .fontStyle(FontStyle.Italic)
-              }
-            }
-            .width('100%')
-          }
         }
-        .width('100%')
-        .padding(12)
-        .backgroundColor(Colors.secondaryBtn)
-        .borderRadius(10)
-        .borderWidth(1)
-        .borderColor(Colors.secondaryBorder)
-        .margin({ top: 8 })
-      } else if (this.importResult !== null && !this.importResult.success) {
-        // 解析失败提示
-        if (this.seedInput.trim().length > 0 && !decodeSeedId(this.seedInput.trim())) {
-          Text(this.resolveErrorMessage(this.importResult.error) ?? this.getString('import_format_unknown'))
-            .fontSize(11)
-            .fontColor(Colors.textError)
-            .width('100%')
-            .margin({ top: 4 })
-        }
+        .width(Math.min(this.getHomeLayout().contentWidth, 520))
+        .constraintSize({ minHeight: Math.max(0, this.viewportHeight - 48) })
+        .justifyContent(FlexAlign.Start)
+        .padding({ top: 24, bottom: 24 })
       }
-
-      // ==================== ④ 开始游戏按钮 ====================
-      Button(this.hasSave ? $r('app.string.btn_new_game') : $r('app.string.btn_start'))
-        .type(ButtonType.Capsule)
-        .width('100%')
-        .height(Sizes.btnHeight)
-        .fontSize(18)
-        .fontWeight(FontWeight.Medium)
-        .fontColor(Colors.primaryText)
-        .backgroundColor(this.isStartPressed ? Colors.primaryPressed : Colors.primaryBtn)
-        .margin({ top: Sizes.btnGap })
-        .onTouch((event: TouchEvent) => {
-          if (event.type === TouchType.Down) {
-            this.isStartPressed = true
-          } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
-            this.isStartPressed = false
-          }
-        })
-        .onClick(() => {
-          if (this.seedInput.length > 0) {
-            const trimmedInput = this.seedInput.trim()
-
-            // 先试种子 ID
-            const decoded = decodeSeedId(trimmedInput)
-            if (decoded !== null) {
-              if (this.hasSave) clearSave(getContext(this))
-              router.pushUrl({
-                url: 'pages/GamePage',
-                params: {
-                  difficulty: decoded.difficulty,
-                  seedId: trimmedInput,
-                  gridSize: this.selectedGridSize,
-                  variantType: this.selectedVariant,
-                },
-              })
-              return
-            }
-
-            // 再试标准格式导入
-            const result = this.importResult
-            if (result && result.success && result.puzzles.length > 0) {
-              const puzzle = result.puzzles[this.importSelectedIndex]
-              const puzzle81 = exportTo81String(puzzle.board)
-
-              // 自动评估难度
-              let diff: Difficulty = this.selectedDifficulty
-              try {
-                const grade = evaluateDifficulty(puzzle.board)
-                diff = grade.difficulty
-              } catch (_e) {
-                // 评估失败时用选择的难度
-              }
-
-              if (this.hasSave) clearSave(getContext(this))
-              router.pushUrl({
-                url: 'pages/GamePage',
-                params: {
-                  importedPuzzle: puzzle81,
-                  importedDifficulty: diff,
-                },
-              })
-            } else {
-              promptAction.showToast({ message: $r('app.string.import_invalid'), duration: 2000 })
-            }
-          } else {
-            if (this.hasSave) {
-              clearSave(getContext(this))
-            }
-            router.pushUrl({
-              url: 'pages/GamePage',
-              params: {
-                difficulty: this.selectedDifficulty,
-                symmetry: this.selectedSymmetry === 'auto' ? undefined : this.selectedSymmetry,
-                gridSize: this.selectedGridSize,
-                variantType: this.selectedVariant,
-              },
-            })
-          }
-        })
-
-      Blank()
-
-      // ==================== ⑤ 底部入口 ====================
-      Row() {
-        Column() {
-          Text('📊')
-            .fontSize(Sizes.bottomIcon)
-          Text($r('app.string.tab_stats'))
-            .fontSize(Sizes.bottomText)
-            .fontColor(Colors.bottomText)
-            .margin({ top: 2 })
-        }
-        .layoutWeight(1)
-        .onClick(() => {
-          this.showStats = true
-        })
-        .bindSheet($$this.showStats, this.statsSheetBuilder(), {
-          height: SheetSize.LARGE,
-          dragBar: true,
-          showClose: false,
-          backgroundColor: Colors.boardBg,
-        })
-
-        Column() {
-          Text('📚')
-            .fontSize(Sizes.bottomIcon)
-          Text($r('app.string.tab_library'))
-            .fontSize(Sizes.bottomText)
-            .fontColor(Colors.bottomText)
-            .margin({ top: 2 })
-        }
-        .layoutWeight(1)
-        .onClick(() => {
-          router.pushUrl({ url: 'pages/PuzzleLibraryPage' })
-        })
-
-        Column() {
-          Text('⚙️')
-            .fontSize(Sizes.bottomIcon)
-          Text($r('app.string.tab_settings'))
-            .fontSize(Sizes.bottomText)
-            .fontColor(Colors.bottomText)
-            .margin({ top: 2 })
-        }
-        .layoutWeight(1)
-        .onClick(() => {
-          this.showSettings = true
-        })
-        .bindSheet($$this.showSettings, this.settingsSheetBuilder(), {
-          height: SheetSize.FIT_CONTENT,
-          dragBar: true,
-          showClose: false,
-          backgroundColor: Colors.boardBg,
-        })
-      }
-      .width('100%')
-      .margin({ bottom: this.bottomRectHeight + 24 })
     }
     .width('100%')
     .height('100%')
-    .padding({ left: Sizes.pagePadding, right: Sizes.pagePadding })
-    .backgroundColor(Colors.pageBg)
+    .scrollBar(BarState.Auto)
+    .align(Alignment.Top)
+    .onAreaChange((_oldArea: Area, newArea: Area) => {
+      const width = Number(newArea.width)
+      const height = Number(newArea.height)
+      if (Math.abs(width - this.viewportWidth) > 0.5) this.viewportWidth = width
+      if (Math.abs(height - this.viewportHeight) > 0.5) this.viewportHeight = height
+    })
+  }
+
+  @Builder
+  private PageTab(icon: Resource, label: Resource, index: number) {
+    Column({ space: 5 }) {
+      Row({ space: 5 }) {
+        Image(icon)
+          .width(16)
+          .height(16)
+          .fillColor(this.selectedTab === index ? this.getPalette().titleText : this.getPalette().bottomText)
+          .displayPriority(1)
+          .accessibilityLevel('no')
+        Text(label)
+          .fontSize(14)
+          .fontWeight(this.selectedTab === index ? FontWeight.Medium : FontWeight.Regular)
+          .fontColor(this.selectedTab === index ? this.getPalette().titleText : this.getPalette().bottomText)
+          .maxLines(2)
+          .textAlign(TextAlign.Center)
+          .displayPriority(2)
+      }
+      .width('100%')
+      .justifyContent(FlexAlign.Center)
+      Divider()
+        .width(22)
+        .strokeWidth(2)
+        .color(this.selectedTab === index ? this.getPalette().tabUnderline : Color.Transparent)
+    }
+    .width('100%')
+    .height('100%')
+    .justifyContent(FlexAlign.Center)
+    .id('main-tab-' + index)
+    .accessibilityGroup(true)
+    .accessibilityText(label)
+  }
+
+  build() {
+    Column() {
+      Tabs({ barPosition: BarPosition.End, controller: this.tabController }) {
+        TabContent() { this.PlayTab() }
+          .tabBar(this.PageTab($r('app.media.paper_home'), $r('app.string.tab_home'), 0))
+        TabContent() {
+          HistoryList({ active: this.selectedTab === 1, refreshVersion: this.pageRevision })
+        }
+          .tabBar(this.PageTab($r('app.media.paper_clock'), $r('app.string.history_title'), 1))
+        TabContent() {
+          StatsPanel({ embedded: true, active: this.selectedTab === 2, refreshVersion: this.pageRevision })
+        }
+          .tabBar(this.PageTab($r('app.media.paper_stats'), $r('app.string.tab_stats'), 2))
+        TabContent() {
+          Column() {
+            SettingsPanel({ embedded: true, context: getContext(this) as common.UIAbilityContext })
+          }
+          .width('100%')
+          .constraintSize({ maxWidth: 760 })
+          .height('100%')
+        }
+          .tabBar(this.PageTab($r('app.media.paper_settings'), $r('app.string.tab_settings'), 3))
+      }
+      .width('100%')
+      .height('100%')
+      .barHeight(52)
+      .barMode(BarMode.Fixed)
+      .barBackgroundColor(this.getPalette().pageBg)
+      .divider({ strokeWidth: 0.5, color: this.getPalette().divider, startMargin: 24, endMargin: 24 })
+      .scrollable(false)
+      .onChange((index: number) => { this.selectedTab = index })
+    }
+    .width('100%')
+    .height('100%')
+    .padding({ top: this.topRectHeight, bottom: this.bottomRectHeight,
+      left: this.leftRectWidth, right: this.rightRectWidth })
+    .backgroundColor(this.getPalette().pageBg)
     .expandSafeArea([SafeAreaType.SYSTEM, SafeAreaType.CUTOUT], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
   }
 }

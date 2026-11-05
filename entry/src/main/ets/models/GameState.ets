@@ -23,7 +23,7 @@ export class GameState {
   elapsedSeconds: number
   /** 错误次数 */
   errorCount: number
-  /** 3 次错误后挑战是否已失败（不阻止继续完成棋盘） */
+  /** 旧版结果兼容字段；当前自由解题没有错误次数上限。 */
   isChallengeFailed: boolean
   /** 游戏是否已完成 */
   isCompleted: boolean

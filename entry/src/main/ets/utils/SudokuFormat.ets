@@ -13,9 +13,17 @@
  *
  * 参考：docs/09-数独标准格式与导入导出支持.md
  */
-import { GRID_SIZE, BOX_ROWS, BOX_COLS, BOX_COUNT_ROWS, BOX_COUNT_COLS, TOTAL_CELLS } from '../constants/GameConstants'
+import { GRID_9x9 } from '../models/VariantConfig'
 import { Difficulty } from '../constants/GameConstants'
 import { decodeSeedId } from './SudokuGenerator'
+
+// 交换格式约定为标准 9×9，与当前正在玩的棋盘尺寸无关。
+const FORMAT_GRID_SIZE = GRID_9x9.gridSize
+const FORMAT_TOTAL_CELLS = GRID_9x9.totalCells
+const FORMAT_BOX_ROWS = GRID_9x9.boxRows
+const FORMAT_BOX_COLS = GRID_9x9.boxCols
+const FORMAT_BOX_COUNT_ROWS = FORMAT_GRID_SIZE / FORMAT_BOX_ROWS
+const FORMAT_BOX_COUNT_COLS = FORMAT_GRID_SIZE / FORMAT_BOX_COLS
 
 // ============================================================
 // 公共接口
@@ -129,7 +137,7 @@ export function parseSudokuInput(input: string): ParseResult {
 
   // 6. 81 字符串（最宽松的匹配）
   const digits = extractDigits(trimmed)
-  if (digits.length === TOTAL_CELLS) {
+  if (digits.length === FORMAT_TOTAL_CELLS) {
     try {
       const puzzle = parse81String(digits)
       return { success: true, format: '81string', puzzles: [puzzle] }
@@ -156,7 +164,7 @@ export function detectFormat(input: string): SudokuFormatType {
   if (hasSdkMetadata(trimmed)) return 'sdk'
   if (isSsFormat(trimmed)) return 'ss'
   if (extractSdmLines(trimmed).length > 1) return 'sdm'
-  if (extractDigits(trimmed).length === TOTAL_CELLS) return '81string'
+  if (extractDigits(trimmed).length === FORMAT_TOTAL_CELLS) return '81string'
   return 'unknown'
 }
 
@@ -195,11 +203,11 @@ function isSsFormat(input: string): boolean {
     const t = line.trim()
     // SS 行特征：包含空格分隔的数字或点，每行至少有 9 个有效字符
     const chars = t.replace(/\s+/g, '').split('').filter(c => /[0-9.]/.test(c))
-    if (chars.length === GRID_SIZE && t.includes(' ')) {
+    if (chars.length === FORMAT_GRID_SIZE && t.includes(' ')) {
       dataLineCount++
     }
   }
-  return dataLineCount >= GRID_SIZE
+  return dataLineCount >= FORMAT_GRID_SIZE
 }
 
 /**
@@ -209,7 +217,7 @@ function extractSdmLines(input: string): string[] {
   return input.split('\n')
     .map(l => l.trim())
     .filter(l => l.length > 0 && !l.startsWith('#'))
-    .filter(l => extractDigits(l).length === TOTAL_CELLS)
+    .filter(l => extractDigits(l).length === FORMAT_TOTAL_CELLS)
 }
 
 /**
@@ -224,19 +232,19 @@ function extractDigits(input: string): string {
 // ============================================================
 
 /**
- * 解析 81 字符串为 GRID_SIZE×GRID_SIZE 棋盘
+ * 解析 81 字符串为 FORMAT_GRID_SIZE×FORMAT_GRID_SIZE 棋盘
  */
 export function parse81String(input: string): ParsedPuzzle {
   const digits = extractDigits(input)
-  if (digits.length !== TOTAL_CELLS) {
+  if (digits.length !== FORMAT_TOTAL_CELLS) {
     throw new Error(`error_need_81_digits:${digits.length}`)
   }
 
   const board: number[][] = []
-  for (let r = 0; r < GRID_SIZE; r++) {
+  for (let r = 0; r < FORMAT_GRID_SIZE; r++) {
     const row: number[] = []
-    for (let c = 0; c < GRID_SIZE; c++) {
-      const ch = digits[r * GRID_SIZE + c]
+    for (let c = 0; c < FORMAT_GRID_SIZE; c++) {
+      const ch = digits[r * FORMAT_GRID_SIZE + c]
       row.push(Number.parseInt(ch, 10))
     }
     board.push(row)
@@ -347,18 +355,18 @@ function parseJsonObject(obj: Record<string, Object>): ParsedPuzzle | null {
     board = parse81String(puzzleField as string).board
   } else if (Array.isArray(puzzleField)) {
     const arr = puzzleField as Object[]
-    if (arr.length === GRID_SIZE && Array.isArray(arr[0])) {
+    if (arr.length === FORMAT_GRID_SIZE && Array.isArray(arr[0])) {
       // 二维数组
       board = (arr as number[][]).map(row =>
         row.map(v => typeof v === 'number' ? v : 0)
       )
-    } else if (arr.length === TOTAL_CELLS) {
+    } else if (arr.length === FORMAT_TOTAL_CELLS) {
       // 一维数组
       board = []
-      for (let r = 0; r < GRID_SIZE; r++) {
+      for (let r = 0; r < FORMAT_GRID_SIZE; r++) {
         const row: number[] = []
-        for (let c = 0; c < GRID_SIZE; c++) {
-          const v = arr[r * GRID_SIZE + c]
+        for (let c = 0; c < FORMAT_GRID_SIZE; c++) {
+          const v = arr[r * FORMAT_GRID_SIZE + c]
           row.push(typeof v === 'number' ? v as number : 0)
         }
         board.push(row)
@@ -394,25 +402,25 @@ function parseJsonObject(obj: Record<string, Object>): ParsedPuzzle | null {
  * 基础棋盘验证：尺寸 + 数值范围 + 无冲突
  */
 function validateBoard(board: number[][]): void {
-  if (board.length !== GRID_SIZE) {
+  if (board.length !== FORMAT_GRID_SIZE) {
     throw new Error(`error_board_rows:${board.length}`)
   }
-  for (let r = 0; r < GRID_SIZE; r++) {
-    if (board[r].length !== GRID_SIZE) {
+  for (let r = 0; r < FORMAT_GRID_SIZE; r++) {
+    if (board[r].length !== FORMAT_GRID_SIZE) {
       throw new Error(`error_row_cols:${r + 1}:${board[r].length}`)
     }
-    for (let c = 0; c < GRID_SIZE; c++) {
+    for (let c = 0; c < FORMAT_GRID_SIZE; c++) {
       const v = board[r][c]
-      if (v < 0 || v > GRID_SIZE || !Number.isInteger(v)) {
+      if (v < 0 || v > FORMAT_GRID_SIZE || !Number.isInteger(v)) {
         throw new Error(`error_cell_value:${r + 1}:${c + 1}:${v}`)
       }
     }
   }
 
   // 冲突检测：行、列、宫
-  for (let r = 0; r < GRID_SIZE; r++) {
-    const rowSeen: boolean[] = new Array(GRID_SIZE + 1).fill(false)
-    for (let c = 0; c < GRID_SIZE; c++) {
+  for (let r = 0; r < FORMAT_GRID_SIZE; r++) {
+    const rowSeen: boolean[] = new Array(FORMAT_GRID_SIZE + 1).fill(false)
+    for (let c = 0; c < FORMAT_GRID_SIZE; c++) {
       const v = board[r][c]
       if (v > 0) {
         if (rowSeen[v]) {
@@ -422,9 +430,9 @@ function validateBoard(board: number[][]): void {
       }
     }
   }
-  for (let c = 0; c < GRID_SIZE; c++) {
-    const colSeen: boolean[] = new Array(GRID_SIZE + 1).fill(false)
-    for (let r = 0; r < GRID_SIZE; r++) {
+  for (let c = 0; c < FORMAT_GRID_SIZE; c++) {
+    const colSeen: boolean[] = new Array(FORMAT_GRID_SIZE + 1).fill(false)
+    for (let r = 0; r < FORMAT_GRID_SIZE; r++) {
       const v = board[r][c]
       if (v > 0) {
         if (colSeen[v]) {
@@ -434,15 +442,15 @@ function validateBoard(board: number[][]): void {
       }
     }
   }
-  for (let br = 0; br < BOX_COUNT_ROWS; br++) {
-    for (let bc = 0; bc < BOX_COUNT_COLS; bc++) {
-      const boxSeen: boolean[] = new Array(GRID_SIZE + 1).fill(false)
-      for (let dr = 0; dr < BOX_ROWS; dr++) {
-        for (let dc = 0; dc < BOX_COLS; dc++) {
-          const v = board[br * BOX_ROWS + dr][bc * BOX_COLS + dc]
+  for (let br = 0; br < FORMAT_BOX_COUNT_ROWS; br++) {
+    for (let bc = 0; bc < FORMAT_BOX_COUNT_COLS; bc++) {
+      const boxSeen: boolean[] = new Array(FORMAT_GRID_SIZE + 1).fill(false)
+      for (let dr = 0; dr < FORMAT_BOX_ROWS; dr++) {
+        for (let dc = 0; dc < FORMAT_BOX_COLS; dc++) {
+          const v = board[br * FORMAT_BOX_ROWS + dr][bc * FORMAT_BOX_COLS + dc]
           if (v > 0) {
             if (boxSeen[v]) {
-              throw new Error(`error_box_duplicate:${br * BOX_COUNT_COLS + bc + 1}:${v}`)
+              throw new Error(`error_box_duplicate:${br * FORMAT_BOX_COUNT_COLS + bc + 1}:${v}`)
             }
             boxSeen[v] = true
           }
@@ -485,8 +493,8 @@ export function initFormatSolver(countSolutions: (board: number[][], maxCount: n
  */
 export function exportTo81String(board: number[][]): string {
   let result = ''
-  for (let r = 0; r < GRID_SIZE; r++) {
-    for (let c = 0; c < GRID_SIZE; c++) {
+  for (let r = 0; r < FORMAT_GRID_SIZE; r++) {
+    for (let c = 0; c < FORMAT_GRID_SIZE; c++) {
       result += board[r][c].toString()
     }
   }
@@ -514,19 +522,19 @@ export function exportToSdk(board: number[][], metadata?: PuzzleMetadata): strin
  */
 export function exportToSs(board: number[][]): string {
   const lines: string[] = []
-  for (let r = 0; r < GRID_SIZE; r++) {
+  for (let r = 0; r < FORMAT_GRID_SIZE; r++) {
     const parts: string[] = []
-    for (let c = 0; c < GRID_SIZE; c++) {
+    for (let c = 0; c < FORMAT_GRID_SIZE; c++) {
       const v = board[r][c]
       parts.push(v === 0 ? '.' : v.toString())
-      // 每 BOX_COLS 列加一个额外空格
-      if ((c + 1) % BOX_COLS === 0 && c < GRID_SIZE - 1) {
+      // 每 FORMAT_BOX_COLS 列加一个额外空格
+      if ((c + 1) % FORMAT_BOX_COLS === 0 && c < FORMAT_GRID_SIZE - 1) {
         parts.push('')
       }
     }
     lines.push(parts.join(' '))
-    // 每 BOX_ROWS 行加一个空行
-    if ((r + 1) % BOX_ROWS === 0 && r < GRID_SIZE - 1) {
+    // 每 FORMAT_BOX_ROWS 行加一个空行
+    if ((r + 1) % FORMAT_BOX_ROWS === 0 && r < FORMAT_GRID_SIZE - 1) {
       lines.push('')
     }
   }
@@ -575,9 +583,9 @@ export function getFormatDisplayNameKey(format: SudokuFormatType): string {
  */
 export function countGivens(board: number[][]): number {
   let count = 0
-  for (let r = 0; r < GRID_SIZE; r++) {
-    for (let c = 0; c < GRID_SIZE; c++) {
-      if (board[r][c] > 0) count++
+  for (const row of board) {
+    for (const value of row) {
+      if (value > 0) count++
     }
   }
   return count

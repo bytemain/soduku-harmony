@@ -1,8 +1,8 @@
-# 🧩 Sudoku Harmony
+# Sudoku Harmony
 
 A feature-rich Sudoku game built for **HarmonyOS** using **ArkUI** and **ETS** (Enhanced TypeScript). Supports phones, tablets, wearables, and TVs.
 
-## ✨ Features
+## Features
 
 - **Multiple Difficulty Levels** — Easy, Medium, Hard, Expert, and Evil
 - **Variant Sudoku Modes** — Standard, Diagonal (Sudoku-X), Jigsaw, and Killer
@@ -16,15 +16,15 @@ A feature-rich Sudoku game built for **HarmonyOS** using **ArkUI** and **ETS** (
 - **Background Generation** — Puzzle generation via Web Workers with progress callbacks
 - **Offline-First** — No network requests; all data stored locally
 
-## 📱 Supported Devices
+## Supported Devices
 
 | Phone | Tablet | Wearable | TV |
 |:-----:|:------:|:--------:|:--:|
-| ✅    | ✅     | ✅       | ✅ |
+| 支持    | 支持     | 支持       | 支持 |
 
 **Target SDK:** HarmonyOS 6.0.2
 
-## 🏗️ Project Structure
+## Project Structure
 
 ```
 ├── AppScope/                  # App-level manifest and resources
@@ -65,7 +65,7 @@ A feature-rich Sudoku game built for **HarmonyOS** using **ArkUI** and **ETS** (
 └── oh-package.json5           # Package manifest
 ```
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -106,7 +106,7 @@ Tests use the [Hypium](https://gitee.com/openharmony/testfwk_arkxtest) framework
 hvigorw test --mode module -p product=default --no-daemon
 ```
 
-## 🎮 Variant Modes
+## Variant Modes
 
 | Mode | Description |
 |------|-------------|
@@ -117,7 +117,7 @@ hvigorw test --mode module -p product=default --no-daemon
 
 The app also supports multiple grid sizes (4×4, 6×6, 9×9, 12×12, 16×16) through configurable `GridConfig`.
 
-## 🧠 Solving Engine
+## Solving Engine
 
 The **LogicSolver** provides human-style hints using techniques such as:
 
@@ -129,14 +129,14 @@ The **LogicSolver** provides human-style hints using techniques such as:
 
 The **DifficultyEvaluator** rates puzzles based on which techniques are required to solve them.
 
-## 🔧 Architecture Highlights
+## Architecture Highlights
 
 - **State Management:** Progressive V2 domain-driven pattern — each domain (`GameSession`, `GameHistory`, `GameInteraction`, `GameUI`, `GameLoading`) manages a specific slice of state
 - **Cell State:** Bit-flag encoding for cell properties (`GIVEN`, `ERROR`, `SELECTED`, `HIGHLIGHTED`) with 2-bit note encoding per digit
 - **Topology:** Dynamic peer/unit relationships built from `VariantConfig`, supporting standard and custom region layouts
 - **Persistence:** LocalStorage-based saves for game state, settings, statistics, and puzzle library progress
 
-## 📦 CI/CD
+## CI/CD
 
 Every push and pull request triggers the [GitHub Actions workflow](.github/workflows/harmonyos-ci.yml):
 
@@ -144,6 +144,6 @@ Every push and pull request triggers the [GitHub Actions workflow](.github/workf
 2. **Test** — Compiles and validates unit tests
 3. **Publish** — On version tags (`v*`), signs the HAP and creates a GitHub Release
 
-## 📄 License
+## License
 
 See the repository for license details.

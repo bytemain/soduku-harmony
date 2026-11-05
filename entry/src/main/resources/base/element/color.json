@@ -2,15 +2,15 @@
   "color": [
     {
       "name": "start_window_background",
-      "value": "#FFFFFF"
+      "value": "#F8F7F1"
     },
     {
       "name": "current_hint_bg",
-      "value": "#A5D6A7"
+      "value": "#E2EBA9"
     },
     {
       "name": "multi_select_bg",
-      "value": "#90CAF9"
+      "value": "#C3E1D5"
     }
   ]
 }

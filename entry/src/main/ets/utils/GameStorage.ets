@@ -9,65 +9,11 @@
  */
 import { preferences } from '@kit.ArkData'
 import { Context } from '@kit.AbilityKit'
-import { CellSnapshot } from '../models/GameHistory'
+import { GameSaveData, isValidGameSave } from '../models/GameSaveData'
+export { CellSerialized, CageSerialized, GameSaveData, isValidGameSave } from '../models/GameSaveData'
 
 const STORE_NAME = 'sudoku_game'
 const KEY_SAVE = 'saved_game'
-
-/** 序列化后的格子数据 */
-export class CellSerialized {
-  row: number = 0
-  col: number = 0
-  value: number = 0
-  flags: number = 0
-  notes: number = 0
-
-  constructor(row: number = 0, col: number = 0, value: number = 0,
-    flags: number = 0, notes: number = 0) {
-    this.row = row
-    this.col = col
-    this.value = value
-    this.flags = flags
-    this.notes = notes
-  }
-}
-
-/** 序列化后的笼子数据 */
-export class CageSerialized {
-  cells: number[] = []
-  sum: number = 0
-
-  constructor(cells: number[] = [], sum: number = 0) {
-    this.cells = cells
-    this.sum = sum
-  }
-}
-
-/** 完整的存档结构 */
-export class GameSaveData {
-  cells: CellSerialized[] = []
-  solution: number[] = []
-  difficulty: number = 0
-  elapsedSeconds: number = 0
-  errorCount: number = 0
-  isChallengeFailed: boolean = false
-  selectedIndex: number = -1
-  undoStack: CellSnapshot[][] = []
-  redoStack: CellSnapshot[][] = []
-  timestamp: number = 0
-  seed: number = 0
-  symmetry: string = ''
-  /** 棋盘大小（4/6/9），默认 9 */
-  gridSize: number = 9
-  /** 变种类型（standard/diagonal/jigsaw/killer），默认 standard */
-  variantType: string = 'standard'
-  /** Killer 笼子数据（仅 Killer 模式使用） */
-  killerCages: CageSerialized[] = []
-  /** Jigsaw 区域图（仅 Jigsaw 模式使用），长度 81 */
-  jigsawRegionMap: number[] = []
-
-  constructor() {}
-}
 
 /**
  * 获取 preferences 实例
@@ -81,6 +27,7 @@ function getStore(context: Context): preferences.Preferences {
  * 保存游戏状态到 Preferences
  */
 export async function saveGame(context: Context, data: GameSaveData): Promise<void> {
+  if (!isValidGameSave(data)) return
   try {
     const store = getStore(context)
     const json = JSON.stringify(data)
@@ -100,7 +47,8 @@ export function loadGame(context: Context): GameSaveData | null {
     const store = getStore(context)
     const json = store.getSync(KEY_SAVE, '') as string
     if (!json) return null
-    return JSON.parse(json) as GameSaveData
+    const data = JSON.parse(json) as GameSaveData
+    return isValidGameSave(data) ? data : null
   } catch (e) {
     console.error('[GameStorage] load failed:', JSON.stringify(e))
     return null
@@ -124,11 +72,5 @@ export async function clearSave(context: Context): Promise<void> {
  * 检查是否有存档
  */
 export function hasSavedGame(context: Context): boolean {
-  try {
-    const store = getStore(context)
-    const json = store.getSync(KEY_SAVE, '') as string
-    return json.length > 0
-  } catch (e) {
-    return false
-  }
+  return loadGame(context) !== null
 }

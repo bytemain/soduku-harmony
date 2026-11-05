@@ -6,7 +6,8 @@
  *
  * 参考：Doc 05 §④ 难度选择器
  */
-import { Colors, Difficulty, DIFFICULTY_CONFIGS, DifficultyConfig } from '../constants/GameConstants'
+import { getLocalizedString } from '../utils/I18nHelper'
+import { ColorsConfig, getThemeColors, getDifficultyColor, Difficulty, DIFFICULTY_CONFIGS, DifficultyConfig } from '../constants/GameConstants'
 import { CollapsibleSelector, SelectorOption } from './CollapsibleSelector'
 
 /** 将 DifficultyConfig 适配为 SelectorOption */
@@ -26,6 +27,13 @@ const DIFFICULTY_OPTIONS: DifficultyOption[] =
 
 @Component
 export struct DifficultySegment {
+  @StorageProp('localeRevision') private localeRevision: number = 0
+  @StorageProp('isDarkMode') private isDarkMode: boolean = false
+
+  private getPalette(): ColorsConfig {
+    return getThemeColors(this.isDarkMode)
+  }
+
   @Link selectedDifficulty: Difficulty
   // 内部桥接用的 string key，与 selectedDifficulty 双向同步
   @State private selectedKey: string = ''
@@ -43,20 +51,20 @@ export struct DifficultySegment {
         .width(4)
         .height(this.selectedKey === option.key ? 36 : 24)
         .borderRadius(2)
-        .backgroundColor((option as DifficultyOption).config.color)
+        .backgroundColor(getDifficultyColor((option as DifficultyOption).config.level, this.isDarkMode))
         .animation({ duration: 200, curve: Curve.EaseInOut })
 
       // 难度名称 + 技巧描述
       Column() {
-        Text(getContext(this).resourceManager.getStringByNameSync((option as DifficultyOption).config.name))
+        Text(getLocalizedString(getContext(this), (option as DifficultyOption).config.name, this.localeRevision))
           .fontSize(15)
-          .fontColor(this.selectedKey === option.key ? Colors.titleText : Colors.subtitleText)
+          .fontColor(this.selectedKey === option.key ? this.getPalette().titleText : this.getPalette().subtitleText)
           .fontWeight(this.selectedKey === option.key ? FontWeight.Medium : FontWeight.Normal)
           .animation({ duration: 200, curve: Curve.EaseInOut })
 
-        Text(getContext(this).resourceManager.getStringByNameSync((option as DifficultyOption).config.descName))
+        Text(getLocalizedString(getContext(this), (option as DifficultyOption).config.descName, this.localeRevision))
           .fontSize(11)
-          .fontColor((option as DifficultyOption).config.color)
+          .fontColor(getDifficultyColor((option as DifficultyOption).config.level, this.isDarkMode))
           .margin({ top: 2 })
       }
       .margin({ left: 12 })
@@ -71,8 +79,8 @@ export struct DifficultySegment {
             .width(6)
             .height(6)
             .fill((i as number) < (option as DifficultyOption).config.level
-              ? (option as DifficultyOption).config.color
-              : Colors.diffDotInactive)
+              ? getDifficultyColor((option as DifficultyOption).config.level, this.isDarkMode)
+              : this.getPalette().diffDotInactive)
         })
       }
     }

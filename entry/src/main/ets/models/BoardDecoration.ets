@@ -1,4 +1,4 @@
-import { Colors, GRID_SIZE, TOTAL_CELLS } from '../constants/GameConstants'
+import { Colors, ColorsConfig, GRID_SIZE, TOTAL_CELLS } from '../constants/GameConstants'
 import { KillerCage } from './VariantConfig'
 import { isOnAntiDiagonal, isOnMainDiagonal } from '../utils/VariantTopology'
 
@@ -247,7 +247,7 @@ export function buildJigsawBoardDecorations(regionMap: number[]): BoardCellDecor
  * 基于 Sudoku-X 对角线规则构建棋盘视觉装饰。
  * 对角线格提供淡色底纹；当选中的格位于对角线上时，整条关联对角线使用更强高亮。
  */
-export function buildDiagonalBoardDecorations(selectedIndex: number = -1): BoardCellDecoration[] {
+export function buildDiagonalBoardDecorations(selectedIndex: number = -1, palette: ColorsConfig = Colors): BoardCellDecoration[] {
   const decorations = createEmptyBoardDecorations()
   const hasSelectedCell = selectedIndex >= 0 && selectedIndex < TOTAL_CELLS
   const selectedOnMain = hasSelectedCell && isOnMainDiagonal(selectedIndex, GRID_SIZE)
@@ -264,8 +264,8 @@ export function buildDiagonalBoardDecorations(selectedIndex: number = -1): Board
     decorations[cellIndex] = new BoardCellDecoration(
       '',
       new CellDecorationBorder(),
-      Colors.cellDiagonal,
-      isActive ? Colors.cellDiagonalHighlight : ''
+      palette.cellDiagonal,
+      isActive ? palette.cellDiagonalHighlight : ''
     )
   }
 

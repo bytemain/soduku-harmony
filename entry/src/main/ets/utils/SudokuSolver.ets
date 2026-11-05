@@ -82,7 +82,7 @@ function eliminate(candidates: number[], s: number, d: number): boolean {
   candidates[s] &= ~bit
   const remaining = candidates[s]
 
-  // ❌ 候选清空 → 矛盾
+  // 候选清空 → 矛盾
   if (remaining === 0) {
     return false
   }
@@ -99,6 +99,8 @@ function eliminate(candidates: number[], s: number, d: number): boolean {
 
   // --- 策略 2：Hidden Single ---
   for (const unit of UNITS_OF[s]) {
+    // 小笼子仅要求数字不重复，并不要求 1..GRID_SIZE 全部出现。
+    if (unit.length !== GRID_SIZE) continue
     // d 在这个 unit 还有哪些位置能放？
     let count = 0
     let place = -1
@@ -111,7 +113,7 @@ function eliminate(candidates: number[], s: number, d: number): boolean {
     }
 
     if (count === 0) {
-      return false  // ❌ d 在此 unit 无处可放
+      return false  // d 在此 unit 无处可放
     }
     if (count === 1) {
       // d 只有一个位置 → 填入
@@ -189,7 +191,7 @@ function search(candidates: number[]): number[] | null {
   }
 
   if (allDetermined) {
-    return candidates // 🎉 全部确定
+    return candidates // 全部确定
   }
 
   // MRV：选候选最少的格子

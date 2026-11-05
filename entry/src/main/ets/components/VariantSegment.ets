@@ -4,7 +4,8 @@
  * 基于 CollapsibleSelector 的薄封装，提供变种模式专属的行内容：
  * 左侧图标 + 名称 + 描述。
  */
-import { Colors } from '../constants/GameConstants'
+import { getLocalizedString } from '../utils/I18nHelper'
+import { ColorsConfig, getThemeColors } from '../constants/GameConstants'
 import { VariantType } from '../models/VariantConfig'
 import { CollapsibleSelector, SelectorOption } from './CollapsibleSelector'
 
@@ -27,14 +28,21 @@ class VariantOption implements SelectorOption {
 }
 
 const VARIANT_OPTIONS: VariantOption[] = [
-  new VariantOption(VariantType.STANDARD, '🔢', 'variant_standard', 'variant_standard_desc', true),
+  new VariantOption(VariantType.STANDARD, '▦', 'variant_standard', 'variant_standard_desc', true),
   new VariantOption(VariantType.DIAGONAL, '╳', 'variant_diagonal', 'variant_diagonal_desc', true),
-  new VariantOption(VariantType.JIGSAW, '🧩', 'variant_jigsaw', 'variant_jigsaw_desc', true),
-  new VariantOption(VariantType.KILLER, '🗡️', 'variant_killer', 'variant_killer_desc', true),
+  new VariantOption(VariantType.JIGSAW, '▧', 'variant_jigsaw', 'variant_jigsaw_desc', true),
+  new VariantOption(VariantType.KILLER, 'Σ', 'variant_killer', 'variant_killer_desc', true),
 ]
 
 @Component
 export struct VariantSegment {
+  @StorageProp('localeRevision') private localeRevision: number = 0
+  @StorageProp('isDarkMode') private isDarkMode: boolean = false
+
+  private getPalette(): ColorsConfig {
+    return getThemeColors(this.isDarkMode)
+  }
+
   @Link selectedVariant: VariantType
   onVariantChange?: (variant: VariantType) => void
   @State private selectedKey: string = ''
@@ -50,27 +58,28 @@ export struct VariantSegment {
       // 左侧图标
       Text((option as VariantOption).icon)
         .fontSize(22)
+        .fontColor(this.getPalette().toolbarActive)
         .width(32)
         .textAlign(TextAlign.Center)
 
       // 名称 + 描述
       Column() {
-        Text(getContext(this).resourceManager.getStringByNameSync((option as VariantOption).nameKey))
+        Text(getLocalizedString(getContext(this), (option as VariantOption).nameKey, this.localeRevision))
           .fontSize(15)
-          .fontColor(this.selectedKey === option.key ? Colors.titleText : Colors.subtitleText)
+          .fontColor(this.selectedKey === option.key ? this.getPalette().titleText : this.getPalette().subtitleText)
           .fontWeight(this.selectedKey === option.key ? FontWeight.Medium : FontWeight.Normal)
           .animation({ duration: 200, curve: Curve.EaseInOut })
 
         // 描述文字：展开态所有选项都显示，折叠态只有选中项显示
         if (!(option as VariantOption).enabled) {
-          Text(getContext(this).resourceManager.getStringByNameSync('variant_coming_soon'))
+          Text(getLocalizedString(getContext(this), 'variant_coming_soon', this.localeRevision))
             .fontSize(11)
-            .fontColor(Colors.subtitleText)
+            .fontColor(this.getPalette().subtitleText)
             .margin({ top: 2 })
         } else {
-          Text(getContext(this).resourceManager.getStringByNameSync((option as VariantOption).descKey))
+          Text(getLocalizedString(getContext(this), (option as VariantOption).descKey, this.localeRevision))
             .fontSize(11)
-            .fontColor(this.selectedKey === option.key ? Colors.primaryBtn : Colors.subtitleText)
+            .fontColor(this.selectedKey === option.key ? this.getPalette().primaryBtn : this.getPalette().subtitleText)
             .margin({ top: 2 })
         }
       }

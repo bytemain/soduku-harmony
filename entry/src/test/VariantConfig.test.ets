@@ -323,23 +323,56 @@ export default function variantConfigTest() {
       expect(decorations[1].border.top > 0).assertTrue()
     })
 
-    it('buildKillerBoardDecorations_suppresses_grid_lines_for_cage_cells', 0, () => {
-      // 笼子格：同笼相邻侧隐藏网格线，笼子边界侧也隐藏（装饰边框替代）
-      // 但如果邻居是不同 cage 或不在 cage 中，保留灰色网格线
+    it('buildKillerBoardDecorations_replaces_outer_gray_edges_with_cage_border', 0, () => {
       const cage: KillerCage = { cells: [0, 1, 2], sum: 6 }
       const decorations = buildKillerBoardDecorations([cage])
-      // cell 0 (row0,col0): left=border(边界), top=border(边界), right=同笼(cell1), bottom=border(cell9不在笼)
-      // gridBorder: left=0(边框替代), top=0(边框替代), right=0(同笼), bottom=-1(邻居不在笼→保留灰线)
+      // 棋盘外沿和邻居不在笼内时，都由 1.5vp 装饰边替换灰线，不能把两种线都移除。
       expect(decorations[0].gridBorder.left).assertEqual(0)
+      expect(decorations[0].border.left).assertEqual(1.5)
       expect(decorations[0].gridBorder.top).assertEqual(0)
-      expect(decorations[0].gridBorder.right).assertEqual(0)
-      expect(decorations[0].gridBorder.bottom).assertEqual(-1)
-      // cell 1 (row0,col1): left=同笼(cell0), right=同笼(cell2)
-      expect(decorations[1].gridBorder.left).assertEqual(0)
+      expect(decorations[0].border.top).assertEqual(1.5)
+      expect(decorations[0].gridBorder.bottom).assertEqual(0)
+      expect(decorations[0].border.bottom).assertEqual(1.5)
+      expect(decorations[2].gridBorder.right).assertEqual(0)
+      expect(decorations[2].border.right).assertEqual(1.5)
+    })
+
+    it('buildKillerBoardDecorations_hides_both_layers_only_inside_same_cage', 0, () => {
+      // 同笼两侧都不能出现灰线或彩线；包括跨普通 3×3 宫的笼内相邻格。
+      const cage: KillerCage = { cells: [1, 2, 3], sum: 9 }
+      const decorations = buildKillerBoardDecorations([cage])
       expect(decorations[1].gridBorder.right).assertEqual(0)
-      // 不属于任何笼子的格子保持默认网格线
+      expect(decorations[1].border.right).assertEqual(0)
+      expect(decorations[2].gridBorder.left).assertEqual(0)
+      expect(decorations[2].border.left).assertEqual(0)
+      expect(decorations[2].gridBorder.right).assertEqual(0)
+      expect(decorations[2].border.right).assertEqual(0)
+      expect(decorations[3].gridBorder.left).assertEqual(0)
+      expect(decorations[3].border.left).assertEqual(0)
+    })
+
+    it('buildKillerBoardDecorations_keeps_boundary_between_distinct_cages', 0, () => {
+      const first: KillerCage = { cells: [0], sum: 1 }
+      const second: KillerCage = { cells: [1], sum: 2 }
+      const decorations = buildKillerBoardDecorations([first, second])
+      expect(decorations[0].gridBorder.right).assertEqual(0)
+      expect(decorations[0].border.right).assertEqual(1.5)
+      expect(decorations[1].gridBorder.left).assertEqual(0)
+      expect(decorations[1].border.left).assertEqual(1.5)
+    })
+
+    it('buildKillerBoardDecorations_preserves_plain_cells_default_gray_edges', 0, () => {
+      const cage: KillerCage = { cells: [0, 1, 2], sum: 6 }
+      const decorations = buildKillerBoardDecorations([cage])
+      // 未笼格保留默认灰线且不启用装饰层；普通宫粗线由 SudokuBoard 单独渲染。
       expect(decorations[9].gridBorder.left).assertEqual(-1)
       expect(decorations[9].gridBorder.top).assertEqual(-1)
+      expect(decorations[9].gridBorder.right).assertEqual(-1)
+      expect(decorations[9].gridBorder.bottom).assertEqual(-1)
+      expect(decorations[9].border.left).assertEqual(0)
+      expect(decorations[9].border.top).assertEqual(0)
+      expect(decorations[9].border.right).assertEqual(0)
+      expect(decorations[9].border.bottom).assertEqual(0)
     })
 
     it('buildJigsawBoardDecorations_marks_region_edges', 0, () => {

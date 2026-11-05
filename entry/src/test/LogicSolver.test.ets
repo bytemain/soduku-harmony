@@ -1,9 +1,11 @@
 import { describe, it, expect } from '@ohos/hypium'
-import { logicSolve, getNextHint, Technique, getTechniqueNameKey } from '../main/ets/utils/LogicSolver'
+import { logicSolve, getNextHint, Technique, getTechniqueNameKey, setActiveCages, clearActiveCages } from '../main/ets/utils/LogicSolver'
 import { evaluateDifficulty } from '../main/ets/utils/DifficultyEvaluator'
 import { generatePuzzle } from '../main/ets/utils/SudokuGenerator'
 import { Difficulty } from '../main/ets/constants/GameConstants'
-import { cloneGrid } from '../main/ets/utils/Common'
+import { cloneGrid, createEmptyGrid } from '../main/ets/utils/Common'
+import { createDefaultJigsawConfig, createStandardConfig, createKillerConfig, KillerCage } from '../main/ets/models/VariantConfig'
+import { applyTopology } from '../main/ets/utils/Topology'
 
 // 一道已知只需 Naked Single 的简单题
 function getEasyPuzzle(): number[][] {
@@ -21,6 +23,48 @@ function getEasyPuzzle(): number[][] {
 }
 
 export default function logicSolverTest() {
+  describe('LogicSolver.VariantConstraints', () => {
+    it('jigsaw_logic_never_eliminates_the_unique_solution', 0, () => {
+      const puzzle = '790510000000760500000007004050400010034006751000200970009000480000004005400001006'
+      const solution = '796513842142769538325897164657482319834926751561248973219635487983174625478351296'
+      const board: number[][] = []
+      for (let row = 0; row < 9; row++) {
+        board.push(puzzle.slice(row * 9, row * 9 + 9).split('').map(value => Number.parseInt(value)))
+      }
+      applyTopology(createDefaultJigsawConfig())
+      try {
+        const result = logicSolve(board)
+        expect(result.steps.length > 0).assertTrue()
+        for (const step of result.steps) {
+          if (step.digit > 0) {
+            expect(step.digit).assertEqual(Number.parseInt(solution.charAt(step.cellIndex)))
+          }
+          for (const elimination of step.eliminations) {
+            expect(elimination.digit !== Number.parseInt(solution.charAt(elimination.cellIndex))).assertTrue()
+          }
+        }
+      } finally {
+        applyTopology(createStandardConfig())
+      }
+    })
+
+    it('single_cell_killer_cage_uses_its_sum_not_a_hidden_single', 0, () => {
+      const cages: KillerCage[] = [{ cells: [0], sum: 5 }]
+      applyTopology(createKillerConfig(cages))
+      setActiveCages(cages)
+      try {
+        const hint = getNextHint(createEmptyGrid())
+        expect(hint !== null).assertTrue()
+        expect(hint!.technique).assertEqual(Technique.CAGE_SUM)
+        expect(hint!.cellIndex).assertEqual(0)
+        expect(hint!.digit).assertEqual(5)
+      } finally {
+        clearActiveCages()
+        applyTopology(createStandardConfig())
+      }
+    })
+  })
+
   describe('LogicSolver.logicSolve', () => {
     it('solves_easy_puzzle_completely', 0, () => {
       const board = getEasyPuzzle()

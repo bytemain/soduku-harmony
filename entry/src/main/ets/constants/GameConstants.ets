@@ -61,6 +61,9 @@ export enum GestureDirection {
 // ============================================================
 
 export interface ColorsConfig {
+  cardBg: string
+  cardBorder: string
+  accent: string
   pageBg: string
   titleText: string
   subtitleText: string
@@ -112,6 +115,7 @@ export interface ColorsConfig {
   segmentActive: string
   bottomIcon: string
   bottomText: string
+  tabUnderline: string
   switchTrackOff: string
 
   // === 分割线 & 阴影 ===
@@ -153,247 +157,272 @@ export interface ColorsConfig {
 }
 
 export const LightColors: ColorsConfig = {
+  accent: '#C4DE85',
+  cardBorder: '#D4DDD2',
+  cardBg: '#FFFEF8',
   // === 页面级 ===
-  pageBg: '#F5F5F5',
+  pageBg: '#F8F7F1',
 
   // === 标题 ===
-  titleText: '#212121',
-  subtitleText: '#9E9E9E',
-  systemBarContent: '#000000',
+  titleText: '#153E39',
+  subtitleText: '#5E716B',
+  systemBarContent: '#153E39',
 
   // === 主按钮（开始游戏） ===
-  primaryBtn: '#1976D2',
-  primaryPressed: '#1565C0',
-  primaryText: '#FFFFFF',
+  primaryBtn: '#153E39',
+  primaryPressed: '#0E302A',
+  primaryText: '#FFFEF8',
 
   // === 次按钮（继续游戏） ===
-  secondaryBtn: '#FFFFFF',
-  secondaryBorder: '#1976D2',
-  secondaryText: '#1976D2',
-  secondaryPress: '#E3F2FD',
+  secondaryBtn: '#FFFEF8',
+  secondaryBorder: '#D4DDD2',
+  secondaryText: '#16796F',
+  secondaryPress: '#DFEDDF',
 
   // === 棋盘 ===
-  boardBg: '#FFFFFF',
-  cellBorderThin: '#BDBDBD',
-  cellBorderBold: '#212121',
+  boardBg: '#FFFEF8',
+  cellBorderThin: '#C3CFC5',
+  cellBorderBold: '#58776D',
 
   // === 格子背景（高亮系统） ===
-  cellDefault: '#FFFFFF',
-  cellDiagonal: '#F3E5F5',
-  cellDiagonalHighlight: '#E1BEE7',
-  cellSelected: '#BBDEFB',
-  cellHighlight: '#E3F2FD',
-  cellSameNumber: '#C8E6C9',
-  cellError: '#FFCDD2',
+  cellDefault: '#FFFEF8',
+  cellDiagonal: '#F0EEE0',
+  cellDiagonalHighlight: '#E3DFC4',
+  cellSelected: '#D9E8B7',
+  cellHighlight: '#EAF1E5',
+  cellSameNumber: '#D5E8DE',
+  cellError: '#F8DEDA',
 
   // === 文字颜色 ===
-  textGiven: '#212121',
-  textUser: '#1976D2',
-  textError: '#D32F2F',
-  textNote: '#757575',
-  textNoteHighlight: '#388E3C',
-  textNoteElim: '#BDBDBD',
-  noteHighlightBg: '#C8E6C9',
+  textGiven: '#153E39',
+  textUser: '#12685F',
+  textError: '#A3322D',
+  textNote: '#4F6259',
+  textNoteHighlight: '#245C47',
+  textNoteElim: '#4F6259',
+  noteHighlightBg: '#D5E8DE',
 
   // === 手势键盘 ===
-  keyBg: '#FFFFFF',
-  keyText: '#212121',
-  keyDisabled: '#E0E0E0',
-  keyDisabledText: '#9E9E9E',
+  keyBg: '#FFFEF8',
+  keyText: '#153E39',
+  keyDisabled: '#E4E8DE',
+  keyDisabledText: '#7A8A80',
 
   // === 工具栏 ===
-  toolbarIcon: '#616161',
-  toolbarActive: '#1976D2',
+  toolbarIcon: '#45675B',
+  toolbarActive: '#16796F',
 
   // === 手势提示条 ===
-  indicatorNote: '#E3F2FD',
-  indicatorElim: '#FFF3E0',
-  indicatorErase: '#F5F5F5',
-  indicatorText: '#424242',
+  indicatorNote: '#DFEDDF',
+  indicatorElim: '#EFE5D5',
+  indicatorErase: '#EEEDE5',
+  indicatorText: '#153E39',
 
   // === 难度色标 ===
-  diffEasy: '#4CAF50',
-  diffMedium: '#2196F3',
-  diffHard: '#FF9800',
-  diffExpert: '#F57C00',
-  diffEvil: '#F44336',
-  killerCageBorder: '#FF9800',
-  killerCageLabel: '#FF9800',
+  diffEasy: '#36735C',
+  diffMedium: '#267A79',
+  diffHard: '#936B2E',
+  diffExpert: '#96502E',
+  diffEvil: '#A3433D',
+  killerCageBorder: '#A5793C',
+  killerCageLabel: '#815B22',
 
   // === 分段按钮 ===
-  segmentBg: '#E8E8E8',
-  segmentSelected: '#FFFFFF',
-  segmentText: '#616161',
-  segmentActive: '#212121',
+  segmentBg: '#EDF0E7',
+  segmentSelected: '#FFFEF8',
+  segmentText: '#5E716B',
+  segmentActive: '#153E39',
 
   // === 底部入口 ===
-  bottomIcon: '#616161',
-  bottomText: '#757575',
+  bottomIcon: '#45675B',
+  bottomText: '#5E716B',
+  tabUnderline: '#708449',
 
   // === Switch 开关 ===
-  switchTrackOff: '#BDBDBD',
+  switchTrackOff: '#A9BAAA',
 
   // === 分割线 & 阴影 ===
-  divider: '#E0E0E0',
-  shadowColor: '#1A000000',
-  shadowColorLight: '#0D000000',
-  modalOverlayMask: '#00000099',
+  divider: '#D4DDD2',
+  shadowColor: '#10153E39',
+  shadowColorLight: '#08153E39',
+  modalOverlayMask: '#99102C26',
 
   // === 暂停遮罩 ===
-  pauseOverlayBg: '#1B2838',
-  pauseOverlayText: '#FFFFFF',
-  pauseInfoCardBg: '#FFFFFF00',
-  pauseInfoText: '#B0BEC5',
-  pauseRestartBtn: '#FF7043',
-  pauseHelpBtn: '#78909C',
-  pauseQuitBtn: '#546E7A',
+  pauseOverlayBg: '#F8F7F1',
+  pauseOverlayText: '#153E39',
+  pauseInfoCardBg: '#FFFEF8',
+  pauseInfoText: '#5E716B',
+  pauseRestartBtn: '#E9EDD9',
+  pauseHelpBtn: '#DFEDDF',
+  pauseQuitBtn: '#EFEEE6',
 
   // === 多选提示条 ===
-  multiSelectBar: '#E3F2FD',
+  multiSelectBar: '#DFEDDF',
 
   // === TopBar 暂停背景 ===
-  topBarPausedBg: '#F0F0F0',
+  topBarPausedBg: '#DFEDDF',
 
   // === 设置面板 ===
-  settingsInactiveBg: '#F0F0F0',
-  settingsValidateOnText: '#4CAF50',
+  settingsInactiveBg: '#EDF0E7',
+  settingsValidateOnText: '#36735C',
 
   // === 难度指示点（未激活） ===
-  diffDotInactive: '#E0E0E0',
+  diffDotInactive: '#D4DDD2',
 
   // === 聊天气泡 ===
-  chatBubbleBg: '#F0F0F0',
-  chatInputBg: '#F5F5F5',
-  chatQuickBtnBg: '#F0F4FF',
-  chatDisabledBtn: '#CCCCCC',
+  chatBubbleBg: '#EDF0E7',
+  chatInputBg: '#FFFEF8',
+  chatQuickBtnBg: '#DFEDDF',
+  chatDisabledBtn: '#D4DDD2',
 
   // === 统计页胜率 ===
-  statsWonText: '#4CAF50',
+  statsWonText: '#36735C',
 }
 
 export const DarkColors: ColorsConfig = {
+  accent: '#C4DE85',
+  cardBorder: '#486357',
+  cardBg: '#1C342E',
   // === 页面级 ===
-  pageBg: '#121212',
+  pageBg: '#142723',
 
   // === 标题 ===
-  titleText: '#E0E0E0',
-  subtitleText: '#9E9E9E',
+  titleText: '#F4F3E8',
+  subtitleText: '#AAC0B4',
   systemBarContent: '#FFFFFF',
 
   // === 主按钮（开始游戏） ===
-  primaryBtn: '#42A5F5',
-  primaryPressed: '#1E88E5',
-  primaryText: '#121212',
+  primaryBtn: '#C4DE85',
+  primaryPressed: '#ADC86D',
+  primaryText: '#153E39',
 
   // === 次按钮（继续游戏） ===
-  secondaryBtn: '#1E1E1E',
-  secondaryBorder: '#42A5F5',
-  secondaryText: '#42A5F5',
-  secondaryPress: '#1A237E',
+  secondaryBtn: '#1C342E',
+  secondaryBorder: '#486357',
+  secondaryText: '#9CD5BE',
+  secondaryPress: '#294C40',
 
   // === 棋盘 ===
-  boardBg: '#1E1E1E',
-  cellBorderThin: '#616161',
-  cellBorderBold: '#9E9E9E',
+  boardBg: '#1A302A',
+  cellBorderThin: '#426052',
+  cellBorderBold: '#A2B9AA',
 
   // === 格子背景（高亮系统） ===
-  cellDefault: '#1E1E1E',
-  cellDiagonal: '#2A2235',
-  cellDiagonalHighlight: '#3A2F52',
-  cellSelected: '#1A3A5C',
-  cellHighlight: '#1A2332',
-  cellSameNumber: '#1B3B2A',
-  cellError: '#3E1A1A',
+  cellDefault: '#1A302A',
+  cellDiagonal: '#34392C',
+  cellDiagonalHighlight: '#414933',
+  cellSelected: '#2F503E',
+  cellHighlight: '#243E33',
+  cellSameNumber: '#314B3D',
+  cellError: '#5B302C',
 
   // === 文字颜色 ===
-  textGiven: '#E0E0E0',
-  textUser: '#64B5F6',
-  textError: '#EF5350',
-  textNote: '#9E9E9E',
-  textNoteHighlight: '#81C784',
-  textNoteElim: '#616161',
-  noteHighlightBg: '#1B3B2A',
+  textGiven: '#F4F3E8',
+  textUser: '#99D5BB',
+  textError: '#FFAFA3',
+  textNote: '#AAC0B4',
+  textNoteHighlight: '#D4EBB3',
+  textNoteElim: '#AAC0B4',
+  noteHighlightBg: '#3C5742',
 
   // === 手势键盘 ===
-  keyBg: '#2A2A2A',
-  keyText: '#E0E0E0',
-  keyDisabled: '#333333',
-  keyDisabledText: '#616161',
+  keyBg: '#203B32',
+  keyText: '#F4F3E8',
+  keyDisabled: '#202F2A',
+  keyDisabledText: '#81978A',
 
   // === 工具栏 ===
-  toolbarIcon: '#BDBDBD',
-  toolbarActive: '#42A5F5',
+  toolbarIcon: '#BAD0C0',
+  toolbarActive: '#C4DE85',
 
   // === 手势提示条 ===
-  indicatorNote: '#1A2332',
-  indicatorElim: '#2A2216',
-  indicatorErase: '#2A2A2A',
-  indicatorText: '#E0E0E0',
+  indicatorNote: '#294C40',
+  indicatorElim: '#493E2B',
+  indicatorErase: '#2C3C33',
+  indicatorText: '#F4F3E8',
 
   // === 难度色标 ===
-  diffEasy: '#66BB6A',
-  diffMedium: '#42A5F5',
-  diffHard: '#FFA726',
-  diffExpert: '#FF9800',
-  diffEvil: '#EF5350',
-  killerCageBorder: '#FFD180',
-  killerCageLabel: '#FFE0B2',
+  diffEasy: '#9DC9A2',
+  diffMedium: '#8BCABC',
+  diffHard: '#D8B671',
+  diffExpert: '#E7AF85',
+  diffEvil: '#EDA599',
+  killerCageBorder: '#D8B671',
+  killerCageLabel: '#E3C68F',
 
   // === 分段按钮 ===
-  segmentBg: '#2A2A2A',
-  segmentSelected: '#3A3A3A',
-  segmentText: '#9E9E9E',
-  segmentActive: '#E0E0E0',
+  segmentBg: '#203A31',
+  segmentSelected: '#2D4C3E',
+  segmentText: '#AAC0B4',
+  segmentActive: '#F4F3E8',
 
   // === 底部入口 ===
-  bottomIcon: '#BDBDBD',
-  bottomText: '#9E9E9E',
+  bottomIcon: '#BAD0C0',
+  bottomText: '#AAC0B4',
+  tabUnderline: '#B1C987',
 
   // === Switch 开关 ===
-  switchTrackOff: '#616161',
+  switchTrackOff: '#607A69',
 
   // === 分割线 & 阴影 ===
-  divider: '#333333',
-  shadowColor: '#40000000',
-  shadowColorLight: '#20000000',
-  modalOverlayMask: '#000000B3',
+  divider: '#3D574A',
+  shadowColor: '#240A1F18',
+  shadowColorLight: '#120A1F18',
+  modalOverlayMask: '#B3091B16',
 
   // === 暂停遮罩 ===
-  pauseOverlayBg: '#0D1117',
-  pauseOverlayText: '#E6EDF3',
-  pauseInfoCardBg: '#FFFFFF00',
-  pauseInfoText: '#8B949E',
-  pauseRestartBtn: '#D84315',
-  pauseHelpBtn: '#455A64',
-  pauseQuitBtn: '#30363D',
+  pauseOverlayBg: '#142723',
+  pauseOverlayText: '#F4F3E8',
+  pauseInfoCardBg: '#1C342E',
+  pauseInfoText: '#AAC0B4',
+  pauseRestartBtn: '#294235',
+  pauseHelpBtn: '#223D34',
+  pauseQuitBtn: '#20372F',
 
   // === 多选提示条 ===
-  multiSelectBar: '#1A2332',
+  multiSelectBar: '#294C40',
 
   // === TopBar 暂停背景 ===
-  topBarPausedBg: '#2A2A2A',
+  topBarPausedBg: '#294C40',
 
   // === 设置面板 ===
-  settingsInactiveBg: '#2A2A2A',
-  settingsValidateOnText: '#66BB6A',
+  settingsInactiveBg: '#203A31',
+  settingsValidateOnText: '#9DC9A2',
 
   // === 难度指示点（未激活） ===
-  diffDotInactive: '#424242',
+  diffDotInactive: '#486357',
 
   // === 聊天气泡 ===
-  chatBubbleBg: '#2A2A2A',
-  chatInputBg: '#1E1E1E',
-  chatQuickBtnBg: '#1A2332',
-  chatDisabledBtn: '#424242',
+  chatBubbleBg: '#203A31',
+  chatInputBg: '#1C342E',
+  chatQuickBtnBg: '#294C40',
+  chatDisabledBtn: '#486357',
 
   // === 统计页胜率 ===
-  statsWonText: '#66BB6A',
+  statsWonText: '#9DC9A2',
 }
 
 /**
  * 当前生效的颜色方案（可被 applyTheme 切换）
  */
 export let Colors: ColorsConfig = LightColors
+
+/** UI组件传入响应式 isDarkMode，直接建立每个颜色节点的主题依赖。 */
+export function getThemeColors(isDark: boolean): ColorsConfig {
+  return isDark ? DarkColors : LightColors
+}
+
+/** 难度配色独立于难度生成参数，并随界面主题更新。 */
+export function getDifficultyColor(level: Difficulty, isDark: boolean): string {
+  const palette = getThemeColors(isDark)
+  switch (level) {
+    case Difficulty.EASY: return palette.diffEasy
+    case Difficulty.MEDIUM: return palette.diffMedium
+    case Difficulty.HARD: return palette.diffHard
+    case Difficulty.EXPERT: return palette.diffExpert
+    default: return palette.diffEvil
+  }
+}
 
 /**
  * 切换主题色
@@ -448,19 +477,19 @@ export const Sizes: SizesConfig = {
   titleFont: 32,
   subtitleFont: 14,
   btnHeight: 52,
-  btnRadius: 26,
+  btnRadius: 8,
   btnGap: 12,
   segmentHeight: 44,
-  segmentRadius: 22,
+  segmentRadius: 8,
   bottomIcon: 22,
   bottomText: 12,
 
   // === 游戏页 ===
   gamePagePadding: 8,
-  topBarHeight: 48,
+  topBarHeight: 44,
   boardSize: 328,          // 仅在少数场景用作回退
   cellSize: 36,            // ≈ 328 / 9
-  cellBorderBold: 2,
+  cellBorderBold: 1.25,
   cellBorderThin: 0.5,
   killerCageInset: 1,
   givenFont: 22,
@@ -474,13 +503,13 @@ export const Sizes: SizesConfig = {
   // === 辅助按钮 ===
   auxColWidth: 48,
   auxIcon: 22,
-  auxText: 9,
+  auxText: 12,
   auxRadius: 8,
 
   // === 手势键 ===
   keyFont: 22,
   keyCountFont: 10,
-  keyRadius: 12,
+  keyRadius: 8,
   gestureThreshold: 30,    // 滑动判定阈值 vp
 }
 

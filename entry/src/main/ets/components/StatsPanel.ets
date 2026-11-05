@@ -1,43 +1,49 @@
-/**
- * StatsPanel.ets — 统计面板（半模态弹窗）
- *
- * 从 StatsPage 提取为可复用组件，用于 bindSheet 弹出。
- * 使用 Tabs 组件实现统计总览 + 历史记录两个 Tab，支持左右滑动切换。
- * 统计：各难度的游戏次数、胜率、最佳/平均用时、连胜等。
- * 历史：最近完成的游戏，显示难度、对称、用时、步数、错误，支持重玩。
- */
-import { router, promptAction } from '@kit.ArkUI'
-import { pasteboard } from '@kit.BasicServicesKit'
-import { Colors, Sizes, DIFFICULTY_CONFIGS, DifficultyConfig, getDifficultyConfig,
-  Difficulty } from '../constants/GameConstants'
-import { loadStats, GameStats, DifficultyStats, formatTime } from '../utils/StatsStorage'
-import { loadHistory, GameRecord } from '../utils/HistoryStorage'
+/** 统计汇总组件；历史记录由独立历史页面负责。 */
+import { getLocalizedString } from '../utils/I18nHelper'
+import { ColorsConfig, getThemeColors, getDifficultyColor, DIFFICULTY_CONFIGS, DifficultyConfig } from '../constants/GameConstants'
+import { loadStats, GameStats, DifficultyStats, formatTime, reconcileJournalStats } from '../utils/StatsStorage'
 
 @Component
 export struct StatsPanel {
+  @StorageProp('localeRevision') private localeRevision: number = 0
   @StorageProp('isDarkMode') isDarkMode: boolean = false
-  @StorageProp('bottomRectHeight') bottomRectHeight: number = 0
   @State private stats: GameStats = new GameStats()
-  @State private history: GameRecord[] = []
-  @State private activeTab: number = 0   // 0=统计, 1=历史
-
+  @Prop embedded: boolean = false
+  @Prop @Watch('refreshIfVisible') active: boolean = true
+  @Prop @Watch('refreshIfVisible') refreshVersion: number = 0
   onClose: () => void = () => {}
+  private alive: boolean = false
+
+  private getPalette(): ColorsConfig {
+    return getThemeColors(this.isDarkMode)
+  }
 
   aboutToAppear(): void {
-    this.stats = loadStats(getContext(this))
-    this.history = loadHistory(getContext(this))
+    this.alive = true
+    this.refreshIfVisible()
   }
+
+  private refreshIfVisible(): void {
+    if (!this.active || !this.alive) return
+    const context = getContext(this)
+    this.stats = loadStats(context)
+    reconcileJournalStats(context).then(() => {
+      if (this.alive) this.stats = loadStats(context)
+    }).catch(() => { /* 已保存的统计仍可查看，下次打开时重试投影。 */ })
+  }
+
+  aboutToDisappear(): void { this.alive = false }
 
   @Builder
   StatRow(label: ResourceStr, value: string) {
     Row() {
       Text(label)
         .fontSize(14)
-        .fontColor(Colors.subtitleText)
+        .fontColor(this.getPalette().subtitleText)
       Blank()
       Text(value)
         .fontSize(14)
-        .fontColor(Colors.titleText)
+        .fontColor(this.getPalette().titleText)
         .fontWeight(FontWeight.Medium)
     }
     .width('100%')
@@ -52,12 +58,12 @@ export struct StatsPanel {
         Circle()
           .width(8)
           .height(8)
-          .fill(config.color)
+          .fill(getDifficultyColor(config.level, this.isDarkMode))
           .margin({ right: 8 })
-        Text(getContext(this).resourceManager.getStringByNameSync(config.name))
+        Text(getLocalizedString(getContext(this), config.name, this.localeRevision))
           .fontSize(16)
           .fontWeight(FontWeight.Medium)
-          .fontColor(Colors.titleText)
+          .fontColor(this.getPalette().titleText)
       }
       .width('100%')
       .margin({ bottom: 8 })
@@ -75,304 +81,79 @@ export struct StatsPanel {
     }
     .width('100%')
     .padding(16)
-    .backgroundColor(Colors.cellDefault)
-    .borderRadius(12)
-    .shadow({
-      radius: 4,
-      color: Colors.shadowColor,
-      offsetX: 0,
-      offsetY: 2,
-    })
+    .backgroundColor(this.getPalette().cardBg)
+    .borderRadius(8)
+    .border({ width: 1, color: this.getPalette().cardBorder })
   }
 
   @Builder
-  TabBarItem(title: ResourceStr, index: number) {
-    Text(title)
-      .fontSize(14)
-      .fontWeight(this.activeTab === index ? FontWeight.Medium : FontWeight.Normal)
-      .fontColor(this.activeTab === index ? Colors.primaryText : Colors.subtitleText)
-      .backgroundColor(this.activeTab === index ? Colors.primaryBtn : 'transparent')
-      .borderRadius(8)
-      .padding({ left: 16, right: 16, top: 8, bottom: 8 })
-      .width('50%')
-      .textAlign(TextAlign.Center)
+  private SummaryItem(value: string, label: Resource) {
+    Column({ space: 6 }) {
+      Text(value)
+        .fontSize(28)
+        .fontWeight(FontWeight.Medium)
+        .fontColor(this.getPalette().titleText)
+      Text(label)
+        .fontSize(12)
+        .fontColor(this.getPalette().subtitleText)
+    }
+    .layoutWeight(1)
   }
 
   build() {
     Column() {
-      // 标题栏（与 SettingsPanel 风格一致）
-      Row() {
-        Text($r('app.string.stats_title'))
-          .fontSize(20)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(Colors.titleText)
-
-        Blank()
-
-        Text('✕')
-          .fontSize(20)
-          .fontColor(Colors.subtitleText)
+      Row({ space: 8 }) {
+        if (!this.embedded) {
+          Button({ type: ButtonType.Normal }) {
+            Image($r('app.media.paper_arrow_left'))
+              .width(22)
+              .height(22)
+              .fillColor(this.getPalette().titleText)
+              .accessibilityLevel('no')
+          }
+          .id('stats-back')
+          .width(44)
+          .height(44)
+          .padding(10)
+          .backgroundColor(Color.Transparent)
+          .accessibilityText($r('app.string.common_back'))
           .onClick(() => this.onClose())
+        }
+        Text($r('app.string.stats_title'))
+          .fontSize(22)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(this.getPalette().titleText)
       }
       .width('100%')
-      .padding({ left: 24, right: 24, top: 20, bottom: 16 })
+      .padding({ left: this.embedded ? 24 : 12, right: 24, top: this.embedded ? 20 : 8, bottom: 12 })
 
-      // 分割线
-      Divider().color(Colors.divider).height(0.5)
-
-      // 使用 Tabs 组件，支持左右滑动切换
-      Tabs({ index: this.activeTab, barPosition: BarPosition.Start }) {
-        // ==================== Tab 0: 统计总览 ====================
-        TabContent() {
-          Column() {
-            // 总览卡片
-            Row() {
-              Column() {
-                Text(this.stats.totalGamesPlayed.toString())
-                  .fontSize(28)
-                  .fontWeight(FontWeight.Bold)
-                  .fontColor(Colors.primaryBtn)
-                Text($r('app.string.stats_total_played'))
-                  .fontSize(12)
-                  .fontColor(Colors.subtitleText)
-                  .margin({ top: 4 })
-              }
-              .layoutWeight(1)
-              .alignItems(HorizontalAlign.Center)
-
-              Column() {
-                Text(this.stats.totalGamesWon.toString())
-                  .fontSize(28)
-                  .fontWeight(FontWeight.Bold)
-                  .fontColor(Colors.statsWonText)
-                Text($r('app.string.stats_total_won'))
-                  .fontSize(12)
-                  .fontColor(Colors.subtitleText)
-                  .margin({ top: 4 })
-              }
-              .layoutWeight(1)
-              .alignItems(HorizontalAlign.Center)
-
-              Column() {
-                Text(this.stats.totalGamesPlayed > 0
-                  ? `${Math.round((this.stats.totalGamesWon / this.stats.totalGamesPlayed) * 100)}%`
-                  : '0%')
-                  .fontSize(28)
-                  .fontWeight(FontWeight.Bold)
-                  .fontColor(Colors.diffHard)
-                Text($r('app.string.stats_win_rate'))
-                  .fontSize(12)
-                  .fontColor(Colors.subtitleText)
-                  .margin({ top: 4 })
-              }
-              .layoutWeight(1)
-              .alignItems(HorizontalAlign.Center)
-            }
-            .width('100%')
-            .padding(16)
-
-            // 各难度统计
-            Scroll() {
-              Column({ space: 12 }) {
-                ForEach(DIFFICULTY_CONFIGS, (config: DifficultyConfig) => {
-                  this.DifficultyStatsCard(config, this.stats.difficulties[config.level])
-                })
-              }
-              .width('100%')
-              .padding({ left: Sizes.pagePadding, right: Sizes.pagePadding, bottom: this.bottomRectHeight + 24 })
-            }
-            .layoutWeight(1)
-            .scrollBar(BarState.Off)
+      Scroll() {
+        Column({ space: 16 }) {
+          Row() {
+            this.SummaryItem(this.stats.totalGamesPlayed.toString(), $r('app.string.stats_total_played'))
+            this.SummaryItem(this.stats.totalGamesWon.toString(), $r('app.string.stats_total_won'))
+            this.SummaryItem(this.stats.totalGamesPlayed > 0 ?
+              `${Math.round(this.stats.totalGamesWon / this.stats.totalGamesPlayed * 100)}%` : '0%',
+              $r('app.string.stats_win_rate'))
           }
           .width('100%')
-          .height('100%')
+          .padding({ top: 16, bottom: 24 })
+          .border({ width: { bottom: 0.5 }, color: this.getPalette().divider })
+          ForEach(DIFFICULTY_CONFIGS, (config: DifficultyConfig) => {
+            this.DifficultyStatsCard(config, this.stats.difficulties[config.level])
+          })
         }
-        .tabBar(this.TabBarItem($r('app.string.stats_tab_overview'), 0))
-
-        // ==================== Tab 1: 历史记录 ====================
-        TabContent() {
-          if (this.history.length === 0) {
-            Column() {
-              Blank()
-              Text($r('app.string.stats_no_history'))
-                .fontSize(16)
-                .fontColor(Colors.subtitleText)
-              Blank()
-            }
-            .width('100%')
-            .height('100%')
-          } else {
-            Scroll() {
-              Column({ space: 12 }) {
-                ForEach(this.history, (record: GameRecord, index: number) => {
-                  this.HistoryCard(record, index as number)
-                })
-              }
-              .width('100%')
-              .alignItems(HorizontalAlign.Start)
-              .padding({ left: Sizes.pagePadding, right: Sizes.pagePadding, top: 8,
-                bottom: this.bottomRectHeight + 24 })
-            }
-            .width('100%')
-            .height('100%')
-            .scrollBar(BarState.Off)
-            .align(Alignment.Top)
-          }
-        }
-        .tabBar(this.TabBarItem($r('app.string.stats_tab_history'), 1))
+        .width('100%')
+        .constraintSize({ maxWidth: 760 })
+        .padding({ left: 24, right: 24, bottom: 24 })
       }
-      .scrollable(true)
-      .barMode(BarMode.Fixed)
-      .barBackgroundColor('transparent')
-      .animationDuration(200)
-      .onChange((index: number) => {
-        this.activeTab = index
-      })
+      .width('100%')
       .layoutWeight(1)
-      .margin({ left: Sizes.pagePadding, right: Sizes.pagePadding, top: 8 })
+      .align(Alignment.Top)
+      .scrollBar(BarState.Auto)
     }
     .width('100%')
-    .backgroundColor(Colors.boardBg)
-    .borderRadius({ topLeft: 16, topRight: 16 })
-  }
-
-  @Builder
-  HistoryCard(record: GameRecord, _index: number) {
-    Column() {
-      // 顶部行：难度 + 结果 + 日期
-      Row() {
-        // 左侧难度色条
-        Column()
-          .width(4)
-          .height(20)
-          .borderRadius(2)
-          .backgroundColor(
-            record.difficulty >= 1 && record.difficulty <= 5
-              ? getDifficultyConfig(record.difficulty as Difficulty).color
-              : Colors.subtitleText
-          )
-
-        // 难度名 + 结果标记
-        Row({ space: 6 }) {
-          Text(record.difficulty >= 1 && record.difficulty <= 5
-            ? getContext(this).resourceManager.getStringByNameSync(
-              getDifficultyConfig(record.difficulty as Difficulty).name)
-            : '?')
-            .fontSize(14)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(Colors.titleText)
-
-          Text(record.won ? '✅' : '❌')
-            .fontSize(12)
-        }
-        .margin({ left: 8 })
-        .layoutWeight(1)
-
-        // 右侧日期
-        Text(this.formatDate(record.timestamp))
-          .fontSize(11)
-          .fontColor(Colors.subtitleText)
-      }
-      .width('100%')
-      .alignItems(VerticalAlign.Center)
-
-      // 详细信息行：用时 + 步数 + 错误 + 对称
-      Row() {
-        Text(`⏱ ${formatTime(record.timeSeconds)}`)
-          .fontSize(11)
-          .fontColor(Colors.subtitleText)
-
-        Text(`📝 ${record.stepCount}`)
-          .fontSize(11)
-          .fontColor(Colors.subtitleText)
-          .margin({ left: 8 })
-
-        if (record.errors > 0) {
-          Text(`❌ ${record.errors}`)
-            .fontSize(11)
-            .fontColor(Colors.textError)
-            .margin({ left: 8 })
-        }
-
-        if (record.symmetry) {
-          Text(`🔄 ${this.getSymmetryLabel(record.symmetry)}`)
-            .fontSize(11)
-            .fontColor(Colors.subtitleText)
-            .margin({ left: 8 })
-        }
-
-        // 种子 ID 复制按钮
-        if (record.seedId) {
-          Text('🔑')
-            .fontSize(11)
-            .fontColor(Colors.primaryBtn)
-            .margin({ left: 8 })
-            .onClick(() => {
-              const pbData = pasteboard.createData(pasteboard.MIMETYPE_TEXT_PLAIN, record.seedId)
-              pasteboard.getSystemPasteboard().setDataSync(pbData)
-              promptAction.showToast({
-                message: getContext(this).resourceManager.getStringByNameSync('seed_id_copied'),
-                duration: 1500
-              })
-            })
-        }
-
-        Blank()
-
-        // 重玩按钮（关闭面板后跳转）
-        if (record.seedId) {
-          Text($r('app.string.stats_replay'))
-            .fontSize(11)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(Colors.primaryBtn)
-            .padding({ left: 10, right: 10, top: 2, bottom: 2 })
-            .borderRadius(10)
-            .borderWidth(1)
-            .borderColor(Colors.primaryBtn)
-            .onClick(() => {
-              this.onClose()
-              router.pushUrl({
-                url: 'pages/GamePage',
-                params: {
-                  difficulty: record.difficulty,
-                  seedId: record.seedId,
-                },
-              })
-            })
-        }
-      }
-      .width('100%')
-      .alignItems(VerticalAlign.Center)
-      .margin({ top: 2 })
-    }
-    .width('100%')
-    .padding({ left: 12, right: 12, top: 10, bottom: 10 })
-    .backgroundColor(Colors.cellDefault)
-    .borderRadius(10)
-    .shadow({
-      radius: 1,
-      color: Colors.shadowColorLight,
-      offsetX: 0,
-      offsetY: 1,
-    })
-  }
-
-  private getSymmetryLabel(symmetry: string): string {
-    const key = `sym_${symmetry}`
-    try {
-      return getContext(this).resourceManager.getStringByNameSync(key)
-    } catch (_e) {
-      return symmetry
-    }
-  }
-
-  private formatDate(timestamp: number): string {
-    if (timestamp <= 0) return ''
-    const d = new Date(timestamp)
-    const month = (d.getMonth() + 1).toString().padStart(2, '0')
-    const day = d.getDate().toString().padStart(2, '0')
-    const hour = d.getHours().toString().padStart(2, '0')
-    const min = d.getMinutes().toString().padStart(2, '0')
-    return `${month}-${day} ${hour}:${min}`
+    .height('100%')
+    .backgroundColor(this.getPalette().pageBg)
   }
 }

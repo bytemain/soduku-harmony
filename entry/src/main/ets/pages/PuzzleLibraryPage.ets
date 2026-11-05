@@ -6,8 +6,9 @@
  *
  * 参考：Doc 13 §5.8
  */
+import { getLocalizedString } from '../utils/I18nHelper'
 import { router } from '@kit.ArkUI'
-import { Colors, Sizes, Difficulty, getDifficultyConfig } from '../constants/GameConstants'
+import { ColorsConfig, getThemeColors, getDifficultyColor, Sizes, Difficulty, getDifficultyConfig } from '../constants/GameConstants'
 import { computeStarDisplay } from '../utils/Common'
 import {
   PuzzleLibrary,
@@ -36,9 +37,18 @@ type FilterType = 'all' | 'new' | 'in_progress' | 'completed'
 @Entry
 @Component
 struct PuzzleLibraryPage {
+  private getPalette(): ColorsConfig {
+    return getThemeColors(this.isDarkMode)
+  }
+
+  @StorageProp('localeRevision') private localeRevision: number = 0
   @StorageProp('isDarkMode') isDarkMode: boolean = false
   @StorageProp('topRectHeight') topRectHeight: number = 0
   @StorageProp('bottomRectHeight') bottomRectHeight: number = 0
+
+  @StorageProp('leftRectWidth') leftRectWidth: number = 0
+  @StorageProp('rightRectWidth') rightRectWidth: number = 0
+  @State private listWidth: number = 0
 
   @State private libraries: PuzzleLibrary[] = []
   @State private libraryStatsMap: Map<string, LibraryStats> = new Map()
@@ -50,7 +60,7 @@ struct PuzzleLibraryPage {
   @State private isInitialized: boolean = false
 
   private getString(name: string): string {
-    return getContext(this).resourceManager.getStringByNameSync(name)
+    return getLocalizedString(getContext(this), name, this.localeRevision)
   }
 
   aboutToAppear(): void {
@@ -62,6 +72,24 @@ struct PuzzleLibraryPage {
     if (this.isInitialized) {
       this.refreshCurrentView()
     }
+  }
+
+  /** 系统返回与可见返回按钮共用同一个层级规则。 */
+  onBackPress(): boolean {
+    this.navigateBack()
+    return true
+  }
+
+  private navigateBack(): void {
+    if (this.selectedLibraryId !== null) {
+      this.backToLibraryList()
+    } else {
+      router.back({ url: 'pages/Index' })
+    }
+  }
+
+  private backLabel(): string {
+    return this.getString(this.selectedLibraryId !== null ? 'library_back_list' : 'library_back_home')
   }
 
   /**
@@ -152,6 +180,7 @@ struct PuzzleLibraryPage {
         importedDifficulty: puzzle.difficulty,
         libraryId: this.selectedLibraryId,
         puzzleIndex: puzzle.index,
+        resumeLibrary: true,
       },
     })
   }
@@ -170,17 +199,17 @@ struct PuzzleLibraryPage {
    * 获取难度颜色
    */
   private getDifficultyColor(difficulty: Difficulty | undefined): string {
-    if (!difficulty) return Colors.subtitleText as string
-    return getDifficultyConfig(difficulty).color
+    if (!difficulty) return this.getPalette().subtitleText as string
+    return getDifficultyColor(difficulty, this.isDarkMode)
   }
 
   /**
    * 获取状态图标
    */
-  private getStatusIcon(status: PuzzleStatus): string {
-    if (status === 'completed') return '✅'
-    if (status === 'in_progress') return '🔄'
-    return '⬜'
+  private getStatusIcon(status: PuzzleStatus): Resource {
+    if (status === 'completed') return $r('app.media.paper_check')
+    if (status === 'in_progress') return $r('app.media.paper_clock')
+    return $r('app.media.paper_pencil')
   }
 
   /**
@@ -210,7 +239,7 @@ struct PuzzleLibraryPage {
             .height(48)
           Text(this.getString('library_empty_hint'))
             .fontSize(14)
-            .fontColor(Colors.subtitleText)
+            .fontColor(this.getPalette().subtitleText)
             .margin({ top: 12 })
         }
         .width('100%')
@@ -226,34 +255,50 @@ struct PuzzleLibraryPage {
     }
     .width('100%')
     .height('100%')
-    .backgroundColor(Colors.pageBg)
+    .padding({ left: this.leftRectWidth, right: this.rightRectWidth })
+    .backgroundColor(this.getPalette().pageBg)
     .expandSafeArea([SafeAreaType.SYSTEM, SafeAreaType.CUTOUT], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
   }
 
   // ==================== 顶部导航栏 ====================
   @Builder
   buildTopBar() {
-    Row() {
-      if (this.selectedLibraryId !== null) {
-        // 返回按钮
-        Text('←')
-          .fontSize(24)
-          .fontColor(Colors.titleText)
-          .padding({ right: 12 })
-          .onClick(() => {
-            this.backToLibraryList()
-          })
+    Row({ space: 12 }) {
+      Button({ type: ButtonType.Normal }) {
+        Row({ space: 8 }) {
+          Image($r('app.media.paper_arrow_left'))
+            .width(20)
+            .height(20)
+            .fillColor(this.getPalette().titleText)
+            .accessibilityLevel('no')
+          Text(this.backLabel())
+            .fontSize(14)
+            .fontColor(this.getPalette().titleText)
+        }
+        .alignItems(VerticalAlign.Center)
       }
+      .height(44)
+      .constraintSize({ minWidth: 44 })
+      .padding({ left: 4, right: 8 })
+      .borderRadius(4)
+      .backgroundColor(Color.Transparent)
+      .accessibilityText(this.backLabel())
+      .onClick(() => { this.navigateBack() })
+
       Text(this.selectedLibraryId !== null ? this.selectedLibraryName : this.getString('library_title'))
         .fontSize(20)
         .fontWeight(FontWeight.Bold)
-        .fontColor(Colors.titleText)
+        .fontColor(this.getPalette().titleText)
+        .maxLines(1)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
         .layoutWeight(1)
     }
     .width('100%')
-    .height(56 + this.topRectHeight)
+    .constraintSize({ maxWidth: 1040 })
+    .height(64 + this.topRectHeight)
     .padding({ left: 16, right: 16, top: this.topRectHeight })
     .alignItems(VerticalAlign.Center)
+    .backgroundColor(this.getPalette().pageBg)
   }
 
   // ==================== 题库列表视图 ====================
@@ -261,11 +306,14 @@ struct PuzzleLibraryPage {
   buildLibraryListView() {
     if (this.libraries.length === 0) {
       Column() {
-        Text('📚')
-          .fontSize(48)
+        Image($r('app.media.paper_select'))
+          .width(48)
+          .height(48)
+          .fillColor(this.getPalette().subtitleText)
+          .accessibilityLevel('no')
         Text(this.getString('library_empty_hint'))
           .fontSize(14)
-          .fontColor(Colors.subtitleText)
+          .fontColor(this.getPalette().subtitleText)
           .margin({ top: 12 })
       }
       .width('100%')
@@ -280,6 +328,9 @@ struct PuzzleLibraryPage {
         }, (library: PuzzleLibrary) => `${library.id}_${this.getLibraryProgressPercent(library)}`)
       }
       .width('100%')
+      .constraintSize({ maxWidth: 1040 })
+      .lanes(this.listWidth >= 720 ? 2 : 1, 12)
+      .onAreaChange((_oldArea: Area, newArea: Area) => { this.listWidth = Number(newArea.width) })
       .layoutWeight(1)
       .padding({ left: 16, right: 16, bottom: this.bottomRectHeight + 24 })
     }
@@ -304,23 +355,22 @@ struct PuzzleLibraryPage {
             Text(library.name)
               .fontSize(16)
               .fontWeight(FontWeight.Medium)
-              .fontColor(Colors.titleText)
+              .fontColor(this.getPalette().titleText)
 
             if (library.difficulty) {
-              Text(getContext(this).resourceManager.getStringByNameSync(
-                getDifficultyConfig(library.difficulty).name
-              ))
+              Text(getLocalizedString(getContext(this),
+                getDifficultyConfig(library.difficulty).name, this.localeRevision))
                 .fontSize(11)
                 .fontColor(this.getDifficultyColor(library.difficulty))
                 .padding({ left: 6, right: 6, top: 2, bottom: 2 })
                 .borderRadius(4)
-                .backgroundColor(Colors.secondaryBtn)
+                .backgroundColor(this.getPalette().secondaryBtn)
             }
           }
 
           Text(library.description)
             .fontSize(12)
-            .fontColor(Colors.subtitleText)
+            .fontColor(this.getPalette().subtitleText)
             .margin({ top: 4 })
             .maxLines(1)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
@@ -333,10 +383,10 @@ struct PuzzleLibraryPage {
           Text(this.getLibraryProgressText(library))
             .fontSize(14)
             .fontWeight(FontWeight.Medium)
-            .fontColor(Colors.titleText)
+            .fontColor(this.getPalette().titleText)
           Text(`${this.getLibraryProgressPercent(library)}%`)
             .fontSize(11)
-            .fontColor(Colors.subtitleText)
+            .fontColor(this.getPalette().subtitleText)
             .margin({ top: 2 })
         }
         .alignItems(HorizontalAlign.End)
@@ -350,15 +400,15 @@ struct PuzzleLibraryPage {
         .height(4)
         .margin({ top: 8 })
         .color(this.getDifficultyColor(library.difficulty))
-        .backgroundColor(Colors.secondaryBtn)
+        .backgroundColor(this.getPalette().secondaryBtn)
         .borderRadius(2)
     }
     .width('100%')
     .padding(16)
-    .backgroundColor(Colors.secondaryBtn)
+    .backgroundColor(this.getPalette().secondaryBtn)
     .borderRadius(Sizes.btnRadius)
     .borderWidth(1)
-    .borderColor(Colors.secondaryBorder)
+    .borderColor(this.getPalette().secondaryBorder)
     .onClick(() => {
       this.enterLibrary(library)
     })
@@ -391,6 +441,9 @@ struct PuzzleLibraryPage {
         }, (puzzle: PuzzleEntry) => `${puzzle.index}_${puzzle.progress.status}_${puzzle.progress.percentage}`)
       }
       .width('100%')
+      .constraintSize({ maxWidth: 1040 })
+      .lanes(this.listWidth >= 720 ? 2 : 1, 12)
+      .onAreaChange((_oldArea: Area, newArea: Area) => { this.listWidth = Number(newArea.width) })
       .layoutWeight(1)
       .padding({ left: 16, right: 16, bottom: this.bottomRectHeight + 24 })
     }
@@ -401,24 +454,29 @@ struct PuzzleLibraryPage {
   // ==================== 筛选栏 ====================
   @Builder
   buildFilterBar() {
+    Scroll() {
     Row({ space: 8 }) {
       this.buildFilterButton('all', this.getString('library_filter_all'))
       this.buildFilterButton('new', this.getString('library_filter_new'))
       this.buildFilterButton('in_progress', this.getString('library_filter_in_progress'))
       this.buildFilterButton('completed', this.getString('library_filter_completed'))
     }
-    .width('100%')
     .padding({ left: 16, right: 16, top: 8, bottom: 8 })
+    }
+    .width('100%')
+    .constraintSize({ maxWidth: 1040 })
+    .scrollable(ScrollDirection.Horizontal)
+    .scrollBar(BarState.Off)
   }
 
   @Builder
   buildFilterButton(filter: FilterType, label: string) {
     Text(label)
       .fontSize(13)
-      .fontColor(this.currentFilter === filter ? '#FFFFFF' : Colors.titleText)
-      .backgroundColor(this.currentFilter === filter ? Colors.primaryBtn : Colors.secondaryBtn)
+      .fontColor(this.currentFilter === filter ? this.getPalette().primaryText : this.getPalette().titleText)
+      .backgroundColor(this.currentFilter === filter ? this.getPalette().primaryBtn : this.getPalette().secondaryBtn)
       .padding({ left: 12, right: 12, top: 6, bottom: 6 })
-      .borderRadius(16)
+      .borderRadius(8)
       .onClick(() => {
         this.currentFilter = filter
       })
@@ -430,11 +488,14 @@ struct PuzzleLibraryPage {
     Row() {
       // 左侧序号和状态图标
       Column() {
-        Text(this.getStatusIcon(puzzle.progress.status))
-          .fontSize(20)
+        Image(this.getStatusIcon(puzzle.progress.status))
+          .width(20)
+          .height(20)
+          .fillColor(this.getPalette().primaryBtn)
+          .accessibilityText(this.getString(`library_puzzle_${puzzle.progress.status}`))
         Text(`#${puzzle.index + 1}`)
           .fontSize(11)
-          .fontColor(Colors.subtitleText)
+          .fontColor(this.getPalette().subtitleText)
           .margin({ top: 2 })
       }
       .width(48)
@@ -446,25 +507,33 @@ struct PuzzleLibraryPage {
           Text(`${this.getString('library_title')} #${puzzle.index + 1}`)
             .fontSize(14)
             .fontWeight(FontWeight.Medium)
-            .fontColor(Colors.titleText)
+            .fontColor(this.getPalette().titleText)
         }
 
         if (puzzle.progress.status !== 'new') {
           Row({ space: 8 }) {
             Text(this.formatTime(puzzle.progress.elapsedSeconds))
               .fontSize(12)
-              .fontColor(Colors.subtitleText)
+              .fontColor(this.getPalette().subtitleText)
             if (puzzle.progress.errorCount > 0) {
-              Text(`${puzzle.progress.errorCount} ❌`)
-                .fontSize(12)
-                .fontColor('#F44336')
+              Row({ space: 3 }) {
+                Image($r('app.media.paper_close'))
+                  .width(12)
+                  .height(12)
+                  .fillColor(this.getPalette().textError)
+                  .accessibilityLevel('no')
+                Text(puzzle.progress.errorCount.toString())
+                  .fontSize(12)
+                  .fontColor(this.getPalette().textError)
+              }
+              .accessibilityText(`${this.getString('pause_info_errors')} ${puzzle.progress.errorCount}`)
             }
           }
           .margin({ top: 2 })
         } else {
           Text(this.getString('library_puzzle_new'))
             .fontSize(12)
-            .fontColor(Colors.subtitleText)
+            .fontColor(this.getPalette().subtitleText)
             .margin({ top: 2 })
         }
       }
@@ -475,7 +544,7 @@ struct PuzzleLibraryPage {
       if (puzzle.progress.status === 'in_progress') {
         Text(`${puzzle.progress.percentage}%`)
           .fontSize(14)
-          .fontColor(Colors.subtitleText)
+          .fontColor(this.getPalette().subtitleText)
       } else if (puzzle.progress.status === 'completed') {
         Text(this.getStarRating(puzzle.progress.elapsedSeconds, puzzle.progress.errorCount))
           .fontSize(16)
@@ -485,13 +554,13 @@ struct PuzzleLibraryPage {
     .height(60)
     .padding({ left: 8, right: 16 })
     .alignItems(VerticalAlign.Center)
-    .backgroundColor(Colors.secondaryBtn)
+    .backgroundColor(this.getPalette().secondaryBtn)
     .borderRadius(Sizes.btnRadius)
     .borderWidth(1)
     .borderColor(
-      puzzle.progress.status === 'completed' ? '#4CAF50' :
-        puzzle.progress.status === 'in_progress' ? '#2196F3' :
-          Colors.secondaryBorder
+      puzzle.progress.status === 'completed' ? this.getPalette().statsWonText :
+        puzzle.progress.status === 'in_progress' ? this.getPalette().toolbarActive :
+          this.getPalette().secondaryBorder
     )
     .onClick(() => {
       this.selectPuzzle(puzzle)

@@ -2,6 +2,11 @@
   "src": [
     "pages/Index",
     "pages/GamePage",
-    "pages/PuzzleLibraryPage"
+    "pages/PuzzleLibraryPage",
+    "pages/PrivacyPage",
+    "pages/WatchHomePage",
+    "pages/WatchGamePage",
+    "pages/HistoryPage",
+    "pages/StatsPage"
   ]
 }

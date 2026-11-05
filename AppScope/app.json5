@@ -1,9 +1,9 @@
 {
   "app": {
-    "bundleName": "com.bytemain.soduku",
-    "vendor": "example",
-    "versionCode": 1000000,
-    "versionName": "1.0.0",
+    "bundleName": "io.oranix.soduku.mini",
+    "vendor": "杭州幻橙网络科技有限公司",
+    "versionCode": 1002004,
+    "versionName": "1.2.2",
     "icon": "$media:layered_image",
     "label": "$string:app_name"
   }

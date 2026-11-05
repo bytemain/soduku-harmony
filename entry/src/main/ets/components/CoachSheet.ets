@@ -6,12 +6,14 @@
  *
  * 参考：Doc 06 §3 UI 设计
  */
+import { getLocalizedString } from '../utils/I18nHelper'
 import { Colors } from '../constants/GameConstants'
 import { CellData } from '../models/CellData'
 import { CoachService, ChatMessage } from '../services/CoachService'
 
 @Component
 export struct CoachSheet {
+  @StorageProp('localeRevision') private localeRevision: number = 0
   /** 当前棋盘 cells（由 GamePage 传入） */
   cells: CellData[] = []
   onClose: () => void = () => {}
@@ -25,7 +27,7 @@ export struct CoachSheet {
 
   aboutToAppear(): void {
     this.coachService.getStr = (name: string) =>
-      getContext(this).resourceManager.getStringByNameSync(name)
+      getLocalizedString(getContext(this), name, this.localeRevision)
     this.initStatus = 'loading'
     this.coachService.init().then((ok) => {
       this.initStatus = ok ? 'ready' : 'failed'
@@ -67,7 +69,7 @@ export struct CoachSheet {
       (errorMsg: string) => {
         // Error
         const updated = [...this.messages]
-        updated[updated.length - 1] = new ChatMessage('coach', `⚠️ ${errorMsg}`, false)
+        updated[updated.length - 1] = new ChatMessage('coach', errorMsg, false)
         this.messages = updated
         this.isLoading = false
       }
@@ -112,8 +114,11 @@ export struct CoachSheet {
       if (this.messages.length === 0) {
         // Empty state
         Column() {
-          Text('🎓')
-            .fontSize(48)
+          Image($r('app.media.paper_help'))
+            .width(48)
+            .height(48)
+            .fillColor(Colors.subtitleText)
+            .accessibilityLevel('no')
             .margin({ bottom: 12 })
           Text($r('app.string.coach_empty_title'))
             .fontSize(16)
@@ -150,8 +155,11 @@ export struct CoachSheet {
               } else {
                 // Coach message — left aligned
                 Row() {
-                  Text('🤖')
-                    .fontSize(20)
+                  Image($r('app.media.paper_help'))
+                    .width(20)
+                    .height(20)
+                    .fillColor(Colors.subtitleText)
+                    .accessibilityLevel('no')
                     .margin({ right: 8, top: 2 })
                   Text(msg.content + (msg.isStreaming ? ' ●' : ''))
                     .fontSize(15)
@@ -222,7 +230,7 @@ export struct CoachSheet {
 
   @Builder
   quickButton(labelKey: string, promptKey: string) {
-    Text(getContext(this).resourceManager.getStringByNameSync(labelKey))
+    Text(getLocalizedString(getContext(this), labelKey, this.localeRevision))
       .fontSize(13)
       .fontColor(Colors.primaryBtn)
       .backgroundColor(Colors.chatQuickBtnBg)
@@ -230,7 +238,7 @@ export struct CoachSheet {
       .padding({ left: 12, right: 12, top: 6, bottom: 6 })
       .onClick(() => {
         if (!this.isLoading) {
-          this.sendMessage(getContext(this).resourceManager.getStringByNameSync(promptKey))
+          this.sendMessage(getLocalizedString(getContext(this), promptKey, this.localeRevision))
         }
       })
       .opacity(this.isLoading ? 0.5 : 1)

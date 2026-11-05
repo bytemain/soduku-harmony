@@ -1,21 +1,27 @@
 /**
- * SettingsPanel.ets — 设置面板（半模态弹窗）
- *
- * 游戏内和主页都可打开的设置面板。
+ * SettingsPanel.ets — 首页设置页及游戏内设置弹层。
  * 当前设置项：
  *   - 手动切换左/右手模式（覆盖自动检测）
  *   - 助手：输入验证（填错立即标红）
  *
  * 参考：Doc 05 §6 左右手自适应
  */
-import { Colors } from '../constants/GameConstants'
+import { getLocalizedString } from '../utils/I18nHelper'
+import { ColorsConfig, getThemeColors } from '../constants/GameConstants'
 import { applyTheme } from '../constants/GameConstants'
 import { hilog } from '@kit.PerformanceAnalysisKit'
+import { router, promptAction } from '@kit.ArkUI'
+import { initHandDetection } from '../utils/HandDetector'
 import { saveSettings } from '../utils/SettingsStorage'
+import { setAppLanguage } from '../utils/LanguagePreferences'
 import { common, ConfigurationConstant } from '@kit.AbilityKit'
 
 @Component
 export struct SettingsPanel {
+  private getPalette(): ColorsConfig {
+    return getThemeColors(this.isDarkMode)
+  }
+
   @StorageLink('isLeftHand') isLeftHand: boolean = false
   @StorageLink('handModeManual') handModeManual: boolean = true
   @StorageLink('showCoordinates') showCoordinates: boolean = false
@@ -23,8 +29,13 @@ export struct SettingsPanel {
   @StorageLink('showAutoNotes') showAutoNotes: boolean = false
   @StorageLink('auxButtonsOnTop') auxButtonsOnTop: boolean = false
   @StorageLink('themeMode') themeMode: string = 'system'
+  @StorageProp('languageMode') private languageMode: string = 'system'
+  @StorageProp('languageRestartRequired') private languageRestartRequired: boolean = false
+  @StorageProp('localeRevision') private localeRevision: number = 0
   @StorageProp('isDarkMode') isDarkMode: boolean = false
   @StorageProp('bottomRectHeight') bottomRectHeight: number = 0
+  @State private isLanguageChanging: boolean = false
+  @Prop embedded: boolean = false
   context?: common.UIAbilityContext
 
   onClose: () => void = () => {}
@@ -63,6 +74,65 @@ export struct SettingsPanel {
     }
   }
 
+  private showLanguageError(): void {
+    promptAction.showToast({
+      message: getLocalizedString(getContext(this), 'settings_language_error', this.localeRevision),
+      duration: 3000
+    })
+  }
+
+  /** 保留当前页面和棋局，仅更新应用语言；等待期间避免重复提交。 */
+  private async switchLanguage(mode: string): Promise<void> {
+    if (this.isLanguageChanging || mode === this.languageMode) return
+    const context = this.context
+    if (!context) {
+      this.showLanguageError()
+      return
+    }
+    this.isLanguageChanging = true
+    try {
+      const applied = await setAppLanguage(context, mode)
+      if (!applied) this.showLanguageError()
+    } catch (_) {
+      this.showLanguageError()
+    } finally {
+      this.isLanguageChanging = false
+    }
+  }
+
+  @Builder
+  LanguageOption(mode: string, label: Resource) {
+    Button({ type: ButtonType.Normal }) {
+      Row({ space: 12 }) {
+        Text(label)
+          .fontSize(15)
+          .fontColor(this.getPalette().titleText)
+          .textAlign(TextAlign.Start)
+          .layoutWeight(1)
+        if (this.languageMode === mode) {
+          Image($r('app.media.paper_check'))
+            .width(18)
+            .height(18)
+            .fillColor(this.getPalette().toolbarActive)
+            .accessibilityLevel('no')
+        }
+      }
+      .width('100%')
+    }
+    .id('settings-language-' + mode)
+    .width('100%')
+    .height(48)
+    .padding({ left: 12, right: 12 })
+    .borderRadius(3)
+    .backgroundColor(this.languageMode === mode ? this.getPalette().cellHighlight : Color.Transparent)
+    .border({ width: { bottom: 0.5 }, color: this.getPalette().cardBorder })
+    .enabled(!this.isLanguageChanging)
+    .accessibilityText(label)
+    .accessibilityDescription(this.languageMode === mode ?
+      getLocalizedString(getContext(this), 'home_selected', this.localeRevision) : '')
+    .onClick(() => { this.switchLanguage(mode) })
+  }
+
   /**
    * 迷你数独演示格——用于图示说明助手功能
    * @param num 显示的数字
@@ -77,9 +147,9 @@ export struct SettingsPanel {
       .textAlign(TextAlign.Center)
       .fontSize(11)
       .fontWeight(isGiven ? FontWeight.Bold : FontWeight.Normal)
-      .fontColor(isError ? Colors.textError : (isGiven ? Colors.textGiven : Colors.textUser))
-      .backgroundColor(isError ? Colors.cellError : Colors.cellDefault)
-      .border({ width: 0.5, color: Colors.cellBorderThin })
+      .fontColor(isError ? this.getPalette().textError : (isGiven ? this.getPalette().textGiven : this.getPalette().textUser))
+      .backgroundColor(isError ? this.getPalette().cellError : this.getPalette().cellDefault)
+      .border({ width: 0.5, color: this.getPalette().cellBorderThin })
   }
 
   /**
@@ -92,7 +162,7 @@ export struct SettingsPanel {
       Column({ space: 4 }) {
         Text($r('app.string.settings_validate_input_on'))
           .fontSize(10)
-          .fontColor(Colors.settingsValidateOnText)
+          .fontColor(this.getPalette().settingsValidateOnText)
           .fontWeight(FontWeight.Medium)
 
         // 3×3 mini grid：位置 (1,2) 填了错误的数字 7
@@ -113,11 +183,11 @@ export struct SettingsPanel {
             this.MiniCell('7', true, false)  // 错误格（填错 7，标红）
           }
         }
-        .border({ width: 1, color: Colors.cellBorderBold, radius: 2 })
+        .border({ width: 1, color: this.getPalette().cellBorderBold, radius: 2 })
 
         Text($r('app.string.settings_validate_input_on_hint'))
           .fontSize(9)
-          .fontColor(Colors.subtitleText)
+          .fontColor(this.getPalette().subtitleText)
           .textAlign(TextAlign.Center)
           .width(72)
       }
@@ -127,7 +197,7 @@ export struct SettingsPanel {
       Column({ space: 4 }) {
         Text($r('app.string.settings_validate_input_off'))
           .fontSize(10)
-          .fontColor(Colors.subtitleText)
+          .fontColor(this.getPalette().subtitleText)
           .fontWeight(FontWeight.Medium)
 
         // 3×3 mini grid：同样填了 7，但不标红
@@ -148,11 +218,11 @@ export struct SettingsPanel {
             this.MiniCell('7', false, false)  // 同样填了 7，但不标红
           }
         }
-        .border({ width: 1, color: Colors.cellBorderBold, radius: 2 })
+        .border({ width: 1, color: this.getPalette().cellBorderBold, radius: 2 })
 
         Text($r('app.string.settings_validate_input_off_hint'))
           .fontSize(9)
-          .fontColor(Colors.subtitleText)
+          .fontColor(this.getPalette().subtitleText)
           .textAlign(TextAlign.Center)
           .width(72)
       }
@@ -161,7 +231,8 @@ export struct SettingsPanel {
     .width('100%')
     .justifyContent(FlexAlign.Center)
     .padding({ top: 12, bottom: 12 })
-    .backgroundColor(Colors.pageBg)
+    .backgroundColor(this.getPalette().cardBg)
+    .border({ width: 1, color: this.getPalette().cardBorder })
     .borderRadius(8)
     .margin({ top: 10 })
   }
@@ -171,22 +242,35 @@ export struct SettingsPanel {
       // 标题栏
       Row() {
         Text($r('app.string.settings_title'))
-          .fontSize(20)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(Colors.titleText)
+          .fontSize(this.embedded ? 22 : 20)
+          .fontWeight(this.embedded ? FontWeight.Medium : FontWeight.Bold)
+          .fontColor(this.getPalette().titleText)
 
         Blank()
 
-        Text('✕')
-          .fontSize(20)
-          .fontColor(Colors.subtitleText)
+        if (!this.embedded) {
+          Button({ type: ButtonType.Normal }) {
+            Image($r('app.media.paper_close'))
+              .width(24)
+              .height(24)
+              .fillColor(this.getPalette().subtitleText)
+              .accessibilityLevel('no')
+          }
+          .id('settings-close')
+          .width(44)
+          .height(44)
+          .padding(10)
+          .borderRadius(8)
+          .backgroundColor(Color.Transparent)
+          .accessibilityText($r('app.string.a11y_close'))
           .onClick(() => this.onClose())
+        }
       }
       .width('100%')
       .padding({ left: 24, right: 24, top: 20, bottom: 16 })
 
       // 分割线
-      Divider().color(Colors.divider).height(0.5)
+      Divider().color(this.getPalette().divider).height(0.5)
 
       // 设置项列表（可滚动）
       Scroll() {
@@ -194,7 +278,7 @@ export struct SettingsPanel {
       // ====== 外观设置 ======
         Text($r('app.string.settings_section_appearance'))
           .fontSize(13)
-          .fontColor(Colors.subtitleText)
+          .fontColor(this.getPalette().subtitleText)
           .fontWeight(FontWeight.Medium)
           .width('100%')
           .margin({ top: 20, bottom: 8 })
@@ -204,10 +288,10 @@ export struct SettingsPanel {
           Column() {
             Text($r('app.string.settings_theme'))
               .fontSize(16)
-              .fontColor(Colors.titleText)
+              .fontColor(this.getPalette().titleText)
             Text($r('app.string.settings_theme_desc'))
               .fontSize(12)
-              .fontColor(Colors.subtitleText)
+              .fontColor(this.getPalette().subtitleText)
               .margin({ top: 2 })
           }
           .alignItems(HorizontalAlign.Start)
@@ -220,48 +304,75 @@ export struct SettingsPanel {
         Row({ space: 0 }) {
           Text($r('app.string.settings_theme_system'))
             .fontSize(13)
-            .fontColor(this.themeMode === 'system' ? Colors.primaryText : Colors.titleText)
+            .fontColor(this.themeMode === 'system' ? this.getPalette().primaryText : this.getPalette().titleText)
             .textAlign(TextAlign.Center)
             .height(34)
             .layoutWeight(1)
-            .backgroundColor(this.themeMode === 'system' ? Colors.primaryBtn : Colors.settingsInactiveBg)
-            .borderRadius({ topLeft: 17, bottomLeft: 17 })
+            .backgroundColor(this.themeMode === 'system' ? this.getPalette().primaryBtn : this.getPalette().settingsInactiveBg)
+            .borderRadius({ topLeft: 8, bottomLeft: 8 })
             .onClick(() => this.switchTheme('system'))
 
           // 细分割线
-          Divider().vertical(true).height(20).color(Colors.divider)
+          Divider().vertical(true).height(20).color(this.getPalette().divider)
 
           Text($r('app.string.settings_theme_light'))
             .fontSize(13)
-            .fontColor(this.themeMode === 'light' ? Colors.primaryText : Colors.titleText)
+            .fontColor(this.themeMode === 'light' ? this.getPalette().primaryText : this.getPalette().titleText)
             .textAlign(TextAlign.Center)
             .height(34)
             .layoutWeight(1)
-            .backgroundColor(this.themeMode === 'light' ? Colors.primaryBtn : Colors.settingsInactiveBg)
+            .backgroundColor(this.themeMode === 'light' ? this.getPalette().primaryBtn : this.getPalette().settingsInactiveBg)
             .onClick(() => this.switchTheme('light'))
 
           // 细分割线
-          Divider().vertical(true).height(20).color(Colors.divider)
+          Divider().vertical(true).height(20).color(this.getPalette().divider)
 
           Text($r('app.string.settings_theme_dark'))
             .fontSize(13)
-            .fontColor(this.themeMode === 'dark' ? Colors.primaryText : Colors.titleText)
+            .fontColor(this.themeMode === 'dark' ? this.getPalette().primaryText : this.getPalette().titleText)
             .textAlign(TextAlign.Center)
             .height(34)
             .layoutWeight(1)
-            .backgroundColor(this.themeMode === 'dark' ? Colors.primaryBtn : Colors.settingsInactiveBg)
-            .borderRadius({ topRight: 17, bottomRight: 17 })
+            .backgroundColor(this.themeMode === 'dark' ? this.getPalette().primaryBtn : this.getPalette().settingsInactiveBg)
+            .borderRadius({ topRight: 8, bottomRight: 8 })
             .onClick(() => this.switchTheme('dark'))
         }
         .width('100%')
         .margin({ top: 8 })
-        .borderRadius(17)
+        .borderRadius(8)
+        .border({ width: 1, color: this.getPalette().cardBorder })
         .clip(true)
+
+        // 应用语言独立于系统语言，名称保留各语言的原生写法。
+        Column({ space: 4 }) {
+          Text($r('app.string.settings_language'))
+            .fontSize(16)
+            .fontColor(this.getPalette().titleText)
+          Text($r('app.string.settings_language_desc'))
+            .fontSize(12)
+            .lineHeight(18)
+            .fontColor(this.getPalette().subtitleText)
+            .margin({ bottom: 6 })
+          this.LanguageOption('system', $r('app.string.settings_language_system'))
+          this.LanguageOption('zh-Hans', $r('app.string.settings_language_zh'))
+          this.LanguageOption('en', $r('app.string.settings_language_en'))
+          if (this.languageRestartRequired) {
+            Text($r('app.string.settings_language_restart'))
+              .fontSize(12)
+              .lineHeight(18)
+              .fontColor(this.getPalette().subtitleText)
+              .width('100%')
+              .margin({ top: 6 })
+          }
+        }
+        .width('100%')
+        .alignItems(HorizontalAlign.Start)
+        .margin({ top: 20 })
 
         // ====== 操作手设置 ======
         Text($r('app.string.settings_section_controls'))
           .fontSize(13)
-          .fontColor(Colors.subtitleText)
+          .fontColor(this.getPalette().subtitleText)
           .fontWeight(FontWeight.Medium)
           .width('100%')
           .margin({ top: 20, bottom: 8 })
@@ -271,20 +382,21 @@ export struct SettingsPanel {
           Column() {
             Text($r('app.string.settings_auto_hand'))
               .fontSize(16)
-              .fontColor(Colors.titleText)
+              .fontColor(this.getPalette().titleText)
             Text($r('app.string.settings_auto_hand_desc'))
               .fontSize(12)
-              .fontColor(Colors.subtitleText)
+              .fontColor(this.getPalette().subtitleText)
               .margin({ top: 2 })
           }
           .alignItems(HorizontalAlign.Start)
           .layoutWeight(1)
 
           Toggle({ type: ToggleType.Switch, isOn: !this.handModeManual })
-            .selectedColor(Colors.primaryBtn)
-            .switchStyle({ unselectedColor: Colors.switchTrackOff })
+            .selectedColor(this.getPalette().primaryBtn)
+            .switchStyle({ unselectedColor: this.getPalette().switchTrackOff })
             .onChange((isOn: boolean) => {
               this.handModeManual = !isOn
+              initHandDetection()
               hilog.info(0x0000, 'SettingsPanel', 'Auto-detect toggle: isOn=%{public}s, handModeManual=%{public}s',
                 isOn.toString(), this.handModeManual.toString())
               if (this.context) {
@@ -300,19 +412,19 @@ export struct SettingsPanel {
           Row() {
             Text($r('app.string.settings_hand_mode'))
               .fontSize(16)
-              .fontColor(Colors.titleText)
+              .fontColor(this.getPalette().titleText)
               .layoutWeight(1)
 
             Row({ space: 0 }) {
               // 左手按钮
               Text($r('app.string.settings_left_hand'))
                 .fontSize(14)
-                .fontColor(this.isLeftHand ? Colors.primaryText : Colors.titleText)
+                .fontColor(this.isLeftHand ? this.getPalette().primaryText : this.getPalette().titleText)
                 .textAlign(TextAlign.Center)
                 .height(36)
                 .padding({ left: 16, right: 16 })
-                .backgroundColor(this.isLeftHand ? Colors.primaryBtn : Colors.settingsInactiveBg)
-                .borderRadius({ topLeft: 18, bottomLeft: 18 })
+                .backgroundColor(this.isLeftHand ? this.getPalette().primaryBtn : this.getPalette().settingsInactiveBg)
+                .borderRadius({ topLeft: 8, bottomLeft: 8 })
                 .onClick(() => {
                   this.isLeftHand = true
                   hilog.info(0x0000, 'SettingsPanel', 'Manual select: LEFT, isLeftHand=%{public}s',
@@ -325,12 +437,12 @@ export struct SettingsPanel {
               // 右手按钮
               Text($r('app.string.settings_right_hand'))
                 .fontSize(14)
-                .fontColor(!this.isLeftHand ? Colors.primaryText : Colors.titleText)
+                .fontColor(!this.isLeftHand ? this.getPalette().primaryText : this.getPalette().titleText)
                 .textAlign(TextAlign.Center)
                 .height(36)
                 .padding({ left: 16, right: 16 })
-                .backgroundColor(!this.isLeftHand ? Colors.primaryBtn : Colors.settingsInactiveBg)
-                .borderRadius({ topRight: 18, bottomRight: 18 })
+                .backgroundColor(!this.isLeftHand ? this.getPalette().primaryBtn : this.getPalette().settingsInactiveBg)
+                .borderRadius({ topRight: 8, bottomRight: 8 })
                 .onClick(() => {
                   this.isLeftHand = false
                   hilog.info(0x0000, 'SettingsPanel', 'Manual select: RIGHT, isLeftHand=%{public}s',
@@ -347,19 +459,22 @@ export struct SettingsPanel {
 
         // 当前模式预览
         Row() {
-          Text('🖐️')
-            .fontSize(18)
+          Image($r('app.media.paper_hand'))
+            .width(20)
+            .height(20)
+            .fillColor(this.getPalette().primaryBtn)
             .margin({ right: 8 })
             .scale({ x: this.isLeftHand ? -1 : 1 })
+            .accessibilityLevel('no')
 
             Text(this.isLeftHand ? $r('app.string.settings_current_left') : $r('app.string.settings_current_right'))
             .fontSize(14)
-            .fontColor(Colors.primaryBtn)
+            .fontColor(this.getPalette().primaryBtn)
         }
         .width('100%')
         .padding(12)
         .margin({ top: 8 })
-        .backgroundColor(Colors.secondaryPress)
+        .backgroundColor(this.getPalette().secondaryPress)
         .borderRadius(8)
 
         // 工具按钮置顶开关
@@ -367,18 +482,18 @@ export struct SettingsPanel {
           Column() {
             Text($r('app.string.settings_aux_buttons_on_top'))
               .fontSize(16)
-              .fontColor(Colors.titleText)
+              .fontColor(this.getPalette().titleText)
             Text($r('app.string.settings_aux_buttons_on_top_desc'))
               .fontSize(12)
-              .fontColor(Colors.subtitleText)
+              .fontColor(this.getPalette().subtitleText)
               .margin({ top: 2 })
           }
           .alignItems(HorizontalAlign.Start)
           .layoutWeight(1)
 
           Toggle({ type: ToggleType.Switch, isOn: this.auxButtonsOnTop })
-            .selectedColor(Colors.primaryBtn)
-            .switchStyle({ unselectedColor: Colors.switchTrackOff })
+            .selectedColor(this.getPalette().primaryBtn)
+            .switchStyle({ unselectedColor: this.getPalette().switchTrackOff })
             .onChange((isOn: boolean) => {
               this.auxButtonsOnTop = isOn
               hilog.info(0x0000, 'SettingsPanel', 'Aux buttons on top: %{public}s', isOn.toString())
@@ -393,7 +508,7 @@ export struct SettingsPanel {
         // ====== 显示设置 ======
         Text($r('app.string.settings_section_display'))
           .fontSize(13)
-          .fontColor(Colors.subtitleText)
+          .fontColor(this.getPalette().subtitleText)
           .fontWeight(FontWeight.Medium)
           .width('100%')
           .margin({ top: 24, bottom: 8 })
@@ -403,18 +518,18 @@ export struct SettingsPanel {
           Column() {
             Text($r('app.string.settings_show_coordinates'))
               .fontSize(16)
-              .fontColor(Colors.titleText)
+              .fontColor(this.getPalette().titleText)
             Text($r('app.string.settings_show_coordinates_desc'))
               .fontSize(12)
-              .fontColor(Colors.subtitleText)
+              .fontColor(this.getPalette().subtitleText)
               .margin({ top: 2 })
           }
           .alignItems(HorizontalAlign.Start)
           .layoutWeight(1)
 
           Toggle({ type: ToggleType.Switch, isOn: this.showCoordinates })
-            .selectedColor(Colors.primaryBtn)
-            .switchStyle({ unselectedColor: Colors.switchTrackOff })
+            .selectedColor(this.getPalette().primaryBtn)
+            .switchStyle({ unselectedColor: this.getPalette().switchTrackOff })
             .onChange((isOn: boolean) => {
               this.showCoordinates = isOn
               hilog.info(0x0000, 'SettingsPanel', 'Show coordinates: %{public}s', isOn.toString())
@@ -429,7 +544,7 @@ export struct SettingsPanel {
         // ====== 助手设置 ======
         Text($r('app.string.settings_section_assistant'))
           .fontSize(13)
-          .fontColor(Colors.subtitleText)
+          .fontColor(this.getPalette().subtitleText)
           .fontWeight(FontWeight.Medium)
           .width('100%')
           .margin({ top: 24, bottom: 8 })
@@ -439,18 +554,18 @@ export struct SettingsPanel {
           Column() {
             Text($r('app.string.settings_validate_input'))
               .fontSize(16)
-              .fontColor(Colors.titleText)
+              .fontColor(this.getPalette().titleText)
             Text($r('app.string.settings_validate_input_desc'))
               .fontSize(12)
-              .fontColor(Colors.subtitleText)
+              .fontColor(this.getPalette().subtitleText)
               .margin({ top: 2 })
           }
           .alignItems(HorizontalAlign.Start)
           .layoutWeight(1)
 
           Toggle({ type: ToggleType.Switch, isOn: this.validateInput })
-            .selectedColor(Colors.primaryBtn)
-            .switchStyle({ unselectedColor: Colors.switchTrackOff })
+            .selectedColor(this.getPalette().primaryBtn)
+            .switchStyle({ unselectedColor: this.getPalette().switchTrackOff })
             .onChange((isOn: boolean) => {
               this.validateInput = isOn
               hilog.info(0x0000, 'SettingsPanel', 'Validate input: %{public}s', isOn.toString())
@@ -470,18 +585,18 @@ export struct SettingsPanel {
           Column() {
             Text($r('app.string.settings_auto_notes'))
               .fontSize(16)
-              .fontColor(Colors.titleText)
+              .fontColor(this.getPalette().titleText)
             Text($r('app.string.settings_auto_notes_desc'))
               .fontSize(12)
-              .fontColor(Colors.subtitleText)
+              .fontColor(this.getPalette().subtitleText)
               .margin({ top: 2 })
           }
           .alignItems(HorizontalAlign.Start)
           .layoutWeight(1)
 
           Toggle({ type: ToggleType.Switch, isOn: this.showAutoNotes })
-            .selectedColor(Colors.primaryBtn)
-            .switchStyle({ unselectedColor: Colors.switchTrackOff })
+            .selectedColor(this.getPalette().primaryBtn)
+            .switchStyle({ unselectedColor: this.getPalette().switchTrackOff })
             .onChange((isOn: boolean) => {
               this.showAutoNotes = isOn
               hilog.info(0x0000, 'SettingsPanel', 'Show auto notes: %{public}s', isOn.toString())
@@ -492,16 +607,27 @@ export struct SettingsPanel {
         }
         .width('100%')
         .padding({ top: 12, bottom: 12 })
+        Divider().margin({ top: 20, bottom: 12 })
+        Button($r('app.string.privacy_support_title'))
+          .width('100%')
+          .height(44)
+          .backgroundColor(this.getPalette().settingsInactiveBg)
+          .fontColor(this.getPalette().titleText)
+          .onClick(() => {
+            if (!this.embedded) this.onClose()
+            router.pushUrl({ url: 'pages/PrivacyPage' })
+          })
       }
       .width('100%')
-      .padding({ left: 24, right: 24, bottom: this.bottomRectHeight + 24 })
+      .padding({ left: 24, right: 24, bottom: this.embedded ? 24 : this.bottomRectHeight + 24 })
       }
       .layoutWeight(1)
       .scrollBar(BarState.Off)
       .edgeEffect(EdgeEffect.Spring)
     }
     .width('100%')
-    .backgroundColor(Colors.boardBg)
-    .borderRadius({ topLeft: 16, topRight: 16 })
+    .height(this.embedded ? '100%' : undefined)
+    .backgroundColor(this.embedded ? this.getPalette().pageBg : this.getPalette().boardBg)
+    .borderRadius({ topLeft: this.embedded ? 0 : 16, topRight: this.embedded ? 0 : 16 })
   }
 }

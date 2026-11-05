@@ -20,6 +20,11 @@ const KEY_VALIDATE_INPUT = 'validateInput'
 const KEY_THEME_MODE = 'themeMode'  // 'system' | 'light' | 'dark'
 const KEY_SHOW_AUTO_NOTES = 'showAutoNotes'
 const KEY_AUX_BUTTONS_ON_TOP = 'auxButtonsOnTop'
+const KEY_LANGUAGE_MODE = 'languageMode'
+
+export function normalizeLanguageMode(mode: string): string {
+  return mode === 'zh-Hans' || mode === 'en' ? mode : 'system'
+}
 
 /**
  * 获取 preferences 实例
@@ -36,7 +41,7 @@ export function loadSettings(context: Context): void {
   try {
     const store = getStore(context)
     const isLeftHand = store.getSync(KEY_IS_LEFT_HAND, false) as boolean
-    const handModeManual = store.getSync(KEY_HAND_MODE_MANUAL, false) as boolean
+    const handModeManual = store.getSync(KEY_HAND_MODE_MANUAL, true) as boolean
 
     const gestureGuideShown = store.getSync(KEY_GESTURE_GUIDE_SHOWN, false) as boolean
     const showCoordinates = store.getSync(KEY_SHOW_COORDINATES, false) as boolean
@@ -44,6 +49,7 @@ export function loadSettings(context: Context): void {
     const themeMode = store.getSync(KEY_THEME_MODE, 'system') as string
     const showAutoNotes = store.getSync(KEY_SHOW_AUTO_NOTES, false) as boolean
     const auxButtonsOnTop = store.getSync(KEY_AUX_BUTTONS_ON_TOP, false) as boolean
+    const languageMode = normalizeLanguageMode(store.getSync(KEY_LANGUAGE_MODE, 'system') as string)
 
     AppStorage.setOrCreate(KEY_IS_LEFT_HAND, isLeftHand)
     AppStorage.setOrCreate(KEY_HAND_MODE_MANUAL, handModeManual)
@@ -53,6 +59,7 @@ export function loadSettings(context: Context): void {
     AppStorage.setOrCreate(KEY_THEME_MODE, themeMode)
     AppStorage.setOrCreate(KEY_SHOW_AUTO_NOTES, showAutoNotes)
     AppStorage.setOrCreate(KEY_AUX_BUTTONS_ON_TOP, auxButtonsOnTop)
+    AppStorage.setOrCreate(KEY_LANGUAGE_MODE, languageMode)
 
     hilog.info(DOMAIN, TAG, 'Loaded settings: isLeftHand=%{public}s, handModeManual=%{public}s, gestureGuideShown=%{public}s, showCoordinates=%{public}s, validateInput=%{public}s, themeMode=%{public}s, showAutoNotes=%{public}s, auxButtonsOnTop=%{public}s',
       isLeftHand.toString(), handModeManual.toString(), gestureGuideShown.toString(), showCoordinates.toString(), validateInput.toString(), themeMode, showAutoNotes.toString(), auxButtonsOnTop.toString())
@@ -60,14 +67,22 @@ export function loadSettings(context: Context): void {
     hilog.warn(DOMAIN, TAG, 'Failed to load settings: %{public}s', JSON.stringify(e))
     // fallback: 使用默认值
     AppStorage.setOrCreate(KEY_IS_LEFT_HAND, false)
-    AppStorage.setOrCreate(KEY_HAND_MODE_MANUAL, false)
+    AppStorage.setOrCreate(KEY_HAND_MODE_MANUAL, true)
     AppStorage.setOrCreate(KEY_GESTURE_GUIDE_SHOWN, false)
     AppStorage.setOrCreate(KEY_SHOW_COORDINATES, false)
     AppStorage.setOrCreate(KEY_VALIDATE_INPUT, true)
     AppStorage.setOrCreate(KEY_THEME_MODE, 'system')
     AppStorage.setOrCreate(KEY_SHOW_AUTO_NOTES, false)
     AppStorage.setOrCreate(KEY_AUX_BUTTONS_ON_TOP, false)
+    AppStorage.setOrCreate(KEY_LANGUAGE_MODE, 'system')
   }
+}
+
+/** 语言事务独立写入；错误交由调用方回滚，不由普通设置保存覆盖待提交值。 */
+export async function persistLanguageMode(context: Context, mode: string): Promise<void> {
+  const store = getStore(context)
+  store.putSync(KEY_LANGUAGE_MODE, normalizeLanguageMode(mode))
+  await store.flush()
 }
 
 /**
@@ -78,7 +93,7 @@ export async function saveSettings(context: Context): Promise<void> {
   try {
     const store = getStore(context)
     const isLeftHand = AppStorage.get<boolean>(KEY_IS_LEFT_HAND) ?? false
-    const handModeManual = AppStorage.get<boolean>(KEY_HAND_MODE_MANUAL) ?? false
+    const handModeManual = AppStorage.get<boolean>(KEY_HAND_MODE_MANUAL) ?? true
 
     const gestureGuideShown = AppStorage.get<boolean>(KEY_GESTURE_GUIDE_SHOWN) ?? false
     const showCoordinates = AppStorage.get<boolean>(KEY_SHOW_COORDINATES) ?? false

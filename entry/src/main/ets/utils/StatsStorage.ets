@@ -6,6 +6,8 @@
  */
 import { preferences } from '@kit.ArkData'
 import { Context } from '@kit.AbilityKit'
+import { loadJournalStatsSnapshot } from './JournalStorage'
+import { JournalStatsSnapshot, JournalStatsFact } from '../models/GameJournal'
 
 const STORE_NAME = 'sudoku_stats'
 const KEY_STATS = 'game_stats'
@@ -41,6 +43,8 @@ export class GameStats {
   difficulties: DifficultyStats[] = []
   totalGamesPlayed: number = 0
   totalGamesWon: number = 0
+  /** 仅保留旧格式兼容；新统计由 journal 重算，不无限累加回执。 */
+  settlementSessionIds: string[] = []
 
   constructor() {
     // 初始化 6 个（index 0 占位）
@@ -82,64 +86,99 @@ export function loadStats(context: Context): GameStats {
  * 保存统计数据
  */
 export async function saveStats(context: Context, stats: GameStats): Promise<void> {
-  try {
-    const store = getStatsStore(context)
-    const json = JSON.stringify(stats)
-    store.putSync(KEY_STATS, json)
-    await store.flush()
-  } catch (e) {
-    console.error('[StatsStorage] save failed:', JSON.stringify(e))
+  const store = getStatsStore(context)
+  store.putSync(KEY_STATS, JSON.stringify(stats))
+  await store.flush()
+}
+
+class JournalStatEvent {
+  fact: JournalStatsFact
+  kind: 'start' | 'won' | 'lost'
+  timestamp: number
+  constructor(fact: JournalStatsFact, kind: 'start' | 'won' | 'lost', timestamp: number) {
+    this.fact = fact
+    this.kind = kind
+    this.timestamp = timestamp
   }
 }
 
-/**
- * 记录一局游戏开始（增加 gamesPlayed）
- */
-export function recordGameStarted(context: Context, difficulty: number): void {
-  const stats = loadStats(context)
-  if (difficulty >= 1 && difficulty <= 5) {
-    stats.difficulties[difficulty].gamesPlayed++
-    stats.totalGamesPlayed++
-    saveStats(context, stats)
-  }
+function baselineCounter(value: number | undefined): number {
+  if (value === undefined) return 0
+  if (!Number.isFinite(value) || value < 0) throw new Error('Invalid legacy statistics baseline')
+  return value
 }
 
-/**
- * 记录一局游戏胜利
- */
-export function recordGameWon(context: Context, difficulty: number, timeSeconds: number, errors: number): void {
-  const stats = loadStats(context)
-  if (difficulty < 1 || difficulty > 5) return
-
-  const ds = stats.difficulties[difficulty]
-  ds.gamesWon++
-  ds.totalTimeSeconds += timeSeconds
-  ds.totalErrors += errors
-
-  // 更新最佳用时
-  if (ds.bestTimeSeconds === 0 || timeSeconds < ds.bestTimeSeconds) {
-    ds.bestTimeSeconds = timeSeconds
+/** 纯投影：从不可变旧基线出发，每次完整重算，不依赖上次写入是否成功。 */
+export function projectJournalStats(snapshot: JournalStatsSnapshot): GameStats {
+  const stats = new GameStats()
+  let previousReceipts: string[] = []
+  if (snapshot.legacyJson !== '') {
+    const baseline = JSON.parse(snapshot.legacyJson) as GameStats
+    if (!Array.isArray(baseline.difficulties) || baseline.difficulties.length < 6) {
+      throw new Error('Invalid legacy statistics baseline')
+    }
+    stats.totalGamesPlayed = baselineCounter(baseline.totalGamesPlayed)
+    stats.totalGamesWon = baselineCounter(baseline.totalGamesWon)
+    previousReceipts = baseline.settlementSessionIds ?? []
+    for (let index = 0; index < 6; index++) {
+      const old = baseline.difficulties[index]
+      if (!old) throw new Error('Invalid legacy statistics difficulty')
+      const target = stats.difficulties[index]
+      target.gamesPlayed = baselineCounter(old.gamesPlayed)
+      target.gamesWon = baselineCounter(old.gamesWon)
+      target.bestTimeSeconds = baselineCounter(old.bestTimeSeconds)
+      target.totalTimeSeconds = baselineCounter(old.totalTimeSeconds)
+      target.totalErrors = baselineCounter(old.totalErrors)
+      target.currentStreak = baselineCounter(old.currentStreak)
+      target.bestStreak = baselineCounter(old.bestStreak)
+    }
   }
-
-  // 更新连胜
-  ds.currentStreak++
-  if (ds.currentStreak > ds.bestStreak) {
-    ds.bestStreak = ds.currentStreak
+  const events: JournalStatEvent[] = []
+  for (const fact of snapshot.facts) {
+    if (fact.difficulty < 1 || fact.difficulty > 5 || previousReceipts.includes(fact.id)) continue
+    if (!fact.startedInLegacyStats) events.push(new JournalStatEvent(fact, 'start', fact.createdAt))
+    // 当前自由模式没有错误失败。只保留已经真正完成的旧政策失败记录。
+    if (fact.errorLimit > 0 && fact.settled && fact.outcome === 'completed_failed') {
+      events.push(new JournalStatEvent(fact, 'lost', fact.challengeFailedAt || fact.settledAt))
+    }
+    if (fact.settled && fact.outcome === 'won') events.push(new JournalStatEvent(fact, 'won', fact.settledAt))
   }
-
-  stats.totalGamesWon++
-  saveStats(context, stats)
+  events.sort((first: JournalStatEvent, second: JournalStatEvent): number => {
+    if (first.timestamp !== second.timestamp) return first.timestamp - second.timestamp
+    if (first.kind === 'start' && second.kind !== 'start') return -1
+    if (second.kind === 'start' && first.kind !== 'start') return 1
+    return first.fact.id.localeCompare(second.fact.id)
+  })
+  for (const event of events) {
+    const ds = stats.difficulties[event.fact.difficulty]
+    if (event.kind === 'start') {
+      ds.gamesPlayed++
+      stats.totalGamesPlayed++
+    } else if (event.kind === 'lost') {
+      ds.currentStreak = 0
+    } else {
+      ds.gamesWon++
+      stats.totalGamesWon++
+      ds.totalTimeSeconds += event.fact.elapsedSeconds
+      ds.totalErrors += event.fact.errorCount
+      if (ds.bestTimeSeconds === 0 || event.fact.elapsedSeconds < ds.bestTimeSeconds) ds.bestTimeSeconds = event.fact.elapsedSeconds
+      ds.currentStreak++
+      ds.bestStreak = Math.max(ds.bestStreak, ds.currentStreak)
+    }
+  }
+  return stats
 }
 
-/**
- * 记录一局游戏失败/放弃（中断连胜）
- */
-export function recordGameLost(context: Context, difficulty: number): void {
-  const stats = loadStats(context)
-  if (difficulty >= 1 && difficulty <= 5) {
-    stats.difficulties[difficulty].currentStreak = 0
-    saveStats(context, stats)
-  }
+let projectionTail: Promise<void> = Promise.resolve()
+
+/** 先补齐中断的 journal 结算，再按时间有序投影；失败继续向调用方报告。 */
+export function reconcileJournalStats(context: Context): Promise<void> {
+  const result = projectionTail.then(async (): Promise<void> => {
+    const snapshot = await loadJournalStatsSnapshot(context)
+    await saveStats(context, projectJournalStats(snapshot))
+  })
+  projectionTail = result.then((): void => {}, (): void => {})
+  return result
 }
 
 /**

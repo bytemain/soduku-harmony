@@ -1,0 +1,38 @@
+name: Native unit tests
+
+# A trusted macOS runner with DevEco Studio and its SDK/Previewer is required.
+# Never run untrusted pull-request code on a self-hosted runner automatically.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-tests:
+    runs-on: [self-hosted, macOS, harmonyos]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure DevEco tools
+        shell: bash
+        run: |
+          DEVECO_ROOT="/Applications/DevEco-Studio.app/Contents"
+          test -x "$DEVECO_ROOT/tools/hvigor/bin/hvigorw"
+          test -x "$DEVECO_ROOT/tools/ohpm/bin/ohpm"
+          echo "$DEVECO_ROOT/tools/hvigor/bin" >> "$GITHUB_PATH"
+          echo "$DEVECO_ROOT/tools/ohpm/bin" >> "$GITHUB_PATH"
+          echo "$DEVECO_ROOT/tools/node/bin" >> "$GITHUB_PATH"
+          echo "JAVA_HOME=$DEVECO_ROOT/jbr/Contents/Home" >> "$GITHUB_ENV"
+          echo "DEVECO_SDK_HOME=$DEVECO_ROOT/sdk" >> "$GITHUB_ENV"
+      - name: Install dependencies
+        run: ohpm install --all
+      - name: Execute native tests and check every result
+        run: node scripts/run-hypium-tests.mjs
+      - name: Save fresh native result (including failures)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-unit-test-result
+          path: test-results/native-unit-test-result.txt
+          if-no-files-found: warn

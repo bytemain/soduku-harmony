@@ -21,8 +21,8 @@ import {
   createEmptyBoardDecorations,
 } from '../models/BoardDecoration'
 import { GameState } from '../models/GameState'
-import { GameHistory, CellSnapshot } from '../models/GameHistory'
-import { Colors, Difficulty, GestureDirection, getDifficultyConfig,
+import { GameHistory, CellSnapshot, clearPeerNotesWithSnapshots } from '../models/GameHistory'
+import { ColorsConfig, getThemeColors, Difficulty, GestureDirection, getDifficultyConfig,
   GRID_SIZE, TOTAL_CELLS, createInitialRemainingCounts, applyGridConfig } from '../constants/GameConstants'
 import { decodeSeedId, Symmetry, encodeSeedId } from '../utils/SudokuGenerator'
 import { validateAllCells, updateHighlights, isGameCompleted } from '../utils/SudokuValidator'
@@ -36,18 +36,19 @@ import { GestureGuideOverlay } from '../components/GestureGuideOverlay'
 import { GameLoadingView } from '../components/GameLoadingView'
 import { GameMainContent } from '../components/GameMainContent'
 import { PauseOverlay } from '../components/PauseOverlay'
+import { JournalPanel } from '../components/JournalPanel'
+import { GameJournalCoordinator } from '../services/GameJournalCoordinator'
 import { getNextHint, getTechniqueNameKey, SolveStep, setActiveCages, clearActiveCages } from '../utils/LogicSolver'
-import { formatStr } from '../utils/I18nHelper'
+import { formatStr, getLocalizedString } from '../utils/I18nHelper'
 import { exportTo81String } from '../utils/SudokuFormat'
-import { saveGame, loadGame, clearSave, GameSaveData, CellSerialized, CageSerialized } from '../utils/GameStorage'
-import { recordGameLost, recordGameStarted, recordGameWon } from '../utils/StatsStorage'
-import { addGameRecord, GameRecord } from '../utils/HistoryStorage'
+import { saveGame, loadGame, clearSave, GameSaveData, CellSerialized, CageSerialized, isValidGameSave } from '../utils/GameStorage'
+import { reconcileJournalStats } from '../utils/StatsStorage'
 import { saveSettings } from '../utils/SettingsStorage'
 import { buildKillerCagesFromSolution, generateRandomCageLayout, normalizeVariantType } from '../utils/KillerSudoku'
 import { generateRandomRegionMap } from '../utils/JigsawGenerator'
 import { createKillerConfig } from '../models/VariantConfig'
 import { hilog } from '@kit.PerformanceAnalysisKit'
-import { saveProgress, loadLibraryPuzzles } from '../utils/PuzzleLibraryStorage'
+import { saveProgress, loadLibraryPuzzles, loadProgress } from '../utils/PuzzleLibraryStorage'
 import { computeStarDisplay } from '../utils/Common'
 import { PuzzleProgress, createDefaultProgress } from '../models/PuzzleLibrary'
 
@@ -69,6 +70,13 @@ interface GamePageParams {
   puzzleIndex?: number
   /** 是否恢复存档（仅"继续游戏"入口设为 true） */
   resumeSave?: boolean
+  resumeLibrary?: boolean
+  replaySave?: GameSaveData
+  journalSessionId?: string
+  journalNodeId?: string
+  journalBranchId?: string
+  journalFork?: boolean
+  previousJournalSessionId?: string
 }
 
 interface LoadingAttemptInfo {
@@ -96,12 +104,19 @@ function migrateStack(raw: CellSnapshot[][] | CellSnapshot[] | Object[]): CellSn
 @Entry
 @Component
 struct GamePage {
-  @StorageProp('isDarkMode') isDarkMode: boolean = false
+  private getPalette(): ColorsConfig {
+    return getThemeColors(this.isDarkMode)
+  }
+
+  @StorageProp('isDarkMode') @Watch('refreshBoardDecorations') isDarkMode: boolean = false
   @StorageProp('topRectHeight') topRectHeight: number = 0
   @StorageProp('bottomRectHeight') bottomRectHeight: number = 0
+  @StorageProp('leftRectWidth') leftRectWidth: number = 0
+  @StorageProp('rightRectWidth') rightRectWidth: number = 0
   @StorageProp('isLeftHand') isLeftHand: boolean = false
   @StorageProp('auxButtonsOnTop') auxButtonsOnTop: boolean = false
   @StorageProp('validateInput') validateInput: boolean = true
+  @StorageProp('localeRevision') private localeRevision: number = 0
   @State private gameState: GameState = new GameState()
   @State private cellsWrapper: ArrayWrapper = new ArrayWrapper([])
   @State private gestureDirection: GestureDirection | null = null
@@ -114,6 +129,19 @@ struct GamePage {
   // Coach sheet removed: ArkUI不支持同一组件绑多个bindSheet
   @State private showPauseOverlay: boolean = false
   @State private showGestureGuide: boolean = false
+  @State private showJournal: boolean = false
+  @State private journalSessionId: string = ''
+  @State private journalNodeId: string = ''
+  @State private journalPractice: boolean = false
+  @State private journalWriteFailed: boolean = false
+  @State private journalCompleting: boolean = false
+  private journal: GameJournalCoordinator | null = null
+  private journalWasPaused: boolean = false
+  private journalPreviousSessionId: string = ''
+  private journalInitialSave: GameSaveData | null = null
+  private journalStartedInLegacyStats: boolean = false
+  private pageAlive: boolean = true
+  private sessionRevision: number = 0
   @StorageProp('gestureGuideShown') gestureGuideShown: boolean = false
   @State private showCoordinates: boolean = false
   @State private showAutoNotes: boolean = false
@@ -128,8 +156,8 @@ struct GamePage {
   @State private currentVariantType: VariantType = VariantType.STANDARD
   @State private killerCages: KillerCage[] = []
   @State private jigsawRegionMap: number[] = []
-  @State private loadingTitle: string = ''
-  @State private loadingMessage: string = ''
+  @State private loadingPhase: string = 'prepare'
+  @State private loadingAttemptInfo: LoadingAttemptInfo | null = null
   @State private loadingProgress: number = 0
   @State private isMultiSelectMode: boolean = false
   @State private multiSelectCount: number = 0
@@ -146,6 +174,7 @@ struct GamePage {
   private isMouseDragging: boolean = false
   /** 鼠标按下的起始格子索引 */
   private mouseDragStartIndex: number = -1
+  private generationDifficulty: Difficulty = Difficulty.EASY
   private timerId: number = -1
   private history: GameHistory = new GameHistory()
   /** Worker 线程实例（用于异步生成谜题） */
@@ -164,7 +193,14 @@ struct GamePage {
 
   private closeSettingsSheet(): void {
     this.syncUiPreferencesFromStorage()
+    if (!this.isLoading) this.refreshValidation()
     this.showSettings = false
+  }
+
+  private refreshValidation(): void {
+    // 所有模式均显示规则冲突；答案校验开关只决定是否额外对照参考解。
+    validateAllCells(this.gameState.cells, this.validateInput ? this.gameState.solution : undefined,
+      this.getActiveCages())
   }
 
   /**
@@ -175,7 +211,7 @@ struct GamePage {
     switch (this.currentVariantType) {
       case VariantType.DIAGONAL: {
         const selectedIndex = this.isMultiSelectMode ? -1 : this.gameState.selectedIndex
-        this.boardDecorations = buildDiagonalBoardDecorations(selectedIndex)
+        this.boardDecorations = buildDiagonalBoardDecorations(selectedIndex, this.getPalette())
         break
       }
       case VariantType.JIGSAW: {
@@ -375,13 +411,145 @@ struct GamePage {
     }
   }
 
+  private createJournalCoordinator(): GameJournalCoordinator {
+    const context = getContext(this) as common.UIAbilityContext
+    const coordinator = new GameJournalCoordinator(context)
+    coordinator.onPersisted = (save: GameSaveData) => {
+      // 后台旧页面完成的写入不能覆盖后来已打开的棋局/分支。
+      if (this.pageAlive && this.journal === coordinator && !this.gameState.isCompleted) {
+        this.syncJournalState()
+        saveGame(context, save)
+      }
+    }
+    return coordinator
+  }
+
+  private syncJournalState(): void {
+    const state = this.journal?.getState()
+    if (!state) return
+    this.journalSessionId = state.session.id
+    this.journalNodeId = state.node.id
+    this.journalPractice = state.branch.mode === 'practice'
+    AppStorage.setOrCreate('activeJournalSessionId', state.session.id)
+    AppStorage.setOrCreate('activeJournalBranchId', state.branch.id)
+  }
+
+  private onJournalWriteError(): void {
+    if (!this.pageAlive || this.journalWriteFailed) return
+    this.journalWriteFailed = true
+    promptAction.showToast({ message: this.getString('journal_save_error'), duration: 3000 })
+  }
+
+  private async retryJournalSave(): Promise<void> {
+    const coordinator = this.journal
+    if (!coordinator || this.journalCompleting) return
+    const revision = this.sessionRevision
+    const context = getContext(this) as common.UIAbilityContext
+    this.journalCompleting = true
+    try {
+      await coordinator.flush()
+      if (!this.pageAlive || revision !== this.sessionRevision) return
+      if (this.gameState.isCompleted) {
+        await this.completeJournalGame(coordinator, this.createCurrentSave(), revision, context)
+      } else {
+        await coordinator.persistClock(this.createCurrentSave())
+        this.syncJournalState()
+        this.journalWriteFailed = false
+      }
+    } catch (_error) {
+      this.onJournalWriteError()
+    } finally {
+      if (this.pageAlive && revision === this.sessionRevision) this.journalCompleting = false
+    }
+  }
+
+  private async openJournalPanel(): Promise<void> {
+    if (this.isLoading || this.journalCompleting || !this.journal) return
+    this.journalWasPaused = this.gameState.isPaused
+    this.gameState.isPaused = true
+    try {
+      await this.journal.persistClock(this.createCurrentSave())
+      await this.journal.flush()
+      if (!this.pageAlive) return
+      this.syncJournalState()
+      this.journalWriteFailed = false
+      this.showJournal = true
+    } catch (_error) {
+      this.showPauseOverlay = true
+      this.onJournalWriteError()
+    }
+  }
+
+  private closeJournalPanel(): void {
+    this.showJournal = false
+    this.gameState.isPaused = this.journalWasPaused
+    this.showPauseOverlay = this.journalWasPaused && !this.gameState.isCompleted
+  }
+
+  private async restoreJournalSelection(sessionId: string, nodeId: string, fork: boolean, branchId: string = ''): Promise<void> {
+    if (!this.journal) return
+    this.sessionRevision++
+    const revision = this.sessionRevision
+    this.isLoading = true
+    this.showJournal = false
+    this.showPauseOverlay = false
+    if (this.timerId !== -1) { clearInterval(this.timerId); this.timerId = -1 }
+    try {
+      const saved = await this.journal.restore(sessionId, nodeId, fork, branchId)
+      if (!this.pageAlive || revision !== this.sessionRevision) return
+      const config = getGridConfigBySize(saved.gridSize)
+      const variant = normalizeVariantType(saved.variantType)
+      applyGridConfig(config)
+      this.applyVariantTopologyAndState(variant, config)
+      this.isMultiSelectMode = false
+      this.multiSelectIndices.clear()
+      this.multiSelectCount = 0
+      this.keypadSelectedDigit = 0
+      this.hintFocusIndex = -1
+      this.isHintLoading = false
+      this.restoreFromSave(saved, variant)
+      this.syncJournalState()
+      await this.finishInit(true)
+    } catch (_error) {
+      if (!this.pageAlive) return
+      promptAction.showToast({ message: this.getString('journal_start_error'), duration: 3000 })
+      router.back()
+    }
+  }
+
+  private async restartAsNewSession(): Promise<void> {
+    if (this.isLoading) return
+    this.gameState.isPaused = true
+    try {
+      if (this.journal) {
+        await this.journal.persistClock(this.createCurrentSave())
+        await this.journal.flush()
+      }
+      const replay = this.createCurrentSave(true)
+      router.replaceUrl({ url: 'pages/GamePage', params: {
+        replaySave: replay, previousJournalSessionId: this.journalSessionId,
+      } })
+    } catch (_error) {
+      this.onJournalWriteError()
+    }
+  }
+
   aboutToAppear(): void {
+    this.pageAlive = true
+    this.journal = this.createJournalCoordinator()
     this.syncUiPreferencesFromStorage()
     hilog.info(0x0000, 'GamePage', 'aboutToAppear: isLeftHand=%{public}s, handModeManual=%{public}s',
       String(this.isLeftHand), String(AppStorage.get<boolean>('handModeManual')))
     // 从路由参数获取难度
     const params = router.getParams() as GamePageParams | null
+    this.journalPreviousSessionId = params?.previousJournalSessionId ?? ''
+    if (params?.journalSessionId) {
+      this.resetLoadingState(false)
+      this.restoreJournalSelection(params.journalSessionId, params.journalNodeId ?? '', params.journalFork ?? false, params.journalBranchId ?? '')
+      return
+    }
     const difficulty = params?.difficulty ?? Difficulty.EASY
+    this.generationDifficulty = difficulty
     const symmetryParam = params?.symmetry as Symmetry | undefined
     const seedIdParam = params?.seedId
     const importedPuzzle = params?.importedPuzzle
@@ -399,9 +567,15 @@ struct GamePage {
     applyGridConfig(gridConfig)
     this.applyVariantTopologyAndState(variantType, gridConfig)
 
-    // 仅"继续游戏"入口恢复存档
-    const saved = params?.resumeSave ? loadGame(getContext(this)) : null
-    if (saved && saved.cells.length > 0) {
+    // 首页继续、题库续玩和历史重玩使用同一完整存档结构。
+    let saved: GameSaveData | null = params?.resumeSave ? loadGame(getContext(this)) : null
+    if (params?.resumeLibrary && this.libraryId && this.puzzleIndex >= 0) {
+      const progress = loadProgress(getContext(this), this.libraryId, this.puzzleIndex)
+      if (isValidGameSave(progress?.gameSave)) saved = progress!.gameSave!
+    }
+    if (isValidGameSave(params?.replaySave)) saved = params!.replaySave!
+
+    if (saved && isValidGameSave(saved)) {
       // 恢复存档时，先应用存档的棋盘大小配置
       const savedGridSize = saved.gridSize ?? 9
       const savedGridCfg = getGridConfigBySize(savedGridSize)
@@ -411,6 +585,8 @@ struct GamePage {
 
       if (saved.cells.length === savedGridCfg.totalCells) {
         this.restoreFromSave(saved, savedVariantType)
+        this.journalInitialSave = saved
+        this.journalStartedInLegacyStats = !params?.replaySave && (saved.journalSessionId ?? '') === ''
         this.finishInit()
       } else {
         // 存档尺寸不匹配，重新生成
@@ -426,8 +602,8 @@ struct GamePage {
 
   private resetLoadingState(isImporting: boolean): void {
     this.isLoading = true
-    this.loadingTitle = this.getString('loading_title')
-    this.loadingMessage = this.getString(isImporting ? 'loading_importing_puzzle' : 'loading_prepare')
+    this.loadingPhase = isImporting ? 'importing_puzzle' : 'prepare'
+    this.loadingAttemptInfo = null
     this.loadingProgress = isImporting ? 5 : 0
   }
 
@@ -508,6 +684,7 @@ struct GamePage {
     this.resetWorkerActivityTimeout(WORKER_ACTIVITY_TIMEOUT)
 
     w.onexit = (code: number): void => {
+      if (this.puzzleWorker !== w) return
       hilog.info(0x0000, 'GamePage', 'Worker exited with code: %{public}d, isLoading=%{public}s',
         code, String(this.isLoading))
       // Worker 异常退出且仍在 loading 状态 → 视为失败
@@ -519,14 +696,15 @@ struct GamePage {
     }
 
     w.onmessage = (e: MessageEvents): void => {
+      if (this.puzzleWorker !== w) return
       const msg = e.data as Record<string, Object>
       const type = msg['type'] as string
 
       if (type === 'progress') {
         const phase = msg['phase'] as string
         const progress = msg['progress'] as number
-        this.loadingTitle = this.getString('loading_title')
-        this.loadingMessage = this.getLoadingMessage(phase, msg['attempt'], msg['totalAttempts'])
+        this.loadingPhase = phase
+        this.loadingAttemptInfo = this.getLoadingAttemptInfo(msg['attempt'], msg['totalAttempts'])
         if (progress >= this.loadingProgress) {
           this.loadingProgress = progress
         }
@@ -548,10 +726,11 @@ struct GamePage {
         } else {
           const seed = msg['seed'] as number
           const symmetry = msg['symmetry'] as string
-          const actualDifficulty = seedIdParam
+          this.generationDifficulty = seedIdParam
             ? (decodeSeedId(seedIdParam)?.difficulty ?? difficulty)
             : difficulty
-          this.gameState.initGame(puzzle, solution, actualDifficulty)
+          const actualDifficulty = (msg['actualDifficulty'] as number | undefined) ?? this.generationDifficulty
+          this.gameState.initGame(puzzle, solution, actualDifficulty as Difficulty)
           this.gameState.seed = seed
           this.gameState.symmetry = symmetry
         }
@@ -561,8 +740,8 @@ struct GamePage {
         // 从 Worker 接收变种专有数据并应用拓扑
         this.applyWorkerVariantData(msg, variantType)
         this.cellsWrapper = new ArrayWrapper(this.gameState.cells)
-        recordGameStarted(getContext(this), this.gameState.difficulty)
-        this.loadingMessage = this.getString('loading_finalizing')
+        this.loadingPhase = 'finalizing'
+        this.loadingAttemptInfo = null
         this.loadingProgress = 100
         this.finishInit()
       } else if (type === 'error') {
@@ -580,6 +759,7 @@ struct GamePage {
     }
 
     w.onerror = (e: ErrorEvent): void => {
+      if (this.puzzleWorker !== w) return
       hilog.error(0x0000, 'GamePage', 'Worker onerror: %{public}s', e.message)
       promptAction.showToast({ message: this.getString('generation_failed'), duration: 2000 })
       this.terminateWorker()
@@ -622,8 +802,10 @@ struct GamePage {
       this.workerTimeoutId = -1
     }
     if (this.puzzleWorker) {
-      this.puzzleWorker.terminate()
+      const activeWorker = this.puzzleWorker
       this.puzzleWorker = null
+      activeWorker.onexit = (_code: number): void => {}
+      activeWorker.terminate()
     }
   }
 
@@ -657,38 +839,80 @@ struct GamePage {
   /**
    * 初始化完成后的通用逻辑（验证、计时器、动画）
    */
-  private finishInit(): void {
-    validateAllCells(this.gameState.cells, this.validateInput ? this.gameState.solution : undefined,
-      this.getActiveCages())
+  private async finishInit(journalReady: boolean = false): Promise<void> {
+    const revision = this.sessionRevision
+    try {
+      if (!journalReady && this.journal) {
+        const loaded = await this.journal.initialize(this.journalInitialSave ?? this.createCurrentSave(),
+          this.journalPreviousSessionId, this.journalStartedInLegacyStats)
+        this.journalInitialSave = null
+        if (!this.pageAlive || revision !== this.sessionRevision) return
+        this.restoreFromSave(loaded, normalizeVariantType(loaded.variantType))
+      }
+      this.syncJournalState()
+    } catch (_error) {
+      if (!this.pageAlive) return
+      promptAction.showToast({ message: this.getString('journal_start_error'), duration: 3000 })
+      router.back()
+      return
+    }
+    // 统计投影可以下次重试，不阻断已安全恢复的棋局。
+    await reconcileJournalStats(getContext(this)).catch(() => {})
+    if (!this.pageAlive || revision !== this.sessionRevision) return
+    this.refreshValidation()
     this.syncSelectionVisuals()
     this.updateRemainingCounts()
     this.syncDisplayState()
     this.isLoading = false
+    // 最后一步已经落盘但结算/页面跳转被中断时，恢复完成态并重投结算。
+    if (isGameCompleted(this.gameState.cells, this.getActiveCages())) {
+      this.gameState.isCompleted = true
+      this.boardScale = 1
+      this.boardOpacity = 1
+      if (this.timerId !== -1) { clearInterval(this.timerId); this.timerId = -1 }
+      await this.retryJournalSave()
+      return
+    }
+    // 新局完全初始化后再替换旧存档，生成失败/返回不会丢掉上一局。
+    this.saveCurrentGame()
+    this.saveLibraryProgressIfNeeded()
+
+    // 首次成功进入棋局时直接开始引导，避免先接受输入再被延迟弹层打断。
+    // 完成或跳过后才持久化已看标记；失败加载不会消耗首次机会。
+    this.showGestureGuide = !this.gestureGuideShown
+    // 生成期间进入后台时，加载结束也不能开始计算解题用时。
+    if (!(AppStorage.get<boolean>('appInForeground') ?? true)) {
+      this.gameState.isPaused = true
+      this.showPauseOverlay = true
+    }
 
     // 启动计时器
+    if (this.timerId !== -1) clearInterval(this.timerId)
     this.timerId = setInterval(() => {
+      // 阅读指南不计入解题用时。
+      if (this.showGestureGuide || this.showJournal ||
+        !(AppStorage.get<boolean>('appInForeground') ?? true)) return
       this.gameState.tick()
       this.displayTime = this.gameState.formattedTime
     }, 1000)
 
     // 棋盘入场动画
     setTimeout(() => {
+      if (!this.pageAlive || revision !== this.sessionRevision) return
       animateTo({ duration: 400, curve: Curve.EaseOut }, () => {
         this.boardScale = 1.0
         this.boardOpacity = 1.0
       })
     }, 100)
 
-    // 首次使用手势引导
-    if (!this.gestureGuideShown) {
-      setTimeout(() => {
-        this.showGestureGuide = true
-      }, 600)
-    }
   }
 
   onPageHide(): void {
-    // 页面隐藏时保存（含切后台），确保 flush() 有时间写入磁盘
+    // 页面隐藏后停止计时，回前台由用户继续，后台时间不计入成绩。
+    if (!this.isLoading && !this.gameState.isCompleted) {
+      this.gameState.isPaused = true
+      this.showPauseOverlay = true
+    }
     if (!this.gameState.isCompleted) {
       this.saveCurrentGame()
       this.saveLibraryProgressIfNeeded()
@@ -696,13 +920,22 @@ struct GamePage {
   }
 
   onBackPress(): boolean {
+    if (this.journalCompleting) return true
+    if (this.showJournal) {
+      this.closeJournalPanel()
+      return true
+    }
+    if (this.showGestureGuide) {
+      this.dismissGestureGuide()
+      return true
+    }
     // 游戏已完成或正在加载，允许正常返回
     if (this.gameState.isCompleted || this.isLoading) {
       return false
     }
-    // 已在暂停状态，执行退出（保存并返回主页）
+    // 返回键关闭最上层暂停页，与 ESC/继续按钮保持一致。
     if (this.showPauseOverlay) {
-      this.quitGame()
+      this.togglePause()
       return true
     }
     // 游戏进行中，拦截返回键，显示暂停页面
@@ -711,6 +944,8 @@ struct GamePage {
   }
 
   aboutToDisappear(): void {
+    this.pageAlive = false
+    this.sessionRevision++
     this.terminateWorker()
     if (this.timerId !== -1) {
       clearInterval(this.timerId)
@@ -721,6 +956,7 @@ struct GamePage {
       this.saveCurrentGame()
       this.saveLibraryProgressIfNeeded()
     }
+    this.journal?.deactivate()
   }
 
   /**
@@ -761,6 +997,9 @@ struct GamePage {
     this.gameState.seed = saved.seed ?? 0
     this.gameState.symmetry = saved.symmetry ?? ''
     this.currentVariantType = variantType
+    this.generationDifficulty = (saved.generationDifficulty || saved.difficulty) as Difficulty
+    this.libraryId = saved.libraryId || undefined
+    this.puzzleIndex = saved.puzzleIndex ?? -1
     // 从存档恢复变种专有数据
     this.restoreVariantDataFromSave(variantType, saved)
 
@@ -774,28 +1013,43 @@ struct GamePage {
   /**
    * 保存当前游戏状态
    */
-  private saveCurrentGame(): void {
+  private createCurrentSave(replay: boolean = false): GameSaveData {
     const data = new GameSaveData()
-    const serializedCells: CellSerialized[] = []
     for (const c of this.gameState.cells) {
-      serializedCells.push(new CellSerialized(c.row, c.col, c.value, c.flags, c.notes))
+      data.cells.push(new CellSerialized(c.row, c.col,
+        replay && !c.isGiven ? 0 : c.value,
+        replay ? (c.isGiven ? CellFlags.GIVEN : 0) : c.flags,
+        replay ? 0 : c.notes))
     }
-    data.cells = serializedCells
-    data.solution = this.gameState.solution
+    data.solution = this.gameState.solution.slice()
     data.difficulty = this.gameState.difficulty
-    data.elapsedSeconds = this.gameState.elapsedSeconds
-    data.errorCount = this.gameState.errorCount
-    data.isChallengeFailed = this.gameState.isChallengeFailed
-    data.selectedIndex = this.gameState.selectedIndex
-    data.undoStack = this.history.undoStack
-    data.redoStack = this.history.redoStack
+    data.elapsedSeconds = replay ? 0 : this.gameState.elapsedSeconds
+    data.errorCount = replay ? 0 : this.gameState.errorCount
+    data.isChallengeFailed = replay ? false : this.gameState.isChallengeFailed
+    data.selectedIndex = replay ? -1 : this.gameState.selectedIndex
+    data.undoStack = replay ? [] : this.history.undoStack
+    data.redoStack = replay ? [] : this.history.redoStack
     data.timestamp = Date.now()
     data.seed = this.gameState.seed
     data.symmetry = this.gameState.symmetry
+    data.generationDifficulty = this.generationDifficulty
     data.gridSize = GRID_SIZE
     data.variantType = this.currentVariantType
+    data.libraryId = this.libraryId ?? ''
+    data.puzzleIndex = this.puzzleIndex
     this.saveVariantData(data)
-    saveGame(getContext(this), data)
+    return !replay && this.journal ? this.journal.stampSave(data) : data
+  }
+
+  private saveCurrentGame(updateJournalClock: boolean = true): void {
+    if (this.isLoading || this.gameState.isCompleted) return
+    const data = this.createCurrentSave()
+    if (isValidGameSave(data)) {
+      saveGame(getContext(this), data)
+      if (updateJournalClock && this.journal) {
+        this.journal.persistClock(data).catch(() => { this.onJournalWriteError() })
+      }
+    }
   }
 
   // ================================================================
@@ -815,6 +1069,7 @@ struct GamePage {
       // 暂停
       this.gameState.isPaused = true
       this.showPauseOverlay = true
+      this.saveCurrentGame()
     }
   }
 
@@ -828,20 +1083,22 @@ struct GamePage {
   }
 
   private getString(name: string): string {
-    return getContext(this).resourceManager.getStringByNameSync(name)
+    return getLocalizedString(getContext(this), name, this.localeRevision)
   }
 
   private getCurrentSeedId(): string {
-    if (this.gameState.seed <= 0 || this.gameState.symmetry.length === 0) {
+    if (GRID_SIZE !== 9 || this.currentVariantType !== VariantType.STANDARD ||
+      this.gameState.seed <= 0 || this.gameState.symmetry.length === 0) {
       return '-'
     }
-    return encodeSeedId(this.gameState.difficulty, this.gameState.symmetry as Symmetry, this.gameState.seed)
+    return encodeSeedId(this.generationDifficulty, this.gameState.symmetry as Symmetry, this.gameState.seed)
   }
 
   /**
    * 获取当前谜题的字符串（原始题面，不含玩家填入）
    */
   private getPuzzle81String(): string {
+    if (GRID_SIZE !== 9 || this.currentVariantType !== VariantType.STANDARD) return ''
     const board: number[][] = []
     for (let r = 0; r < GRID_SIZE; r++) {
       const row: number[] = []
@@ -894,79 +1151,7 @@ struct GamePage {
       secondaryButton: {
         value: yes,
         action: () => {
-          this.gameState.resetGame()
-          this.history = new GameHistory()
-          this.cellsWrapper = new ArrayWrapper(this.gameState.cells)
-          validateAllCells(this.gameState.cells, this.validateInput ? this.gameState.solution : undefined,
-            this.getActiveCages())
-          this.refreshBoardDecorations()
-          this.updateRemainingCounts()
-          this.syncDisplayState()
-          this.gameState.isPaused = false
-          this.showPauseOverlay = false
-          // 重启计时器
-          if (this.timerId !== -1) {
-            clearInterval(this.timerId)
-          }
-          this.timerId = setInterval(() => {
-            this.gameState.tick()
-            this.displayTime = this.gameState.formattedTime
-          }, 1000)
-        },
-      },
-    })
-  }
-
-  /**
-   * 第 3 次错误后判定挑战失败，但允许继续完成棋盘。
-   */
-  private handleChallengeFailedIfNeeded(): void {
-    if (this.gameState.isChallengeFailed || this.gameState.errorCount < 3) {
-      return
-    }
-    this.gameState.isChallengeFailed = true
-    recordGameLost(getContext(this), this.gameState.difficulty)
-    this.showChallengeFailedDialog()
-  }
-
-  /**
-   * 挑战失败弹窗：可重新开始或返回主页；关闭弹窗后也可继续当前棋局。
-   */
-  private showChallengeFailedDialog(): void {
-    const ctx = getContext(this)
-    const title = ctx.resourceManager.getStringByNameSync('dialog_challenge_failed_title')
-    const msg = ctx.resourceManager.getStringByNameSync('dialog_challenge_failed_msg')
-    const restart = ctx.resourceManager.getStringByNameSync('dialog_restart')
-    const backHome = ctx.resourceManager.getStringByNameSync('dialog_back_home')
-    AlertDialog.show({
-      title: title,
-      message: msg,
-      autoCancel: true,
-      primaryButton: {
-        value: backHome,
-        action: () => {
-          router.back()
-        },
-      },
-      secondaryButton: {
-        value: restart,
-        action: () => {
-          this.gameState.resetGame()
-          this.history = new GameHistory()
-          this.cellsWrapper = new ArrayWrapper(this.gameState.cells)
-          validateAllCells(this.gameState.cells, this.validateInput ? this.gameState.solution : undefined,
-            this.getActiveCages())
-          this.updateRemainingCounts()
-          this.syncDisplayState()
-          this.gameState.isPaused = false
-          this.showPauseOverlay = false
-          if (this.timerId !== -1) {
-            clearInterval(this.timerId)
-          }
-          this.timerId = setInterval(() => {
-            this.gameState.tick()
-            this.displayTime = this.gameState.formattedTime
-          }, 1000)
+          this.restartAsNewSession()
         },
       },
     })
@@ -994,6 +1179,7 @@ struct GamePage {
 
   private copyPuzzle81(): void {
     const puzzle81 = this.getPuzzle81String()
+    if (puzzle81.length === 0) return
     const pasteData = pasteboard.createData(pasteboard.MIMETYPE_TEXT_PLAIN, puzzle81)
     const clipboard = pasteboard.getSystemPasteboard()
     clipboard.setData(pasteData)
@@ -1001,6 +1187,7 @@ struct GamePage {
   }
 
   private isEraseDisabled(): boolean {
+    if (this.isLoading || this.gameState.isCompleted || this.gameState.isPaused) return true
     const selectedCell = this.gameState.selectedCell
     return selectedCell === null ||
       selectedCell.isGiven ||
@@ -1059,6 +1246,15 @@ struct GamePage {
    * - H: 提示
    */
   private handleKeyboardInput(keyCode: number): void {
+    if (this.showJournal) {
+      if (keyCode === KeyCode.KEYCODE_ESCAPE) this.closeJournalPanel()
+      return
+    }
+    // 教学浮层拥有全部键盘输入，底层正式局不能接收穿透快捷键。
+    if (this.showGestureGuide) {
+      if (keyCode === KeyCode.KEYCODE_ESCAPE) this.dismissGestureGuide()
+      return
+    }
 
     // === 全局快捷键：在遮罩/暂停等任何状态下均可响应 ===
 
@@ -1144,8 +1340,9 @@ struct GamePage {
     // --- N / Tab = 切换笔记模式 ---
     if (keyCode === KeyCode.KEYCODE_N || keyCode === KeyCode.KEYCODE_TAB) {
       this.isNoteMode = !this.isNoteMode
-      // 复用 GestureModeIndicator 显示笔记模式状态（UP = 笔记模式开启）
-      this.gestureDirection = this.isNoteMode ? GestureDirection.UP : null
+      promptAction.showToast({
+        message: this.getString(this.isNoteMode ? 'note_mode_on' : 'note_mode_off'), duration: 1500,
+      })
       return
     }
 
@@ -1393,10 +1590,12 @@ struct GamePage {
     // 只有真正发生变化时才入栈
     if (snapshot.oldValue !== snapshot.newValue ||
         snapshot.oldNotes !== snapshot.newNotes) {
-      this.history.push(snapshot)
+      this.history.pushBatch([snapshot, ...this.autoClearPeerNotes(filledIndex)])
     }
 
-    this.afterAction(filledIndex)
+    this.afterAction(direction === GestureDirection.UP ? 'note' :
+      (direction === GestureDirection.RIGHT ? 'eliminate' :
+        (direction === GestureDirection.LEFT ? 'erase_note' : 'fill')))
   }
 
   /**
@@ -1449,7 +1648,7 @@ struct GamePage {
 
     if (anyChanged) {
       this.history.pushBatch(batch)
-      this.afterAction()
+      this.afterAction('multi_notes')
       // 操作完成后重新更新多选标志（afterAction 会清除 flags）
       this.updateMultiSelectFlags()
     }
@@ -1459,65 +1658,61 @@ struct GamePage {
    * 每次操作后的统一处理
    * @param filledIndex 如果是填数操作，传入填数的格子索引，用于自动清除 peers 笔记
    */
-  private afterAction(filledIndex?: number): void {
-
-    // 自动清除 peers 的候选数字（仅在填数时）
-    this.autoClearPeerNotes(filledIndex)
-
-    // 操作后更新冲突 + 高亮 + 剩余计数
-    validateAllCells(this.gameState.cells, this.validateInput ? this.gameState.solution : undefined,
-      this.getActiveCages())
+  private afterAction(action: string = 'fill'): void {
+    if (this.isLoading || this.gameState.isCompleted) return
+    this.refreshValidation()
     this.syncSelectionVisuals()
     this.updateRemainingCounts()
     this.syncDisplayState()
-    this.handleChallengeFailedIfNeeded()
-
-    // 检查是否完成
-    if (isGameCompleted(this.gameState.cells, this.getActiveCages())) {
-      const challengeWon = !this.gameState.isChallengeFailed
+    const completed = isGameCompleted(this.gameState.cells, this.getActiveCages())
+    const snapshot = this.createCurrentSave()
+    const coordinator = this.journal
+    const revision = this.sessionRevision
+    const context = getContext(this) as common.UIAbilityContext
+    if (completed) {
       this.gameState.isCompleted = true
-      if (this.timerId !== -1) {
-        clearInterval(this.timerId)
-        this.timerId = -1
-      }
-      clearSave(getContext(this))
-      if (challengeWon) {
-        // 记录胜利统计
-        recordGameWon(
-          getContext(this),
-          this.gameState.difficulty,
-          this.gameState.elapsedSeconds,
-          this.gameState.errorCount
-        )
-      }
-      // 记录到历史记录（含种子和每步操作）
-      const record = new GameRecord()
-      record.seedId = encodeSeedId(
-        this.gameState.difficulty,
-        this.gameState.symmetry as Symmetry,
-        this.gameState.seed
-      )
-      record.seed = this.gameState.seed
-      record.difficulty = this.gameState.difficulty
-      record.symmetry = this.gameState.symmetry
-      record.timeSeconds = this.gameState.elapsedSeconds
-      record.errors = this.gameState.errorCount
-      record.stepCount = this.history.undoStack.length
-      record.won = challengeWon
-      record.timestamp = Date.now()
-      record.steps = this.history.undoStack.slice() // 复制一份
-      addGameRecord(getContext(this), record)
-      // 选关模式：回写题库进度
-      if (this.libraryId && this.puzzleIndex >= 0) {
-        this.saveLibraryProgress(challengeWon)
-      }
-      // 完成庆祝动画：棋盘弹跳 → 弹窗
-      this.playCompletionAnimation()
-      return // 游戏完成，已 clearSave，不再持久化
+      this.journalCompleting = true
+      if (this.timerId !== -1) { clearInterval(this.timerId); this.timerId = -1 }
+      // 日志提交前也保留最后一步，进程终止后可由兼容档补回。
+      saveGame(context, snapshot)
     }
+    if (coordinator) {
+      coordinator.record(snapshot, action).then(async () => {
+        if (completed) {
+          await this.completeJournalGame(coordinator, snapshot, revision, context)
+        } else if (this.pageAlive && revision === this.sessionRevision) {
+          this.syncJournalState()
+          this.journalWriteFailed = false
+        }
+      }).catch(() => {
+        if (this.pageAlive && revision === this.sessionRevision) {
+          this.journalCompleting = false
+          this.onJournalWriteError()
+        }
+      })
+    }
+    if (!completed) {
+      // 兼容档仍保留最新局面；完整步骤由串行日志提交，不复制整套撤销栈进每个节点。
+      this.saveCurrentGame(false)
+      this.saveLibraryProgressIfNeeded()
+    }
+  }
 
-    // 每次操作后持久化，防止闪退丢数据
-    this.saveCurrentGame()
+  private async completeJournalGame(coordinator: GameJournalCoordinator, snapshot: GameSaveData,
+    revision: number, context: common.UIAbilityContext): Promise<void> {
+    const practice = coordinator.isPractice()
+    const challengeWon = !snapshot.isChallengeFailed
+    if (!practice) {
+      await coordinator.settle(challengeWon ? 'won' : 'completed_failed')
+      await reconcileJournalStats(context)
+    }
+    if (!this.pageAlive || revision !== this.sessionRevision) return
+    this.syncJournalState()
+    this.journalCompleting = false
+    this.journalWriteFailed = false
+    clearSave(context)
+    if (!practice && this.libraryId && this.puzzleIndex >= 0) this.saveLibraryProgress(challengeWon)
+    this.playCompletionAnimation()
   }
 
   /**
@@ -1529,9 +1724,9 @@ struct GamePage {
       cell.value = 0
     } else {
       cell.fillValue(digit)
-      // 检查是否与答案不符 → 计数错误（无论助手开关，均记录）
-      const idx = cell.index
-      if (this.gameState.solution.length > 0 && this.gameState.solution[idx] !== digit) {
+      // 与显示采用同一校验规则；关闭答案校验后不会暗中按参考解累计错误。
+      this.refreshValidation()
+      if (cell.isError) {
         this.gameState.errorCount++
       }
     }
@@ -1541,19 +1736,9 @@ struct GamePage {
    * 自动清除 peers 中的候选数字。
    * 仅当指定格子填入数字时，清除其 peers 的对应笔记。
    */
-  private autoClearPeerNotes(filledIndex?: number): void {
-    if (filledIndex === undefined) return
-    const cells = this.gameState.cells
-    const val = cells[filledIndex].value
-    if (val === 0) return
-    for (const peerIdx of PEERS[filledIndex]) {
-      const peer = cells[peerIdx]
-      if (peer.value !== 0) continue
-      const noteState = getNoteState(peer.notes, val)
-      if (noteState === NoteState.ACTIVE || noteState === NoteState.ELIMINATED) {
-        peer.notes = setNoteState(peer.notes, val, NoteState.EMPTY)
-      }
-    }
+  private autoClearPeerNotes(filledIndex?: number): CellSnapshot[] {
+    if (filledIndex === undefined) return []
+    return clearPeerNotesWithSnapshots(this.gameState.cells, filledIndex, PEERS[filledIndex])
   }
 
   /**
@@ -1606,6 +1791,7 @@ struct GamePage {
    * 擦除按钮 — Doc 05 §4.5
    */
   private onErase(): void {
+    if (this.isLoading || this.gameState.isCompleted || this.gameState.isPaused) return
     const cell = this.gameState.selectedCell
     if (cell === null || cell.isGiven) return
 
@@ -1622,13 +1808,14 @@ struct GamePage {
       this.history.push(snapshot)
     }
 
-    this.afterAction()
+    this.afterAction('erase')
   }
 
   /**
    * 撤销
    */
   private onUndo(): void {
+    if (this.isLoading || this.gameState.isCompleted || this.gameState.isPaused) return
     const group = this.history.popUndo()
     if (group === null) return
 
@@ -1642,15 +1829,16 @@ struct GamePage {
 
     // 选中最后一个操作的格子（组中第一个条目）
     const firstSnap = group[0]
-    this.gameState.selectCell(firstSnap.index)
+    this.gameState.selectedIndex = firstSnap.index
 
-    this.afterAction()
+    this.afterAction('undo')
   }
 
   /**
    * 前进（重做）
    */
   private onRedo(): void {
+    if (this.isLoading || this.gameState.isCompleted || this.gameState.isPaused) return
     const group = this.history.popRedo()
     if (group === null) return
 
@@ -1662,17 +1850,18 @@ struct GamePage {
       cell.notes = snap.newNotes
     }
 
-    // 选中最后一个操作的格子（组中最后一个条目）
-    const lastSnap = group[group.length - 1]
-    this.gameState.selectCell(lastSnap.index)
+    // 第一项是用户主操作，其余项可能只是自动清除同伴候选。
+    const firstSnap = group[0]
+    this.gameState.selectedIndex = firstSnap.index
 
-    this.afterAction()
+    this.afterAction('redo')
   }
 
   /**
    * 提示 — 用 LogicSolver 分析下一步，显示技巧名称后填入
    */
   private onHint(): void {
+    if (this.isLoading || this.gameState.isCompleted || this.gameState.isPaused) return
     if (this.gameState.isCompleted) return
     if (this.isHintLoading) return
 
@@ -1685,8 +1874,10 @@ struct GamePage {
 
     // 第二步：无错误，尝试逻辑提示
     this.isHintLoading = true
+    const revision = this.sessionRevision
     setTimeout(() => {
       try {
+        if (!this.pageAlive || revision !== this.sessionRevision || this.isLoading || this.gameState.isCompleted || this.gameState.isPaused) return
         const board = this.buildCurrentBoard()
         // Killer 模式下设置活跃笼子以启用笼子约束提示
         if (this.currentVariantType === VariantType.KILLER && this.killerCages.length > 0) {
@@ -1703,7 +1894,7 @@ struct GamePage {
 
         this.applyDirectHint()
       } finally {
-        this.isHintLoading = false
+        if (revision === this.sessionRevision) this.isHintLoading = false
       }
     }, 60)
   }
@@ -1712,6 +1903,7 @@ struct GamePage {
    * 自动候选数 — 遍历所有空格，排除同行/列/宫已有数字，填入候选笔记
    */
   private onAutoNotes(): void {
+    if (this.isLoading || this.gameState.isCompleted || this.gameState.isPaused) return
     if (this.gameState.isCompleted) return
 
     const cells = this.gameState.cells
@@ -1754,7 +1946,7 @@ struct GamePage {
       this.history.pushBatch(batch)
     }
 
-    this.afterAction()
+    this.afterAction('auto_notes')
   }
 
   /**
@@ -1791,10 +1983,10 @@ struct GamePage {
     )
     cell.clear()
     snapshot.newFlags = cell.flags
-    this.history.push(snapshot)
+    this.history.pushBatch([snapshot, ...this.autoClearPeerNotes(cell.index)])
 
-    this.afterAction(cell.index)
-    this.showHintToast(`💡 ${this.formatCellLabel(cell.index)} ${this.getString('hint_error_erased')}`)
+    this.afterAction('hint')
+    this.showHintToast(`${this.formatCellLabel(cell.index)} ${this.getString('hint_error_erased')}`)
   }
 
   private formatCellLabel(index: number): string {
@@ -1871,9 +2063,9 @@ struct GamePage {
     cell.fillValue(hint.digit)
 
     snapshot.newFlags = cell.flags
-    this.history.push(snapshot)
+    this.history.pushBatch([snapshot, ...this.autoClearPeerNotes(cell.index)])
 
-    this.afterAction(cell.index)
+    this.afterAction('hint')
 
     // 构建包含推理原因的描述
     let reason: string
@@ -1885,7 +2077,7 @@ struct GamePage {
     }
 
     // 显示技巧名称 + 推理原因的 Toast
-    this.showHintToast(`💡 ${techniqueName}：${reason}`)
+    this.showHintToast(`${techniqueName}：${reason}`)
   }
 
   /** 直接提示：填入正确答案（无逻辑步骤可用时的回退） */
@@ -1910,10 +2102,10 @@ struct GamePage {
     cell.fillValue(correctValue)
 
     snapshot.newFlags = cell.flags
-    this.history.push(snapshot)
+    this.history.pushBatch([snapshot, ...this.autoClearPeerNotes(cell.index)])
 
-    this.afterAction(cell.index)
-    this.showHintToast(`💡 ${this.getString('hint_direct_algorithm')}：${this.formatCellLabel(cell.index)} ${this.getString('hint_fill')} ${correctValue}`)
+    this.afterAction('hint')
+    this.showHintToast(`${this.getString('hint_direct_algorithm')}：${this.formatCellLabel(cell.index)} ${this.getString('hint_fill')} ${correctValue}`)
   }
 
   /** 显示提示 Toast */
@@ -1950,24 +2142,28 @@ struct GamePage {
    * 完成庆祝动画：棋盘弹跳缩放 → 延迟弹窗
    */
   private playCompletionAnimation(): void {
+    const revision = this.sessionRevision
     // Phase 1: 缩小
     animateTo({ duration: 150, curve: Curve.EaseIn }, () => {
       this.completionScale = 0.95
     })
     // Phase 2: 弹大
     setTimeout(() => {
+      if (!this.pageAlive || revision !== this.sessionRevision) return
       animateTo({ duration: 250, curve: Curve.EaseOut }, () => {
         this.completionScale = 1.06
       })
     }, 150)
     // Phase 3: 回弹到正常
     setTimeout(() => {
+      if (!this.pageAlive || revision !== this.sessionRevision) return
       animateTo({ duration: 200, curve: Curve.EaseInOut }, () => {
         this.completionScale = 1.0
       })
     }, 400)
     // Phase 4: 弹窗
     setTimeout(() => {
+      if (!this.pageAlive || revision !== this.sessionRevision) return
       this.showCompletionDialog()
     }, 700)
   }
@@ -1976,7 +2172,7 @@ struct GamePage {
    * 选关模式：页面隐藏/销毁时同步回写进度到题库，让列表页能看到「进行中」
    */
   private saveLibraryProgressIfNeeded(): void {
-    if (this.libraryId && this.puzzleIndex >= 0 && this.gameState.cells.length > 0) {
+    if (!this.isLoading && !this.gameState.isCompleted && this.libraryId && this.puzzleIndex >= 0) {
       this.saveLibraryProgress(false)
     }
   }
@@ -1985,8 +2181,14 @@ struct GamePage {
    * 选关模式：保存题库进度
    */
   private saveLibraryProgress(challengeWon: boolean): void {
+    if (this.journalPractice) return
     if (!this.libraryId || this.puzzleIndex < 0) return
     const progress = createDefaultProgress()
+    if (!this.gameState.isCompleted) {
+      const current = this.createCurrentSave()
+      if (!isValidGameSave(current)) return
+      progress.gameSave = current
+    }
     progress.status = challengeWon ? 'completed' : 'in_progress'
     progress.completedAt = challengeWon ? Date.now() : undefined
     progress.elapsedSeconds = this.gameState.elapsedSeconds
@@ -2052,7 +2254,7 @@ struct GamePage {
    */
   private showCompletionDialog(): void {
     const ctx = getContext(this)
-    const congrats = this.gameState.isChallengeFailed
+    const congrats = this.journalPractice ? this.getString('journal_completed_practice') : this.gameState.isChallengeFailed
       ? ctx.resourceManager.getStringByNameSync('dialog_completed_failed_title')
       : ctx.resourceManager.getStringByNameSync('dialog_congrats_title')
     const timeLabel = ctx.resourceManager.getStringByNameSync('dialog_congrats_time')
@@ -2061,7 +2263,7 @@ struct GamePage {
     const backHome = ctx.resourceManager.getStringByNameSync('dialog_back_home')
 
     // 选关模式：增强的完成弹窗
-    if (this.libraryId && this.puzzleIndex >= 0) {
+    if (!this.journalPractice && this.libraryId && this.puzzleIndex >= 0) {
       const stars = computeStarDisplay(this.gameState.elapsedSeconds, this.gameState.errorCount)
       const msg = `${stars}\n\n${timeLabel}: ${this.gameState.formattedTime}\n${errLabel}: ${this.gameState.errorCount}${unit ? ' ' + unit : ''}`
       const nextLabel = ctx.resourceManager.getStringByNameSync('dialog_next_puzzle')
@@ -2086,7 +2288,7 @@ struct GamePage {
     }
 
     // 普通模式：原有弹窗
-    const msg = `${timeLabel}: ${this.gameState.formattedTime}, ${errLabel}: ${this.gameState.errorCount}${unit ? ' ' + unit : ''}`
+    const msg = `${timeLabel}: ${this.gameState.formattedTime}\n${errLabel}: ${this.gameState.errorCount}${unit ? ' ' + unit : ''}`
     AlertDialog.show({
       title: congrats,
       message: msg,
@@ -2116,11 +2318,13 @@ struct GamePage {
 
 
   build() {
+    Stack() {
     Column() {
       if (this.isLoading) {
         GameLoadingView({
-          title: this.loadingTitle,
-          message: this.loadingMessage,
+          title: this.getString('loading_title'),
+          message: this.getLoadingMessage(this.loadingPhase, this.loadingAttemptInfo?.attemptNumber,
+            this.loadingAttemptInfo?.totalAttemptsNumber),
           progress: this.loadingProgress,
         })
       } else {
@@ -2129,6 +2333,7 @@ struct GamePage {
         difficulty: this.gameState.difficulty,
         formattedTime: this.displayTime,
         errorCount: this.displayErrors,
+        showErrors: true,
         isPaused: this.gameState.isPaused,
         cells: this.cellsWrapper,
         selectedValue: this.keypadSelectedDigit !== 0 ? this.keypadSelectedDigit : (this.gameState.selectedCell?.value ?? 0),
@@ -2145,8 +2350,8 @@ struct GamePage {
         currentDirection: this.gestureDirection,
         isLeftHand: this.isLeftHand,
         remainingCounts: this.remainingCounts,
-        undoDisabled: !this.canUndo,
-        redoDisabled: !this.canRedo,
+        undoDisabled: this.gameState.isCompleted || !this.canUndo,
+        redoDisabled: this.gameState.isCompleted || !this.canRedo,
         eraseDisabled: this.isEraseDisabled(),
         hintDisabled: this.gameState.isCompleted,
         hintLoading: this.isHintLoading,
@@ -2156,6 +2361,8 @@ struct GamePage {
         auxButtonsOnTop: this.auxButtonsOnTop,
         onBlankAreaClick: () => { this.onBlankAreaClick() },
         onPause: () => this.togglePause(),
+        onJournal: () => { this.openJournalPanel() },
+        practiceMode: this.journalPractice,
         onCellClick: (index: number) => { this.onCellClick(index) },
         onMouseDragSelect: (index: number, action: string) => { this.onMouseDragSelect(index, action) },
         onTouchDragSelect: (index: number, action: string) => { this.onTouchDragSelect(index, action) },
@@ -2176,8 +2383,18 @@ struct GamePage {
         onHeightChange: (h: number) => { this.numPadHeight = h },
       })
 
-      // === 暂停遮罩 ===
-      if (this.showPauseOverlay) {
+      } // end else (not loading)
+    }
+    .width('100%')
+    .height('100%')
+    .padding({ top: this.topRectHeight + 4, bottom: this.bottomRectHeight + 4,
+      left: this.leftRectWidth, right: this.rightRectWidth })
+    .enabled(!this.showGestureGuide && !this.showPauseOverlay && !this.showJournal)
+    .accessibilityLevel(this.showGestureGuide || this.showPauseOverlay || this.showJournal ? 'no-hide-descendants' : 'auto')
+
+    // 暂停页与指南独立铺满窗口，避免漏出棋盘或安全区色块。
+    if (this.showPauseOverlay && !this.showJournal && !this.isLoading) {
+      Column() {
         PauseOverlay({
           seedId: this.getCurrentSeedId(),
           puzzle81: this.getPuzzle81String(),
@@ -2192,30 +2409,69 @@ struct GamePage {
           onQuit: () => this.quitGame(),
         })
       }
+      .width('100%')
+      .height('100%')
+      .backgroundColor(this.getPalette().pageBg)
+      .enabled(!this.showGestureGuide)
+      .accessibilityLevel(this.showGestureGuide ? 'no-hide-descendants' : 'auto')
+    }
 
-      // === 首次手势引导遮罩 ===
-      if (this.showGestureGuide) {
-        GestureGuideOverlay({
-          onDismiss: () => {
-            this.showGestureGuide = false
+    if (this.showJournal && !this.isLoading) {
+      Column() {
+        JournalPanel({
+          sessionId: this.journalSessionId,
+          initialNodeId: this.journalNodeId,
+          inGame: true,
+          onClose: () => { this.closeJournalPanel() },
+          onRestore: (sessionId: string, nodeId: string, fork: boolean, branchId?: string) => {
+            this.restoreJournalSelection(sessionId, nodeId, fork, branchId ?? '')
           },
         })
-          .width('100%')
-          .height('100%')
-          .position({ x: 0, y: 0 })
       }
-      } // end else (not loading)
+      .width('100%').height('100%').backgroundColor(this.getPalette().pageBg)
+    }
+
+    if (this.journalWriteFailed && !this.showGestureGuide && !this.showJournal) {
+      Column() {
+        Row({ space: 12 }) {
+          Text($r('app.string.journal_save_error'))
+            .fontSize(13).fontColor(this.getPalette().titleText).layoutWeight(1)
+          Button($r('app.string.journal_retry'), { type: ButtonType.Normal })
+            .id('journal-save-retry')
+            .height(44).fontSize(14)
+            .fontColor(this.getPalette().primaryText)
+            .backgroundColor(this.getPalette().primaryBtn)
+            .enabled(!this.journalCompleting)
+            .onClick(() => { this.retryJournalSave() })
+        }
+        .padding(12).width('100%')
+        .backgroundColor(this.getPalette().boardBg)
+        .border({ width: 1, color: this.getPalette().divider })
+      }
+      .width('100%')
+      .padding({ top: this.topRectHeight + 4, left: 12, right: 12 })
+      .align(Alignment.Top)
+    }
+
+    // 引导单独覆盖全窗口，背景延续至状态栏与底部导航区。
+    if (this.showGestureGuide && !this.isLoading) {
+      Column() {
+        GestureGuideOverlay({ onDismiss: () => this.dismissGestureGuide() })
+      }
+      .width('100%')
+      .height('100%')
+      .backgroundColor(this.getPalette().pageBg)
+    }
     }
     .width('100%')
     .height('100%')
-    .backgroundColor(Colors.pageBg)
-    .padding({ top: this.topRectHeight + 12, bottom: this.bottomRectHeight + 12 })
+    .backgroundColor(this.getPalette().pageBg)
     .expandSafeArea([SafeAreaType.SYSTEM, SafeAreaType.CUTOUT], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
     .bindSheet($$this.showSettings, this.settingsSheetBuilder(), {
       height: SheetSize.FIT_CONTENT,
       dragBar: true,
       showClose: false,
-      backgroundColor: Colors.boardBg,
+      backgroundColor: this.getPalette().boardBg,
       onDisappear: () => {
         this.closeSettingsSheet()
       },

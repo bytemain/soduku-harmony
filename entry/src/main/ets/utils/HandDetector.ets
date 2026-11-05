@@ -1,81 +1,47 @@
-/**
- * HandDetector.ets — 左右手检测
- *
- * 通过 @kit.MultimodalAwarenessKit 的 motion 模块检测握持手，
- * 自动镜像翻转操作区布局。
- *
- * 使用 holdingHandChanged 事件（握持手感知），
- * 而非 operatingHandChanged（操作手感知，需要触屏才触发）。
- *
- * DETECT_GESTURE 是 system_grant 权限，无需动态申请。
- * 不支持的设备（错误码 801）静默 fallback 到右手模式。
- *
- * 参考：Doc 05 §6, Doc 06 §四
- */
+/** 用户主动启用自动布局后订阅握持状态；手动模式和后台不订阅。 */
 import { motion } from '@kit.MultimodalAwarenessKit'
-import { BusinessError } from '@kit.BasicServicesKit'
+import { BusinessError, Callback } from '@kit.BasicServicesKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
-import { Callback } from '@kit.BasicServicesKit'
 
-const DOMAIN = 0x0000
-const TAG = 'HandDetector'
-
-/**
- * 握持手变化回调（模块级，用于 off 取消订阅）
- */
-const holdingHandCallback: Callback<motion.HoldingHandStatus> =
-  (data: motion.HoldingHandStatus) => {
-    hilog.info(DOMAIN, TAG, '>>> holdingHandChanged callback fired, data=%{public}d', data)
-    const isLeft = data === motion.HoldingHandStatus.LEFT_HAND_HELD;
-    const manualMode = AppStorage.get<boolean>('handModeManual') ?? false
-    hilog.info(DOMAIN, TAG, '>>> isLeft=%{public}s, manualMode=%{public}s, will update=%{public}s',
-      isLeft.toString(), manualMode.toString(), (!manualMode).toString())
-    if (!manualMode) {
-      AppStorage.setOrCreate('isLeftHand', isLeft)
-      hilog.info(DOMAIN, TAG, '>>> Updated isLeftHand to %{public}s', isLeft.toString())
-    }
+let subscribed: boolean = false
+let acceptingEvents: boolean = false
+const holdingHandCallback: Callback<motion.HoldingHandStatus> = (data: motion.HoldingHandStatus) => {
+  if (acceptingEvents && !(AppStorage.get<boolean>('handModeManual') ?? true)) {
+    AppStorage.setOrCreate('isLeftHand', data === motion.HoldingHandStatus.LEFT_HAND_HELD)
   }
-
-/**
- * 初始化握持手检测。
- * 仅在 AppStorage 尚无值时设置默认值（避免覆盖已从 Preferences 恢复的设置），
- * 然后订阅握持手变化事件。
- *
- * 注意：调用此函数前应先调用 loadSettings() 从 Preferences 恢复设置。
- */
-export function initHandDetection(): void {
-  // 仅在尚无值时设置默认值（loadSettings 已提前写入则不覆盖）
-  if (!AppStorage.has('isLeftHand')) {
-    AppStorage.setOrCreate('isLeftHand', false)
-  }
-  if (!AppStorage.has('handModeManual')) {
-    AppStorage.setOrCreate('handModeManual', false)
-  }
-
-  hilog.info(DOMAIN, TAG, '=== initHandDetection START ===')
-
-  // 订阅握持手变化
-  try {
-    motion.on('holdingHandChanged', holdingHandCallback)
-    hilog.info(DOMAIN, TAG, 'Subscribed to holdingHandChanged successfully')
-  } catch (err) {
-    const error = err as BusinessError
-    hilog.warn(DOMAIN, TAG, 'holdingHandChanged subscription FAILED (code=%{public}d): %{public}s',
-      error.code, error.message)
-  }
-
-  hilog.info(DOMAIN, TAG, '=== initHandDetection END ===')
 }
 
-/**
- * 停止握持手检测（App 退出时调用）
- */
-export function stopHandDetection(): void {
+export function initHandDetection(): void {
+  if (!AppStorage.has('isLeftHand')) AppStorage.setOrCreate('isLeftHand', false)
+  if (!AppStorage.has('handModeManual')) AppStorage.setOrCreate('handModeManual', true)
+  if (AppStorage.get<boolean>('handModeManual') ?? true) {
+    stopHandDetection()
+    return
+  }
+  if (subscribed) {
+    acceptingEvents = true
+    return
+  }
   try {
-    motion.off('holdingHandChanged')
-    hilog.info(DOMAIN, TAG, 'Unsubscribed from holdingHandChanged')
+    motion.on('holdingHandChanged', holdingHandCallback)
+    subscribed = true
+    acceptingEvents = true
   } catch (err) {
     const error = err as BusinessError
-    hilog.info(DOMAIN, TAG, 'Failed to unsubscribe holdingHandChanged: %{public}s', error.message)
+    // 不支持握持感知时仍可通过设置手动调整布局。
+    hilog.warn(0x0000, 'HandDetector', 'Hand detection unavailable: %{public}d', error.code)
+  }
+}
+
+export function stopHandDetection(): void {
+  // 先拒绝已排队的回调；即使系统取消订阅失败，后台也不消费状态。
+  acceptingEvents = false
+  if (!subscribed) return
+  try {
+    motion.off('holdingHandChanged', holdingHandCallback)
+    subscribed = false
+  } catch (err) {
+    const error = err as BusinessError
+    hilog.warn(0x0000, 'HandDetector', 'Unable to stop hand detection: %{public}d', error.code)
   }
 }

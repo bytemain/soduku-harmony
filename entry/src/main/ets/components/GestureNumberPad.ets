@@ -15,6 +15,10 @@ import { GestureKey } from './GestureKey'
 export struct GestureNumberPad {
   /** 各数字剩余计数 [_, count1, count2, ..., countN]，index 0 不用 */
   @Prop remainingCounts: number[] = createInitialRemainingCounts()
+  @Prop columns: number = BOX_ROWS
+  @Prop rows: number = BOX_COLS
+  @Prop edgeAligned: boolean = false
+  @Prop keyFontSize: number = Sizes.keyFont
   onGesture: (digit: number, direction: GestureDirection) => void = () => {}
   onGestureDirectionChange: (direction: GestureDirection | null) => void = () => {}
   /** 高度变化回调，用于同步 AuxButtonGrid 高度 */
@@ -26,20 +30,23 @@ export struct GestureNumberPad {
         GridItem() {
           GestureKey({
             digit: digit,
+            fontSize: this.keyFontSize,
             remaining: this.remainingCounts[digit],
             isComplete: this.remainingCounts[digit] <= 0,
             onGesture: this.onGesture,
             onGestureDirectionChange: this.onGestureDirectionChange,
           })
         }
-        .padding(3)
+        .padding(this.edgeAligned ? 0 : 2)
       })
     }
     // 键盘布局使用 BOX_ROWS × BOX_COLS 的转置排列，
     // 使键盘宽高比与宫格匹配（例如 6×6 的 2×3 宫 → 3列2行的键盘）
-    .columnsTemplate('1fr '.repeat(BOX_ROWS).trim())
-    .rowsTemplate('1fr '.repeat(BOX_COLS).trim())
-    .aspectRatio(1)
+    .columnsTemplate('1fr '.repeat(this.columns).trim())
+    .rowsTemplate('1fr '.repeat(this.rows).trim())
+    .columnsGap(this.edgeAligned ? 4 : 0)
+    .rowsGap(this.edgeAligned ? 4 : 0)
+    .height('100%')
     .layoutWeight(1)
     .onAreaChange((_oldArea, newArea) => {
       const h = newArea.height as number

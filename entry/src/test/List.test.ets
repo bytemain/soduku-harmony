@@ -1,3 +1,6 @@
+import watchGameSessionTest from './WatchGameSession.test'
+import gameSaveDataTest from './GameSaveData.test'
+import puzzleProgressTest from './PuzzleProgress.test'
 import localUnitTest from './LocalUnit.test'
 import cellDataTest from './CellData.test'
 import topologyTest from './Topology.test'
@@ -16,6 +19,9 @@ import boardDecorationTest from './BoardDecoration.test'
 import killerSudokuTest from './KillerSudoku.test'
 
 export default function testsuite() {
+  watchGameSessionTest()
+  gameSaveDataTest()
+  puzzleProgressTest()
   localUnitTest()
   cellDataTest()
   topologyTest()

@@ -50,11 +50,11 @@
     },
     {
       "name": "EntryAbility_label",
-      "value": "Sudoku"
+      "value": "Not Bad Sudoku"
     },
     {
       "name": "app_title",
-      "value": "Sudoku"
+      "value": "Not Bad Sudoku"
     },
     {
       "name": "app_subtitle",
@@ -62,15 +62,19 @@
     },
     {
       "name": "btn_continue",
-      "value": "▶  Continue"
+      "value": "Continue"
     },
     {
       "name": "btn_new_game",
-      "value": "▶  New Game"
+      "value": "New Game"
     },
     {
       "name": "btn_start",
-      "value": "▶  Start Game"
+      "value": "Start Game"
+    },
+    {
+      "name": "tab_home",
+      "value": "Home"
     },
     {
       "name": "tab_stats",
@@ -142,23 +146,23 @@
     },
     {
       "name": "indicator_note",
-      "value": "✏️ Note Mode"
+      "value": "Note Mode"
     },
     {
       "name": "indicator_eliminate",
-      "value": "～～ Eliminate Mode"
+      "value": "Eliminate Mode"
     },
     {
       "name": "indicator_erase",
-      "value": "🧹 Erase Notes"
+      "value": "Erase Notes"
     },
     {
       "name": "indicator_reserved",
-      "value": "⬇️ Reserved"
+      "value": "Reserved"
     },
     {
       "name": "dialog_congrats_title",
-      "value": "🎉 Congratulations!"
+      "value": "Congratulations!"
     },
     {
       "name": "dialog_congrats_time",
@@ -181,16 +185,8 @@
       "value": "Restart"
     },
     {
-      "name": "dialog_challenge_failed_title",
-      "value": "Challenge Failed"
-    },
-    {
-      "name": "dialog_challenge_failed_msg",
-      "value": "You have made 3 mistakes, so this challenge is failed. You can restart, go back home, or dismiss this dialog and keep solving the current board."
-    },
-    {
       "name": "dialog_completed_failed_title",
-      "value": "Puzzle Completed (Challenge Failed)"
+      "value": "Puzzle Completed"
     },
     {
       "name": "stats_title",
@@ -202,7 +198,7 @@
     },
     {
       "name": "stats_total_won",
-      "value": "Won"
+      "value": "Completed"
     },
     {
       "name": "stats_games_played",
@@ -210,11 +206,11 @@
     },
     {
       "name": "stats_games_won",
-      "value": "Games Won"
+      "value": "Completed Games"
     },
     {
       "name": "stats_win_rate",
-      "value": "Win Rate"
+      "value": "Completion Rate"
     },
     {
       "name": "stats_best_time",
@@ -226,11 +222,11 @@
     },
     {
       "name": "stats_current_streak",
-      "value": "Current Streak"
+      "value": "Current Completion Streak"
     },
     {
       "name": "stats_best_streak",
-      "value": "Best Streak"
+      "value": "Best Completion Streak"
     },
     {
       "name": "settings_title",
@@ -346,19 +342,19 @@
     },
     {
       "name": "pause_resume",
-      "value": "▶  Resume"
+      "value": "Resume game"
     },
     {
       "name": "pause_restart",
-      "value": "↻  Restart"
+      "value": "Restart puzzle"
     },
     {
       "name": "pause_quit",
-      "value": "✕  Quit"
+      "value": "Back to home"
     },
     {
       "name": "pause_info_seed",
-      "value": "Seed"
+      "value": "Puzzle seed"
     },
     {
       "name": "pause_info_difficulty",
@@ -378,7 +374,7 @@
     },
     {
       "name": "pause_help",
-      "value": "Help"
+      "value": "How to play"
     },
     {
       "name": "hint_direct_algorithm",
@@ -406,19 +402,19 @@
     },
     {
       "name": "guide_tap",
-      "value": "Tap → Fill number"
+      "value": "Fill in the number"
     },
     {
       "name": "guide_up",
-      "value": "Swipe Up → Add note"
+      "value": "Add a candidate note"
     },
     {
       "name": "guide_right",
-      "value": "Swipe Right → Strikethrough"
+      "value": "Strike through a candidate note"
     },
     {
       "name": "guide_left",
-      "value": "Swipe Left → Erase note"
+      "value": "Erase a candidate note"
     },
     {
       "name": "guide_got_it",
@@ -430,35 +426,35 @@
     },
     {
       "name": "guide_key_arrows",
-      "value": "Arrow Keys → Navigate cells"
+      "value": "Move between cells"
     },
     {
       "name": "guide_key_digits",
-      "value": "1-9 → Fill number"
+      "value": "Fill in a number"
     },
     {
       "name": "guide_key_delete",
-      "value": "Delete/0 → Erase"
+      "value": "Erase"
     },
     {
       "name": "guide_key_note",
-      "value": "N/Tab → Toggle note mode"
+      "value": "Toggle note mode"
     },
     {
       "name": "guide_key_undo_redo",
-      "value": "Z/Y → Undo/Redo"
+      "value": "Undo / Redo"
     },
     {
       "name": "guide_key_hint",
-      "value": "H → Hint"
+      "value": "Hint"
     },
     {
       "name": "guide_key_pause",
-      "value": "Space/P → Pause"
+      "value": "Pause / Resume"
     },
     {
       "name": "guide_key_esc",
-      "value": "ESC → Close overlay/Pause"
+      "value": "Close overlay / Pause"
     },
     {
       "name": "settings_section_display",
@@ -481,20 +477,28 @@
       "value": "Wrong entry erased"
     },
     {
+      "name": "note_mode_on",
+      "value": "Pencil mode on"
+    },
+    {
+      "name": "note_mode_off",
+      "value": "Number entry mode on"
+    },
+    {
       "name": "settings_section_assistant",
       "value": "Assistant"
     },
     {
       "name": "settings_validate_input",
-      "value": "Input Validation"
+      "value": "Answer checking"
     },
     {
       "name": "settings_validate_input_desc",
-      "value": "Highlight wrong entries in red instantly. Great for beginners; disable for a pure logic challenge"
+      "value": "All modes show and count mistakes, with no limit. On checks against the reference solution; off shows and counts only row, column, box and variant-rule conflicts."
     },
     {
       "name": "settings_validate_input_on",
-      "value": "✅ On"
+      "value": "On"
     },
     {
       "name": "settings_validate_input_on_hint",
@@ -502,7 +506,7 @@
     },
     {
       "name": "settings_validate_input_off",
-      "value": "⬜ Off"
+      "value": "Off"
     },
     {
       "name": "settings_validate_input_off_hint",
@@ -518,11 +522,11 @@
     },
     {
       "name": "settings_aux_buttons_on_top",
-      "value": "Tool buttons above keypad"
+      "value": "Portrait wide-screen tool row"
     },
     {
       "name": "settings_aux_buttons_on_top_desc",
-      "value": "Place undo/redo/erase and other tools in a single row above the number pad to avoid accidental taps next to the keypad"
+      "value": "Place tools above the keypad in wide portrait split layouts. Landscape tools always stay above; narrow portrait layouts adapt automatically."
     },
     {
       "name": "multi_select_hint",
@@ -551,6 +555,34 @@
     {
       "name": "settings_theme_dark",
       "value": "Dark"
+    },
+    {
+      "name": "settings_language",
+      "value": "Language"
+    },
+    {
+      "name": "settings_language_desc",
+      "value": "Choose the app language. Your current game is kept. Follow system takes effect the next time the app starts."
+    },
+    {
+      "name": "settings_language_system",
+      "value": "Follow system"
+    },
+    {
+      "name": "settings_language_zh",
+      "value": "简体中文"
+    },
+    {
+      "name": "settings_language_en",
+      "value": "English"
+    },
+    {
+      "name": "settings_language_error",
+      "value": "Unable to change language. Please try again."
+    },
+    {
+      "name": "settings_language_restart",
+      "value": "Follow system saved. It takes effect the next time the app starts. You can continue your current game."
     },
     {
       "name": "import_placeholder",
@@ -654,7 +686,7 @@
     },
     {
       "name": "import_puzzle_count",
-      "value": " · %d puzzles"
+      "value": "· %d puzzles"
     },
     {
       "name": "import_givens_count",
@@ -670,7 +702,7 @@
     },
     {
       "name": "coach_title",
-      "value": "🤖 Sudoku Coach"
+      "value": "Sudoku Coach"
     },
     {
       "name": "coach_init_loading",
@@ -686,7 +718,7 @@
     },
     {
       "name": "coach_btn_analyze",
-      "value": "🔍 Analyze"
+      "value": "Analyze"
     },
     {
       "name": "coach_prompt_analyze",
@@ -694,7 +726,7 @@
     },
     {
       "name": "coach_btn_next",
-      "value": "💡 Next Step"
+      "value": "Next Step"
     },
     {
       "name": "coach_prompt_next",
@@ -702,7 +734,7 @@
     },
     {
       "name": "coach_btn_teach",
-      "value": "📚 Teach Me"
+      "value": "Teach Me"
     },
     {
       "name": "coach_prompt_teach",
@@ -939,6 +971,870 @@
     {
       "name": "victory_errors_label",
       "value": "Errors"
+    },
+    {
+      "name": "common_back",
+      "value": "Back"
+    },
+    {
+      "name": "privacy_support_title",
+      "value": "Privacy & support"
+    },
+    {
+      "name": "privacy_operator_title",
+      "value": "Operator and contact"
+    },
+    {
+      "name": "privacy_operator_body",
+      "value": "Not Bad Sudoku is provided by 杭州幻橙网络科技有限公司 (Hangzhou Huancheng Network Technology Co., Ltd.). This notice covers the offline Sudoku app. Privacy and support: support@oranix.cn. Last updated: November 2, 2026."
+    },
+    {
+      "name": "privacy_local_title",
+      "value": "Local progress and settings"
+    },
+    {
+      "name": "privacy_local_body",
+      "value": "Puzzles, entries, pencil notes, time, undo history, library progress, statistics and display preferences are stored locally to resume play and restore settings. The app requires no account and does not connect to a developer backend, advertising or analytics service."
+    },
+    {
+      "name": "privacy_clipboard_title",
+      "value": "Clipboard"
+    },
+    {
+      "name": "privacy_clipboard_body",
+      "value": "The app reads clipboard text only when you choose Import, to parse a Sudoku puzzle or seed. Copy writes the selected puzzle or seed to the clipboard. Avoid including unrelated sensitive information. The app does not monitor the clipboard in the background."
+    },
+    {
+      "name": "privacy_hand_title",
+      "value": "Optional hand detection"
+    },
+    {
+      "name": "privacy_hand_body",
+      "value": "Automatic hand detection is off by default. When enabled in Settings, the app uses system-provided holding-hand status to adjust the controls locally, without identifying you. Subscription stops when disabled or the app enters the background. Manual layout selection remains available."
+    },
+    {
+      "name": "privacy_backup_title",
+      "value": "Retention, backup and deletion"
+    },
+    {
+      "name": "privacy_backup_body",
+      "value": "Local data remains until overwritten, cleared or the app is uninstalled. You can clear app data in system application settings. System backup and restore are enabled; storage, transfer and retention depend on system services and your device settings. Local diagnostic logs may be written for troubleshooting; the app does not upload them."
+    },
+    {
+      "name": "privacy_rights_title",
+      "value": "Your choices and updates"
+    },
+    {
+      "name": "privacy_rights_body",
+      "value": "Contact the email above for privacy assistance or product support. Playing does not require your name, phone number, location or payment details. Children may use the app with guardian guidance. If online, account or third-party services are introduced, this notice will be updated and users informed as required."
+    },
+    {
+      "name": "watch_home_subtitle",
+      "value": "Watch · Classic 9×9"
+    },
+    {
+      "name": "watch_continue",
+      "value": "Continue"
+    },
+    {
+      "name": "watch_view_result",
+      "value": "Last result"
+    },
+    {
+      "name": "watch_new_game",
+      "value": "New puzzle"
+    },
+    {
+      "name": "watch_difficulty",
+      "value": "Level"
+    },
+    {
+      "name": "watch_how_to_play",
+      "value": "Choose a box, then a large cell to enter a digit. Scroll for menus."
+    },
+    {
+      "name": "watch_privacy_title",
+      "value": "Privacy & help"
+    },
+    {
+      "name": "watch_privacy_body",
+      "value": "Provided by Hangzhou Huancheng Network Technology Co., Ltd. This game works offline and does not collect or upload personal information. No accounts, ads or third-party analytics. Watch progress stays on your watch, separate from phone saves. Uninstalling deletes local data. No activity or grip permissions are needed. Contact the email below for support or privacy requests; the full policy is at the address below."
+    },
+    {
+      "name": "watch_replace_title",
+      "value": "Start a new puzzle?"
+    },
+    {
+      "name": "watch_replace_body",
+      "value": "Your watch save will be replaced once the new puzzle is ready."
+    },
+    {
+      "name": "watch_no_save",
+      "value": "No valid watch save was found. Retry to create a new puzzle."
+    },
+    {
+      "name": "watch_generation_interrupted",
+      "value": "Generation stopped. Retry for a new puzzle. Your previous save is intact."
+    },
+    {
+      "name": "watch_generation_failed",
+      "value": "Could not create a puzzle. Please retry. Your previous save is intact."
+    },
+    {
+      "name": "watch_given_cell",
+      "value": "Clue — cannot edit"
+    },
+    {
+      "name": "watch_undone",
+      "value": "Move undone"
+    },
+    {
+      "name": "watch_hint_filled",
+      "value": "Hint filled"
+    },
+    {
+      "name": "watch_row",
+      "value": "R"
+    },
+    {
+      "name": "watch_column",
+      "value": "C"
+    },
+    {
+      "name": "watch_choose_box",
+      "value": "Choose a box"
+    },
+    {
+      "name": "watch_box",
+      "value": "Box"
+    },
+    {
+      "name": "watch_tools",
+      "value": "Tools"
+    },
+    {
+      "name": "watch_pause",
+      "value": "Pause"
+    },
+    {
+      "name": "watch_overview",
+      "value": "Board"
+    },
+    {
+      "name": "watch_notes",
+      "value": "Notes"
+    },
+    {
+      "name": "watch_notes_on",
+      "value": "Notes: on"
+    },
+    {
+      "name": "watch_notes_off",
+      "value": "Notes: off"
+    },
+    {
+      "name": "watch_erase",
+      "value": "Erase cell"
+    },
+    {
+      "name": "watch_undo",
+      "value": "Undo move"
+    },
+    {
+      "name": "watch_hint",
+      "value": "Fill a hint"
+    },
+    {
+      "name": "watch_hint_description",
+      "value": "A hint fills one correct digit and can be undone. Red marks an incorrect digit. Notes are for empty cells."
+    },
+    {
+      "name": "watch_paused",
+      "value": "Paused"
+    },
+    {
+      "name": "watch_save_exit",
+      "value": "Save & return"
+    },
+    {
+      "name": "watch_complete",
+      "value": "Completed!"
+    },
+    {
+      "name": "watch_hints_used",
+      "value": "Hints used:"
+    },
+    {
+      "name": "watch_home",
+      "value": "Home"
+    },
+    {
+      "name": "watch_retry",
+      "value": "Retry puzzle"
+    },
+    {
+      "name": "watch_save_failed",
+      "value": "Save failed. Please retry before leaving."
+    },
+    {
+      "name": "watch_retry_save",
+      "value": "Retry save"
+    },
+    {
+      "name": "watch_generating",
+      "value": "Creating puzzle"
+    },
+    {
+      "name": "guide_intro",
+      "value": "Select an empty cell, then tap or swipe a number key below the board."
+    },
+    {
+      "name": "guide_action_tap",
+      "value": "Tap a number key"
+    },
+    {
+      "name": "guide_action_up",
+      "value": "Swipe up on a number key"
+    },
+    {
+      "name": "guide_action_right",
+      "value": "Swipe right on a number key"
+    },
+    {
+      "name": "guide_action_left",
+      "value": "Swipe left on a number key"
+    },
+    {
+      "name": "guide_keyboard_show",
+      "value": "Expand keyboard shortcuts"
+    },
+    {
+      "name": "guide_keyboard_hide",
+      "value": "Collapse keyboard shortcuts"
+    },
+    {
+      "name": "a11y_close",
+      "value": "Close"
+    },
+    {
+      "name": "a11y_copy_seed",
+      "value": "Copy seed"
+    },
+    {
+      "name": "a11y_copy_puzzle",
+      "value": "Copy puzzle"
+    },
+    {
+      "name": "a11y_steps",
+      "value": "Steps"
+    },
+    {
+      "name": "pause_info_title",
+      "value": "Puzzle details"
+    },
+    {
+      "name": "pause_info_show",
+      "value": "Show puzzle details"
+    },
+    {
+      "name": "pause_info_hide",
+      "value": "Hide puzzle details"
+    },
+    {
+      "name": "home_tagline",
+      "value": "A little puzzle. A moment of focus."
+    },
+    {
+      "name": "home_in_progress",
+      "value": "YOUR CURRENT PUZZLE"
+    },
+    {
+      "name": "home_resume",
+      "value": "Continue this puzzle"
+    },
+    {
+      "name": "home_progress",
+      "value": "%s filled"
+    },
+    {
+      "name": "home_elapsed",
+      "value": "Time %s"
+    },
+    {
+      "name": "home_start_heading",
+      "value": "Start a puzzle"
+    },
+    {
+      "name": "home_start_new",
+      "value": "Start new puzzle"
+    },
+    {
+      "name": "home_new_game",
+      "value": "New puzzle"
+    },
+    {
+      "name": "home_advanced",
+      "value": "More options"
+    },
+    {
+      "name": "home_difficulty",
+      "value": "Difficulty"
+    },
+    {
+      "name": "home_variant",
+      "value": "Puzzle type"
+    },
+    {
+      "name": "home_selected",
+      "value": "Selected"
+    },
+    {
+      "name": "home_expanded",
+      "value": "Expanded. Activate to collapse."
+    },
+    {
+      "name": "home_collapsed",
+      "value": "Collapsed. Activate to expand."
+    },
+    {
+      "name": "home_import",
+      "value": "Import a puzzle"
+    },
+    {
+      "name": "home_import_help",
+      "value": "Paste a seed ID or puzzle text, then preview before starting."
+    },
+    {
+      "name": "home_import_input",
+      "value": "Seed ID or puzzle text"
+    },
+    {
+      "name": "home_paste",
+      "value": "Paste from clipboard"
+    },
+    {
+      "name": "home_clear",
+      "value": "Clear"
+    },
+    {
+      "name": "home_start_import",
+      "value": "Start this puzzle"
+    },
+    {
+      "name": "home_seed_ready",
+      "value": "Seed ID recognized"
+    },
+    {
+      "name": "home_previous_puzzle",
+      "value": "Previous imported puzzle"
+    },
+    {
+      "name": "home_next_puzzle",
+      "value": "Next imported puzzle"
+    },
+    {
+      "name": "home_clipboard_empty",
+      "value": "There is no text in the clipboard."
+    },
+    {
+      "name": "home_clipboard_unavailable",
+      "value": "Could not read the clipboard. Please paste into the text field."
+    },
+    {
+      "name": "home_privacy",
+      "value": "Privacy"
+    },
+    {
+      "name": "home_replace_title",
+      "value": "Start a new puzzle?"
+    },
+    {
+      "name": "home_replace_message",
+      "value": "The new game becomes your Continue game on the home screen. Existing solve records remain in History."
+    },
+    {
+      "name": "home_keep_current",
+      "value": "Keep current puzzle"
+    },
+    {
+      "name": "home_replace_confirm",
+      "value": "Start new puzzle"
+    },
+    {
+      "name": "key_remaining_a11y",
+      "value": "Number %d, %d remaining"
+    },
+    {
+      "name": "library_back_home",
+      "value": "Back to home"
+    },
+    {
+      "name": "library_back_list",
+      "value": "Back to library"
+    },
+    {
+      "name": "tutorial_title",
+      "value": "Try the gesture keypad"
+    },
+    {
+      "name": "tutorial_skip",
+      "value": "Skip"
+    },
+    {
+      "name": "tutorial_previous",
+      "value": "Back"
+    },
+    {
+      "name": "tutorial_next",
+      "value": "Next"
+    },
+    {
+      "name": "tutorial_finish",
+      "value": "Finish"
+    },
+    {
+      "name": "tutorial_board_caption",
+      "value": "4 × 4 practice board"
+    },
+    {
+      "name": "tutorial_practice_safe",
+      "value": "Practice only. Your saved game stays untouched."
+    },
+    {
+      "name": "tutorial_step_1_title",
+      "value": "Tap to fill a number"
+    },
+    {
+      "name": "tutorial_step_1_body",
+      "value": "The first row is missing 1. Tap 1 below to fill the highlighted cell."
+    },
+    {
+      "name": "tutorial_step_2_title",
+      "value": "Swipe up to add a candidate"
+    },
+    {
+      "name": "tutorial_step_2_body",
+      "value": "The new highlighted cell is still uncertain. Swipe up from the 3 key to pencil in 3."
+    },
+    {
+      "name": "tutorial_step_3_title",
+      "value": "Fill the legal candidates"
+    },
+    {
+      "name": "tutorial_step_3_body",
+      "value": "Tap Fill candidates to list the possibilities after excluding numbers already in each row, column and box."
+    },
+    {
+      "name": "tutorial_step_4_title",
+      "value": "Fill one, clear related candidates"
+    },
+    {
+      "name": "tutorial_step_4_body",
+      "value": "The highlighted cell has only candidate 3. Tap 3 and watch the small 3s in the two cells below."
+    },
+    {
+      "name": "tutorial_try_tap_one",
+      "value": "Try tapping 1 without swiping."
+    },
+    {
+      "name": "tutorial_tap_done",
+      "value": "Done. A large number records your chosen answer."
+    },
+    {
+      "name": "tutorial_try_swipe_three",
+      "value": "Start on 3, swipe upward a little, then release."
+    },
+    {
+      "name": "tutorial_note_done",
+      "value": "The small 3 is a possibility, not a confirmed answer."
+    },
+    {
+      "name": "tutorial_fill_candidates",
+      "value": "Fill candidates"
+    },
+    {
+      "name": "tutorial_candidates_setting",
+      "value": "In a game, enable Auto Candidates in Settings to show the Candidates button."
+    },
+    {
+      "name": "tutorial_candidates_done",
+      "value": "Every empty cell now has legal candidates. This does not solve the puzzle; you still decide what to fill."
+    },
+    {
+      "name": "tutorial_try_tap_three",
+      "value": "This time tap 3 to turn the candidate into a filled number."
+    },
+    {
+      "name": "tutorial_clear_done",
+      "value": "Filling 3 removed candidate 3 from %d related cells. Their other candidates stayed."
+    },
+    {
+      "name": "tutorial_candidate_change",
+      "value": "The example cell changed from candidates 2, 3, 4 to 2, 4."
+    },
+    {
+      "name": "tutorial_note_alternative",
+      "value": "Or tap here to add candidate 3"
+    },
+    {
+      "name": "tutorial_more_controls",
+      "value": "More gestures and keyboard shortcuts"
+    },
+    {
+      "name": "tutorial_more_gestures",
+      "value": "On a number key, swipe right to cross out that candidate, or left to erase it. Start each gesture on the intended number."
+    },
+    {
+      "name": "tutorial_cell_notes",
+      "value": "Candidates %s"
+    },
+    {
+      "name": "tutorial_cell_empty",
+      "value": "Empty"
+    },
+    {
+      "name": "tutorial_cell_label",
+      "value": "Row %d, column %d, %s"
+    },
+    {
+      "name": "tutorial_cell_selected",
+      "value": ", current practice cell"
+    },
+    {
+      "name": "home_library_source",
+      "value": "Choose from the library"
+    },
+    {
+      "name": "home_random_source",
+      "value": "Generate a puzzle"
+    },
+    {
+      "name": "journal_title",
+      "value": "This game’s saves"
+    },
+    {
+      "name": "journal_archive_title",
+      "value": "Game archive"
+    },
+    {
+      "name": "journal_close",
+      "value": "Back to game"
+    },
+    {
+      "name": "journal_back_history",
+      "value": "Back to history"
+    },
+    {
+      "name": "journal_start_node",
+      "value": "Game started"
+    },
+    {
+      "name": "journal_step_number",
+      "value": "Step %d"
+    },
+    {
+      "name": "journal_current",
+      "value": "Current"
+    },
+    {
+      "name": "journal_fork_point",
+      "value": "Branch point"
+    },
+    {
+      "name": "journal_named_point",
+      "value": "Key checkpoint"
+    },
+    {
+      "name": "journal_auto_point",
+      "value": "Automatic"
+    },
+    {
+      "name": "journal_auto_group",
+      "value": "%d automatic steps"
+    },
+    {
+      "name": "journal_collapse_steps",
+      "value": "Collapse steps"
+    },
+    {
+      "name": "journal_expand_steps",
+      "value": "Expand all steps"
+    },
+    {
+      "name": "journal_tree_help",
+      "value": "Every move is recorded. Select a node to preview it, or name a key checkpoint."
+    },
+    {
+      "name": "journal_back_tree",
+      "value": "Back to save tree"
+    },
+    {
+      "name": "journal_preview",
+      "value": "Checkpoint preview"
+    },
+    {
+      "name": "journal_preview_note",
+      "value": "Read-only preview. Your current board is unchanged."
+    },
+    {
+      "name": "journal_preview_cell",
+      "value": "Row %d, column %d, %s"
+    },
+    {
+      "name": "journal_legacy",
+      "value": "Result only"
+    },
+    {
+      "name": "journal_legacy_note",
+      "value": "This older record contains a result summary, not a restorable checkpoint. Any board below shows the original puzzle."
+    },
+    {
+      "name": "journal_node_metrics",
+      "value": "Time at checkpoint %s · Errors %d"
+    },
+    {
+      "name": "journal_name_node",
+      "value": "Name this checkpoint"
+    },
+    {
+      "name": "journal_name_placeholder",
+      "value": "For example: Before ruling out 7"
+    },
+    {
+      "name": "journal_name_cancel",
+      "value": "Cancel"
+    },
+    {
+      "name": "journal_name_save",
+      "value": "Save name"
+    },
+    {
+      "name": "journal_name_failed",
+      "value": "Name was not saved. Please try again."
+    },
+    {
+      "name": "journal_original_time",
+      "value": "Original game time %s"
+    },
+    {
+      "name": "journal_continue",
+      "value": "Continue this game"
+    },
+    {
+      "name": "journal_continue_practice",
+      "value": "Continue this experiment"
+    },
+    {
+      "name": "journal_restore_trial",
+      "value": "Continue an experiment from here"
+    },
+    {
+      "name": "journal_continue_note",
+      "value": "Continue the current checkpoint. Existing saves are kept."
+    },
+    {
+      "name": "journal_fork_note",
+      "value": "Creates an experiment branch. The original branch and score stay unchanged."
+    },
+    {
+      "name": "journal_load_failed",
+      "value": "Could not load the saves."
+    },
+    {
+      "name": "journal_retry",
+      "value": "Retry save"
+    },
+    {
+      "name": "history_title",
+      "value": "History"
+    },
+    {
+      "name": "history_intro",
+      "value": "Browse games by recent activity. New records keep every move; older records show their available results."
+    },
+    {
+      "name": "history_unknown_difficulty",
+      "value": "Difficulty unavailable"
+    },
+    {
+      "name": "history_status_completed",
+      "value": "Completed"
+    },
+    {
+      "name": "history_status_ended",
+      "value": "Ended"
+    },
+    {
+      "name": "history_status_active",
+      "value": "In progress"
+    },
+    {
+      "name": "history_session_details",
+      "value": "%d × %d · Time %s · %d checkpoints"
+    },
+    {
+      "name": "history_empty",
+      "value": "No games recorded yet"
+    },
+    {
+      "name": "history_empty_detail",
+      "value": "Start a game and its moves will be kept here automatically."
+    },
+    {
+      "name": "history_load_more",
+      "value": "Load earlier games"
+    },
+    {
+      "name": "journal_old_node",
+      "value": "Imported checkpoint"
+    },
+    {
+      "name": "journal_time_unknown",
+      "value": "Time unavailable"
+    },
+    {
+      "name": "journal_partial_history",
+      "value": "Some older steps could not be verified. Only validated checkpoints are shown."
+    },
+    {
+      "name": "journal_original_branch",
+      "value": "Original challenge"
+    },
+    {
+      "name": "journal_trial_branch",
+      "value": "Experiment branch"
+    },
+    {
+      "name": "journal_open",
+      "value": "Checkpoints"
+    },
+    {
+      "name": "journal_loading",
+      "value": "Opening saves…"
+    },
+    {
+      "name": "journal_save_error",
+      "value": "The checkpoint has not been saved yet and is kept for retry."
+    },
+    {
+      "name": "journal_reload",
+      "value": "Try again"
+    },
+    {
+      "name": "journal_practice_banner",
+      "value": "Experiment branch · Original score unchanged"
+    },
+    {
+      "name": "journal_completed_practice",
+      "value": "This approach is complete"
+    },
+    {
+      "name": "journal_start_error",
+      "value": "Could not open the game record. Go back and try again."
+    },
+    {
+      "name": "journal_action_fill",
+      "value": "Filled a number"
+    },
+    {
+      "name": "journal_action_note",
+      "value": "Added a candidate"
+    },
+    {
+      "name": "journal_action_eliminate",
+      "value": "Crossed out a candidate"
+    },
+    {
+      "name": "journal_action_erase_note",
+      "value": "Erased a candidate"
+    },
+    {
+      "name": "journal_action_erase",
+      "value": "Erased a cell"
+    },
+    {
+      "name": "journal_action_auto_notes",
+      "value": "Filled candidates"
+    },
+    {
+      "name": "journal_action_hint",
+      "value": "Used a hint"
+    },
+    {
+      "name": "journal_action_multi_notes",
+      "value": "Edited candidates in multiple cells"
+    },
+    {
+      "name": "journal_action_undo",
+      "value": "Undo"
+    },
+    {
+      "name": "journal_action_redo",
+      "value": "Redo"
+    },
+    {
+      "name": "journal_action_checkpoint",
+      "value": "Saved a checkpoint"
+    },
+    {
+      "name": "journal_action_recovered",
+      "value": "Recovered a record"
+    },
+    {
+      "name": "journal_action_imported_edit",
+      "value": "Imported move"
+    },
+    {
+      "name": "journal_action_import",
+      "value": "Imported a saved game"
+    },
+    {
+      "name": "journal_action_start",
+      "value": "Started the game"
+    },
+    {
+      "name": "journal_action_other",
+      "value": "Move"
+    },
+    {
+      "name": "journal_saved_routes",
+      "value": "Saved routes"
+    },
+    {
+      "name": "journal_original_route",
+      "value": "Original route"
+    },
+    {
+      "name": "journal_solving_route",
+      "value": "Solving route %d"
+    },
+    {
+      "name": "journal_trial_route",
+      "value": "Experiment %d"
+    },
+    {
+      "name": "journal_route_current",
+      "value": "Current route"
+    },
+    {
+      "name": "journal_route_preview",
+      "value": "Select to preview"
+    },
+    {
+      "name": "journal_routes_help",
+      "value": "Selecting a route previews its latest checkpoint. It switches only when you confirm Continue."
+    },
+    {
+      "name": "journal_continue_route",
+      "value": "Continue this route"
+    },
+    {
+      "name": "journal_continue_route_note",
+      "value": "Continue the selected route’s latest checkpoint. All other routes are kept."
+    },
+    {
+      "name": "journal_node_time",
+      "value": "Checkpoint time %s"
     }
   ]
 }

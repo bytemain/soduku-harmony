@@ -3,6 +3,12 @@
  *
  * 提供 printf 风格的字符串格式化，配合 resourceManager 使用。
  */
+import { Context } from '@kit.AbilityKit'
+
+/** revision 参数由组件的 StorageProp 提供，让动态名称取词参与响应式依赖追踪。 */
+export function getLocalizedString(context: Context, key: string, _localeRevision: number): string {
+  return context.resourceManager.getStringByNameSync(key)
+}
 
 /**
  * 简单的 printf 风格格式化。

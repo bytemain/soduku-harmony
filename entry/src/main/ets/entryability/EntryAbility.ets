@@ -1,21 +1,100 @@
 import { AbilityConstant, ConfigurationConstant, UIAbility, Want, Configuration } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
-import { initHandDetection, stopHandDetection } from '../utils/HandDetector';
+import { deviceInfo } from '@kit.BasicServicesKit';
+import { text } from '@kit.ArkGraphics2D';
 import { loadSettings } from '../utils/SettingsStorage';
+import { initializeAppLanguage, refreshLocaleRevision } from '../utils/LanguagePreferences';
 import { Colors, applyTheme } from '../constants/GameConstants';
+import { PAPER_DIGIT_FAMILY } from '../constants/Typography';
 
 const DOMAIN = 0x0000;
 
+interface HandDetectionService {
+  initHandDetection: () => void;
+  stopHandDetection: () => void;
+}
+
 export default class EntryAbility extends UIAbility {
   private mainWindow: window.Window | null = null;
+  private isWearable: boolean = deviceInfo.deviceType === 'wearable';
+  private foreground: boolean = false;
+  private handService: HandDetectionService | null = null;
+  private loadingHandService: boolean = false;
+  private avoidAreaHandler = (_data: window.AvoidAreaOptions): void => {
+    this.updateAvoidAreas();
+  };
+
+  /** 页面加载前同步注册本地字体，避免首帧闪回系统字形；手表保持原有字体。 */
+  private registerPaperDigitFont(): void {
+    if (this.isWearable || !canIUse('SystemCapability.Graphics.Drawing')) return;
+    try {
+      text.FontCollection.getGlobalInstance().loadFontSync(
+        PAPER_DIGIT_FAMILY, $rawfile('fonts/SourceSerif4-Regular.ttf'));
+    } catch (err) {
+      // fontFamily 的后备项仍可正常显示数字，字体问题不阻止启动。
+      hilog.warn(DOMAIN, 'EntryAbility', 'Paper digit font unavailable; using system font: %{public}s',
+        JSON.stringify(err));
+    }
+  }
+
+  // WATCH 5 has no Motion SysCap: do not even load its native module on the watch.
+  private async startPhoneHandDetection(): Promise<void> {
+    if (this.isWearable || !this.foreground ||
+      !canIUse('SystemCapability.MultimodalAwareness.Motion')) return;
+    if (this.handService) {
+      this.handService.initHandDetection();
+      return;
+    }
+    if (this.loadingHandService) return;
+    this.loadingHandService = true;
+    try {
+      const service = await import('../utils/HandDetector');
+      this.handService = service;
+      if (this.foreground) service.initHandDetection();
+    } catch (err) {
+      hilog.warn(DOMAIN, 'EntryAbility', 'Hand detection unavailable: %{public}s', JSON.stringify(err));
+    } finally {
+      this.loadingHandService = false;
+    }
+  }
+
+  private updateAvoidAreas(): void {
+    if (!this.mainWindow || this.isWearable) return;
+    try {
+      const system = this.mainWindow.getWindowAvoidArea(window.AvoidAreaType.TYPE_SYSTEM);
+      const navigation = this.mainWindow.getWindowAvoidArea(window.AvoidAreaType.TYPE_NAVIGATION_INDICATOR);
+      const cutout = this.mainWindow.getWindowAvoidArea(window.AvoidAreaType.TYPE_CUTOUT);
+      const uiContext = this.mainWindow.getUIContext();
+      AppStorage.setOrCreate('topRectHeight', uiContext.px2vp(Math.max(
+        system.topRect.height, navigation.topRect.height, cutout.topRect.height)));
+      AppStorage.setOrCreate('bottomRectHeight', uiContext.px2vp(Math.max(
+        system.bottomRect.height, navigation.bottomRect.height, cutout.bottomRect.height)));
+      AppStorage.setOrCreate('leftRectWidth', uiContext.px2vp(Math.max(
+        system.leftRect.width, navigation.leftRect.width, cutout.leftRect.width)));
+      AppStorage.setOrCreate('rightRectWidth', uiContext.px2vp(Math.max(
+        system.rightRect.width, navigation.rightRect.width, cutout.rightRect.width)));
+    } catch (err) {
+      hilog.warn(DOMAIN, 'EntryAbility', 'Avoid area unavailable: %{public}s', JSON.stringify(err));
+    }
+  }
 
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onCreate');
 
-    // 先恢复持久化的设置（包含 themeMode），再初始化手检测
+    AppStorage.setOrCreate('isWearable', this.isWearable);
+    AppStorage.setOrCreate('appInForeground', false);
+    AppStorage.setOrCreate('topRectHeight', 0);
+    AppStorage.setOrCreate('bottomRectHeight', 0);
+    AppStorage.setOrCreate('leftRectWidth', 0);
+    AppStorage.setOrCreate('rightRectWidth', 0);
     loadSettings(this.context);
-    initHandDetection();
+    initializeAppLanguage(this.context);
+    if (!this.isWearable) {
+      import('../utils/StatsStorage').then((stats) => stats.reconcileJournalStats(this.context))
+        .catch((err: Error) => hilog.warn(DOMAIN, 'EntryAbility', 'Journal stats reconciliation deferred: %{public}s', err.message));
+    }
+    this.registerPaperDigitFont();
 
     // 根据用户保存的主题偏好设置 colorMode
     const themeMode = AppStorage.get<string>('themeMode') ?? 'system';
@@ -42,13 +121,15 @@ export default class EntryAbility extends UIAbility {
 
   onDestroy(): void {
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onDestroy');
-    stopHandDetection();
+    this.foreground = false;
+    AppStorage.setOrCreate('appInForeground', false);
+    this.handService?.stopHandDetection();
   }
 
   onWindowStageCreate(windowStage: window.WindowStage): void {
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onWindowStageCreate');
 
-    windowStage.loadContent('pages/Index', (err) => {
+    windowStage.loadContent(this.isWearable ? 'pages/WatchHomePage' : 'pages/Index', (err) => {
       if (err.code) {
         hilog.error(DOMAIN, 'testTag', 'Failed to load the content. Cause: %{public}s', JSON.stringify(err));
         return;
@@ -58,6 +139,11 @@ export default class EntryAbility extends UIAbility {
       // 获取主窗口
       let windowClass = windowStage.getMainWindowSync();
       this.mainWindow = windowClass;
+      if (this.isWearable) return;
+      // Respect the system rotation lock while supporting landscape and wide foldables.
+      windowClass.setPreferredOrientation(window.Orientation.AUTO_ROTATION_RESTRICTED).catch((err: Error) => {
+        hilog.warn(DOMAIN, 'EntryAbility', 'Orientation preference unavailable: %{public}s', JSON.stringify(err));
+      });
 
       // 1. 设置窗口全屏布局（沉浸式）
       windowClass.setWindowLayoutFullScreen(true).then(() => {
@@ -70,20 +156,9 @@ export default class EntryAbility extends UIAbility {
       const isDark = AppStorage.get<boolean>('isDarkMode') ?? false;
       this.updateSystemBarStyle(windowClass, isDark);
 
-      // 3. 获取避让区域高度，存入 AppStorage 供页面使用
-      let statusBarArea = windowClass.getWindowAvoidArea(window.AvoidAreaType.TYPE_SYSTEM);
-      let navIndicatorArea = windowClass.getWindowAvoidArea(window.AvoidAreaType.TYPE_NAVIGATION_INDICATOR);
-      AppStorage.setOrCreate('topRectHeight', px2vp(statusBarArea.topRect.height));
-      AppStorage.setOrCreate('bottomRectHeight', px2vp(navIndicatorArea.bottomRect.height));
-
-      // 4. 监听避让区域变化（如折叠屏状态切换）
-      windowClass.on('avoidAreaChange', (data) => {
-        if (data.type === window.AvoidAreaType.TYPE_SYSTEM) {
-          AppStorage.setOrCreate('topRectHeight', px2vp(data.area.topRect.height));
-        } else if (data.type === window.AvoidAreaType.TYPE_NAVIGATION_INDICATOR) {
-          AppStorage.setOrCreate('bottomRectHeight', px2vp(data.area.bottomRect.height));
-        }
-      });
+      // Re-query every side after rotation/folding; use this window's density.
+      this.updateAvoidAreas();
+      windowClass.on('avoidAreaChange', this.avoidAreaHandler);
     });
   }
 
@@ -92,10 +167,19 @@ export default class EntryAbility extends UIAbility {
    * 当用户手动设置了 light/dark 时，仍需响应 setColorMode 触发的变化
    */
   onConfigurationUpdate(newConfig: Configuration): void {
+    // 语言配置不一定附带颜色变化，必须在主题的提前返回之前处理。
+    refreshLocaleRevision(this.context, newConfig.language ?? '');
     hilog.info(DOMAIN, 'testTag', 'onConfigurationUpdate: colorMode=%{public}s',
       String(newConfig.colorMode));
 
-    const isDark = newConfig.colorMode === ConfigurationConstant.ColorMode.COLOR_MODE_DARK;
+    // 非颜色配置变化不应重置主题；手动主题始终优先于系统颜色模式。
+    if (newConfig.colorMode !== ConfigurationConstant.ColorMode.COLOR_MODE_LIGHT &&
+      newConfig.colorMode !== ConfigurationConstant.ColorMode.COLOR_MODE_DARK) {
+      return;
+    }
+    const themeMode = AppStorage.get<string>('themeMode') ?? 'system';
+    const isDark = themeMode === 'dark' || (themeMode === 'system' &&
+      newConfig.colorMode === ConfigurationConstant.ColorMode.COLOR_MODE_DARK);
     const wasDark = AppStorage.get<boolean>('isDarkMode') ?? false;
 
     if (isDark !== wasDark) {
@@ -103,10 +187,10 @@ export default class EntryAbility extends UIAbility {
       AppStorage.setOrCreate('isDarkMode', isDark);
       hilog.info(DOMAIN, 'testTag', 'Theme switched: isDark=%{public}s', String(isDark));
 
-      // 更新状态栏文字颜色
-      if (this.mainWindow) {
-        this.updateSystemBarStyle(this.mainWindow, isDark);
-      }
+    }
+    // 设置面板会先更新 AppStorage，回调时值可能已经相同，但系统栏仍需同步。
+    if (this.mainWindow && !this.isWearable) {
+      this.updateSystemBarStyle(this.mainWindow, isDark);
     }
   }
 
@@ -132,16 +216,24 @@ export default class EntryAbility extends UIAbility {
   onWindowStageDestroy(): void {
     // Main window is destroyed, release UI related resources
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onWindowStageDestroy');
+    if (this.mainWindow && !this.isWearable) {
+      this.mainWindow.off('avoidAreaChange', this.avoidAreaHandler);
+    }
     this.mainWindow = null;
   }
 
   onForeground(): void {
-    // Ability has brought to foreground
+    this.foreground = true;
+    AppStorage.setOrCreate('appInForeground', true);
+    refreshLocaleRevision(this.context);
+    this.startPhoneHandDetection();
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onForeground');
   }
 
   onBackground(): void {
-    // Ability has back to background
+    this.foreground = false;
+    AppStorage.setOrCreate('appInForeground', false);
+    this.handService?.stopHandDetection();
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onBackground');
   }
 }

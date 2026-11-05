@@ -1,7 +1,7 @@
 /**
  * AuxButtonGrid.ets — 辅助按钮区（2×3 网格）
  *
- * 撤销、前进、擦除、提示、设置、自动候选数。
+ * 撤销、重做、擦除、提示、设置、自动候选数。
  *
  * 参考：Doc 05 §③ 操作区
  *
@@ -9,31 +9,61 @@
  * 按值捕获参数，后续 @Prop 变化不会反映到 @Builder 内部。
  * 改用 @Component AuxButton，通过 @Prop disabled 实现响应式更新。
  */
-import { Colors, Sizes } from '../constants/GameConstants'
+import { ColorsConfig, getThemeColors, Sizes } from '../constants/GameConstants'
 
 @Component
 struct AuxButton {
-  icon: string = ''
-  label: ResourceStr = ''
+  @StorageProp('isDarkMode') private isDarkMode: boolean = false
+
+  private getPalette(): ColorsConfig {
+    return getThemeColors(this.isDarkMode)
+  }
+
+  @Prop compact: boolean = false
+  @Prop icon: Resource = $r('app.media.paper_help')
+  @Prop showIcon: boolean = true
+  @Prop label: ResourceStr = ''
   @Prop disabled: boolean = false
   @Prop loading: boolean = false
   onTap: () => void = () => {}
 
   build() {
     Column() {
-      Text(this.loading ? '⏳' : this.icon)
-        .fontSize(Sizes.auxIcon)
+      Stack() {
+        if (this.loading) {
+          Text('…')
+            .fontSize(this.compact ? 20 : Sizes.auxIcon)
+            .fontColor(this.getPalette().toolbarIcon)
+        } else if (this.showIcon) {
+          Image(this.icon)
+            .width(this.compact ? 20 : Sizes.auxIcon)
+            .height(this.compact ? 20 : Sizes.auxIcon)
+            .fillColor(this.getPalette().toolbarIcon)
+            .accessibilityLevel('no')
+        }
+      }
+      .width('100%')
+      .height('58%')
       Text(this.label)
-        .fontSize(Sizes.auxText)
-        .fontColor((this.disabled || this.loading) ? Colors.subtitleText : Colors.toolbarIcon)
+        .fontSize(this.compact ? 11 : Sizes.auxText)
+        .minFontSize(1)
+        .maxFontSize(this.compact ? 11 : Sizes.auxText)
+        .maxLines(1)
+        .heightAdaptivePolicy(TextHeightAdaptivePolicy.LAYOUT_CONSTRAINT_FIRST)
+        .width('100%')
+        .height('34%')
+        .textAlign(TextAlign.Center)
+        .fontColor((this.disabled || this.loading) ? this.getPalette().subtitleText : this.getPalette().toolbarIcon)
         .margin({ top: 1 })
     }
     .width('100%')
     .height('100%')
     .justifyContent(FlexAlign.Center)
     .alignItems(HorizontalAlign.Center)
-    .borderRadius(Sizes.auxRadius)
-    .backgroundColor(Colors.keyBg)
+    .padding(3)
+    .borderRadius(0)
+    .backgroundColor(Color.Transparent)
+    .clip(true)
     .opacity((this.disabled || this.loading) ? 0.4 : 1)
     .onClick(() => {
       if (!this.disabled && !this.loading) {
@@ -62,6 +92,7 @@ export struct AuxButtonGrid {
   @Prop gridHeight: number = 0
   /** 是否使用横排布局（一行 6 个按钮，置于键盘上方） */
   @Prop horizontal: boolean = false
+  @Prop compactTools: boolean = false
   /** 横排布局时的行高 */
   @Prop rowHeight: number = 56
 
@@ -71,17 +102,17 @@ export struct AuxButtonGrid {
       // 与 2×3 模式不同，这里按可见按钮数动态调整列数，避免出现空占位。
       Grid() {
         GridItem() {
-          AuxButton({ icon: '↩️', label: $r('app.string.aux_undo'), disabled: this.undoDisabled, onTap: () => this.onUndo() })
+          AuxButton({ compact: this.compactTools, icon: $r('app.media.paper_undo'), label: $r('app.string.aux_undo'), disabled: this.undoDisabled, onTap: () => this.onUndo() })
         }
         GridItem() {
-          AuxButton({ icon: '↪️', label: $r('app.string.aux_redo'), disabled: this.redoDisabled, onTap: () => this.onRedo() })
+          AuxButton({ compact: this.compactTools, icon: $r('app.media.paper_redo'), label: $r('app.string.aux_redo'), disabled: this.redoDisabled, onTap: () => this.onRedo() })
         }
         GridItem() {
-          AuxButton({ icon: '🗑️', label: $r('app.string.aux_erase'), disabled: this.eraseDisabled, onTap: () => this.onErase() })
+          AuxButton({ compact: this.compactTools, icon: $r('app.media.paper_erase'), label: $r('app.string.aux_erase'), disabled: this.eraseDisabled, onTap: () => this.onErase() })
         }
         GridItem() {
-          AuxButton({
-            icon: '💡',
+          AuxButton({ compact: this.compactTools,
+            icon: $r('app.media.paper_help'),
             label: this.hintLoading ? $r('app.string.aux_hint_loading') : $r('app.string.aux_hint'),
             disabled: this.hintDisabled,
             loading: this.hintLoading,
@@ -89,47 +120,53 @@ export struct AuxButtonGrid {
           })
         }
         GridItem() {
-          AuxButton({ icon: '⚙️', label: $r('app.string.aux_settings'), disabled: false, onTap: () => this.onSettings() })
+          AuxButton({ compact: this.compactTools, icon: $r('app.media.paper_settings'), label: $r('app.string.aux_settings'), disabled: false, onTap: () => this.onSettings() })
         }
         if (this.autoNotesVisible) {
           GridItem() {
-            AuxButton({ icon: '✏️', label: $r('app.string.aux_auto_notes'), disabled: this.autoNotesDisabled, onTap: () => this.onAutoNotes() })
+            AuxButton({ compact: this.compactTools, icon: $r('app.media.paper_pencil'), label: $r('app.string.aux_auto_notes'), disabled: this.autoNotesDisabled, onTap: () => this.onAutoNotes() })
           }
         }
       }
-      .columnsTemplate(this.autoNotesVisible ? '1fr 1fr 1fr 1fr 1fr 1fr' : '1fr 1fr 1fr 1fr 1fr')
-      .rowsTemplate('1fr')
+      .columnsTemplate(this.compactTools ? '1fr 1fr 1fr' :
+        (this.autoNotesVisible ? '1fr 1fr 1fr 1fr 1fr 1fr' : '1fr 1fr 1fr 1fr 1fr'))
+      .rowsTemplate(this.compactTools ? '1fr 1fr' : '1fr')
       .columnsGap(4)
+      .rowsGap(this.compactTools ? 4 : 0)
       .width('100%')
-      .height(this.rowHeight)
+      .height(this.compactTools ? 100 : this.rowHeight)
     } else {
       Grid() {
         GridItem() {
-          AuxButton({ icon: '↩️', label: $r('app.string.aux_undo'), disabled: this.undoDisabled, onTap: () => this.onUndo() })
+          AuxButton({ compact: this.compactTools, icon: $r('app.media.paper_undo'), label: $r('app.string.aux_undo'), disabled: this.undoDisabled, onTap: () => this.onUndo() })
         }
         GridItem() {
-          AuxButton({ icon: '↪️', label: $r('app.string.aux_redo'), disabled: this.redoDisabled, onTap: () => this.onRedo() })
+          AuxButton({ compact: this.compactTools, icon: $r('app.media.paper_redo'), label: $r('app.string.aux_redo'), disabled: this.redoDisabled, onTap: () => this.onRedo() })
         }
         GridItem() {
-          AuxButton({ icon: '🗑️', label: $r('app.string.aux_erase'), disabled: this.eraseDisabled, onTap: () => this.onErase() })
+          AuxButton({ compact: this.compactTools, icon: $r('app.media.paper_erase'), label: $r('app.string.aux_erase'), disabled: this.eraseDisabled, onTap: () => this.onErase() })
         }
         GridItem() {
-          AuxButton({
-            icon: '💡',
+          AuxButton({ compact: this.compactTools,
+            icon: $r('app.media.paper_help'),
             label: this.hintLoading ? $r('app.string.aux_hint_loading') : $r('app.string.aux_hint'),
             disabled: this.hintDisabled,
             loading: this.hintLoading,
             onTap: () => this.onHint()
           })
         }
-        GridItem() {
-          AuxButton({ icon: '⚙️', label: $r('app.string.aux_settings'), disabled: false, onTap: () => this.onSettings() })
-        }
-        GridItem() {
-          if (this.autoNotesVisible) {
-            AuxButton({ icon: '✏️', label: $r('app.string.aux_auto_notes'), disabled: this.autoNotesDisabled, onTap: () => this.onAutoNotes() })
-          } else {
-            AuxButton({ icon: '', label: '', disabled: true })
+        if (this.compactTools && !this.autoNotesVisible) {
+          GridItem() {
+            AuxButton({ compact: true, icon: $r('app.media.paper_settings'), label: $r('app.string.aux_settings'), disabled: false, onTap: () => this.onSettings() })
+          }.columnStart(0).columnEnd(1)
+        } else {
+          GridItem() {
+            AuxButton({ compact: this.compactTools, icon: $r('app.media.paper_settings'), label: $r('app.string.aux_settings'), disabled: false, onTap: () => this.onSettings() })
+          }
+          GridItem() {
+            if (this.autoNotesVisible) {
+              AuxButton({ compact: this.compactTools, icon: $r('app.media.paper_pencil'), label: $r('app.string.aux_auto_notes'), disabled: this.autoNotesDisabled, onTap: () => this.onAutoNotes() })
+            }
           }
         }
       }
@@ -137,7 +174,7 @@ export struct AuxButtonGrid {
       .rowsTemplate('1fr 1fr 1fr')
       .columnsGap(4)
       .rowsGap(4)
-      .width(this.gridHeight > 0 ? this.gridHeight * 2 / 3 : 0)
+      .width(this.compactTools ? 92 : (this.gridHeight > 0 ? this.gridHeight * 2 / 3 : 0))
       .height(this.gridHeight > 0 ? this.gridHeight : 0)
     }
   }

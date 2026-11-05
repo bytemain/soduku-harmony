@@ -50,11 +50,11 @@
     },
     {
       "name": "EntryAbility_label",
-      "value": "数独"
+      "value": "不错的数独"
     },
     {
       "name": "app_title",
-      "value": "数  独"
+      "value": "不错的数独"
     },
     {
       "name": "app_subtitle",
@@ -62,15 +62,19 @@
     },
     {
       "name": "btn_continue",
-      "value": "▶  继续游戏"
+      "value": "继续游戏"
     },
     {
       "name": "btn_new_game",
-      "value": "▶  新游戏"
+      "value": "新游戏"
     },
     {
       "name": "btn_start",
-      "value": "▶  开始游戏"
+      "value": "开始游戏"
+    },
+    {
+      "name": "tab_home",
+      "value": "首页"
     },
     {
       "name": "tab_stats",
@@ -106,7 +110,7 @@
     },
     {
       "name": "aux_redo",
-      "value": "前进"
+      "value": "重做"
     },
     {
       "name": "aux_erase",
@@ -142,23 +146,23 @@
     },
     {
       "name": "indicator_note",
-      "value": "✏️ 笔记模式"
+      "value": "笔记模式"
     },
     {
       "name": "indicator_eliminate",
-      "value": "～～ 删除线模式"
+      "value": "删除线模式"
     },
     {
       "name": "indicator_erase",
-      "value": "🧹 擦除笔记"
+      "value": "擦除笔记"
     },
     {
       "name": "indicator_reserved",
-      "value": "⬇️ 预留功能"
+      "value": "预留功能"
     },
     {
       "name": "dialog_congrats_title",
-      "value": "🎉 恭喜！"
+      "value": "恭喜！"
     },
     {
       "name": "dialog_congrats_time",
@@ -181,16 +185,8 @@
       "value": "重新开始"
     },
     {
-      "name": "dialog_challenge_failed_title",
-      "value": "挑战失败"
-    },
-    {
-      "name": "dialog_challenge_failed_msg",
-      "value": "你已经累计 3 次错误，本局挑战已失败。你可以重新开始、返回主页，或关闭弹窗继续完成当前棋局。"
-    },
-    {
       "name": "dialog_completed_failed_title",
-      "value": "题目已完成（挑战失败）"
+      "value": "题目已完成"
     },
     {
       "name": "stats_title",
@@ -202,7 +198,7 @@
     },
     {
       "name": "stats_total_won",
-      "value": "胜利"
+      "value": "已完成"
     },
     {
       "name": "stats_games_played",
@@ -210,11 +206,11 @@
     },
     {
       "name": "stats_games_won",
-      "value": "胜利局数"
+      "value": "完成局数"
     },
     {
       "name": "stats_win_rate",
-      "value": "胜率"
+      "value": "完成率"
     },
     {
       "name": "stats_best_time",
@@ -226,11 +222,11 @@
     },
     {
       "name": "stats_current_streak",
-      "value": "当前连胜"
+      "value": "当前连续完成"
     },
     {
       "name": "stats_best_streak",
-      "value": "最佳连胜"
+      "value": "最长连续完成"
     },
     {
       "name": "settings_title",
@@ -346,19 +342,19 @@
     },
     {
       "name": "pause_resume",
-      "value": "▶  继续"
+      "value": "继续游戏"
     },
     {
       "name": "pause_restart",
-      "value": "↻  重新开始"
+      "value": "重新开始"
     },
     {
       "name": "pause_quit",
-      "value": "✕  退出"
+      "value": "返回首页"
     },
     {
       "name": "pause_info_seed",
-      "value": "Seed"
+      "value": "题目种子"
     },
     {
       "name": "pause_info_difficulty",
@@ -378,7 +374,7 @@
     },
     {
       "name": "pause_help",
-      "value": "帮助"
+      "value": "操作指南"
     },
     {
       "name": "hint_direct_algorithm",
@@ -406,19 +402,19 @@
     },
     {
       "name": "guide_tap",
-      "value": "点击 → 填入数字"
+      "value": "填入这个数字"
     },
     {
       "name": "guide_up",
-      "value": "上滑 → 添加笔记"
+      "value": "添加候选笔记"
     },
     {
       "name": "guide_right",
-      "value": "右滑 → 删除线标记"
+      "value": "给候选笔记加删除线"
     },
     {
       "name": "guide_left",
-      "value": "左滑 → 擦除笔记"
+      "value": "擦除候选笔记"
     },
     {
       "name": "guide_got_it",
@@ -430,35 +426,35 @@
     },
     {
       "name": "guide_key_arrows",
-      "value": "方向键 → 移动选格"
+      "value": "移动选格"
     },
     {
       "name": "guide_key_digits",
-      "value": "1-9 → 填入数字"
+      "value": "填入数字"
     },
     {
       "name": "guide_key_delete",
-      "value": "Delete/0 → 擦除"
+      "value": "擦除"
     },
     {
       "name": "guide_key_note",
-      "value": "N/Tab → 切换笔记模式"
+      "value": "切换笔记模式"
     },
     {
       "name": "guide_key_undo_redo",
-      "value": "Z/Y → 撤销/重做"
+      "value": "撤销 / 重做"
     },
     {
       "name": "guide_key_hint",
-      "value": "H → 提示"
+      "value": "提示"
     },
     {
       "name": "guide_key_pause",
-      "value": "Space/P → 暂停"
+      "value": "暂停 / 继续"
     },
     {
       "name": "guide_key_esc",
-      "value": "ESC → 关闭弹窗/暂停"
+      "value": "关闭弹窗 / 暂停"
     },
     {
       "name": "settings_section_display",
@@ -481,20 +477,28 @@
       "value": "填入有误，已擦除"
     },
     {
+      "name": "note_mode_on",
+      "value": "笔记模式已开启"
+    },
+    {
+      "name": "note_mode_off",
+      "value": "已切换为填数模式"
+    },
+    {
       "name": "settings_section_assistant",
       "value": "助手"
     },
     {
       "name": "settings_validate_input",
-      "value": "填入检测"
+      "value": "答案校验"
     },
     {
       "name": "settings_validate_input_desc",
-      "value": "填错时立即标红提示，适合新手；关闭后只靠自己判断冲突"
+      "value": "所有模式均提示并记录错误，不设次数上限。开启时对照参考解；关闭后仅提示并记录行、列、宫及变种规则冲突。"
     },
     {
       "name": "settings_validate_input_on",
-      "value": "✅ 开启"
+      "value": "开启"
     },
     {
       "name": "settings_validate_input_on_hint",
@@ -502,7 +506,7 @@
     },
     {
       "name": "settings_validate_input_off",
-      "value": "⬜ 关闭"
+      "value": "关闭"
     },
     {
       "name": "settings_validate_input_off_hint",
@@ -518,11 +522,11 @@
     },
     {
       "name": "settings_aux_buttons_on_top",
-      "value": "工具按钮置于键盘上方"
+      "value": "竖向宽屏工具横排"
     },
     {
       "name": "settings_aux_buttons_on_top_desc",
-      "value": "将撤销/前进/擦除等工具按钮排成一行放在数字键盘上方，避免在键盘旁边误触"
+      "value": "仅在竖向宽屏的双栏布局中，将工具放在数字键上方；横屏始终上置，普通竖屏自动适配"
     },
     {
       "name": "multi_select_hint",
@@ -551,6 +555,34 @@
     {
       "name": "settings_theme_dark",
       "value": "深色"
+    },
+    {
+      "name": "settings_language",
+      "value": "语言"
+    },
+    {
+      "name": "settings_language_desc",
+      "value": "选择应用显示语言，当前棋局会保留。改为跟随系统后，下次启动生效。"
+    },
+    {
+      "name": "settings_language_system",
+      "value": "跟随系统"
+    },
+    {
+      "name": "settings_language_zh",
+      "value": "简体中文"
+    },
+    {
+      "name": "settings_language_en",
+      "value": "English"
+    },
+    {
+      "name": "settings_language_error",
+      "value": "暂时无法切换语言，请重试。"
+    },
+    {
+      "name": "settings_language_restart",
+      "value": "已保存跟随系统。下次启动应用时生效，你可以继续当前棋局。"
     },
     {
       "name": "import_placeholder",
@@ -654,7 +686,7 @@
     },
     {
       "name": "import_puzzle_count",
-      "value": " · %d 题"
+      "value": "· %d 题"
     },
     {
       "name": "import_givens_count",
@@ -670,7 +702,7 @@
     },
     {
       "name": "coach_title",
-      "value": "🤖 数独教练"
+      "value": "数独教练"
     },
     {
       "name": "coach_init_loading",
@@ -686,7 +718,7 @@
     },
     {
       "name": "coach_btn_analyze",
-      "value": "🔍 分析局面"
+      "value": "分析局面"
     },
     {
       "name": "coach_prompt_analyze",
@@ -694,7 +726,7 @@
     },
     {
       "name": "coach_btn_next",
-      "value": "💡 下一步"
+      "value": "下一步"
     },
     {
       "name": "coach_prompt_next",
@@ -702,7 +734,7 @@
     },
     {
       "name": "coach_btn_teach",
-      "value": "📚 教我技巧"
+      "value": "教我技巧"
     },
     {
       "name": "coach_prompt_teach",
@@ -939,6 +971,870 @@
     {
       "name": "victory_errors_label",
       "value": "错误"
+    },
+    {
+      "name": "privacy_support_title",
+      "value": "隐私与支持"
+    },
+    {
+      "name": "privacy_operator_title",
+      "value": "运营者与联系"
+    },
+    {
+      "name": "privacy_operator_body",
+      "value": "不错的数独由杭州幻橙网络科技有限公司提供。本说明适用于本应用的离线数独功能。隐私及支持联系邮箱：support@oranix.cn。更新日期：2026年11月2日。"
+    },
+    {
+      "name": "privacy_local_title",
+      "value": "本地进度与设置"
+    },
+    {
+      "name": "privacy_local_body",
+      "value": "题目、填写数字、候选笔记、用时、撤销记录、题库进度、游戏统计和显示设置保存在设备本地，用于继续游戏及恢复偏好。应用不要求注册账号，没有开发者业务服务器、广告或分析上报服务。"
+    },
+    {
+      "name": "privacy_clipboard_title",
+      "value": "剪贴板"
+    },
+    {
+      "name": "privacy_clipboard_body",
+      "value": "只有当您主动点击导入时，应用才读取剪贴板中的文本来解析数独题目或种子；点击复制时，将您选择的题目或种子写入剪贴板。请避免复制与题目无关的敏感信息。应用不在后台监视剪贴板。"
+    },
+    {
+      "name": "privacy_hand_title",
+      "value": "可选握持感知"
+    },
+    {
+      "name": "privacy_hand_body",
+      "value": "自动左右手布局默认关闭。您在设置中主动开启后，应用使用系统提供的握持手状态调整布局，信息仅在设备上处理，不用于识别个人。关闭开关或应用进入后台时停止订阅；设备不支持时可手动切换左右手布局。"
+    },
+    {
+      "name": "privacy_backup_title",
+      "value": "保留、备份与删除"
+    },
+    {
+      "name": "privacy_backup_body",
+      "value": "本地数据保留至被覆盖、清除或应用卸载。您可通过系统应用管理清除本应用数据。应用允许系统备份与恢复；备份位置、传输和保留由系统服务及您的设备设置决定。应用可能写入本地诊断日志用于排查错误，但没有主动上传日志的实现。"
+    },
+    {
+      "name": "privacy_rights_title",
+      "value": "隐私权利与更新"
+    },
+    {
+      "name": "privacy_rights_body",
+      "value": "如需咨询本应用的数据处理、请求隐私协助或反馈问题，请通过上述邮箱联系我们。无需为了游玩提供姓名、电话、位置或支付信息。未成年人可在监护人指导下使用。若未来增加联网、账号或第三方服务，我们会更新本说明，并按适用要求告知您。"
+    },
+    {
+      "name": "common_back",
+      "value": "返回"
+    },
+    {
+      "name": "watch_home_subtitle",
+      "value": "手表 · 标准 9×9"
+    },
+    {
+      "name": "watch_continue",
+      "value": "继续游戏"
+    },
+    {
+      "name": "watch_view_result",
+      "value": "查看结果"
+    },
+    {
+      "name": "watch_new_game",
+      "value": "开始新局"
+    },
+    {
+      "name": "watch_difficulty",
+      "value": "难度"
+    },
+    {
+      "name": "watch_how_to_play",
+      "value": "先选一个宫，再选大格子填数。滚动查看菜单。"
+    },
+    {
+      "name": "watch_privacy_title",
+      "value": "隐私与支持"
+    },
+    {
+      "name": "watch_privacy_body",
+      "value": "由杭州幻橙网络科技有限公司提供。本游戏离线运行，不收集或上传个人信息，无账号、广告或第三方统计。手表局面仅保存在手表本地，与手机版存档分开；卸载应用会删除本地数据。数独无需运动或握持权限。反馈及隐私问题请联系下方邮箱，完整政策见下方网址。"
+    },
+    {
+      "name": "watch_replace_title",
+      "value": "开始新局？"
+    },
+    {
+      "name": "watch_replace_body",
+      "value": "新题生成成功后，将替换当前手表存档。"
+    },
+    {
+      "name": "watch_no_save",
+      "value": "没有可恢复的手表存档，可重试生成新题。"
+    },
+    {
+      "name": "watch_generation_interrupted",
+      "value": "生成已暂停。重试可生成新题，原存档仍保留。"
+    },
+    {
+      "name": "watch_generation_failed",
+      "value": "题目生成失败，请重试。原存档仍保留。"
+    },
+    {
+      "name": "watch_given_cell",
+      "value": "题目数字不能修改"
+    },
+    {
+      "name": "watch_undone",
+      "value": "已撤销一步"
+    },
+    {
+      "name": "watch_hint_filled",
+      "value": "提示已填入"
+    },
+    {
+      "name": "watch_row",
+      "value": "行"
+    },
+    {
+      "name": "watch_column",
+      "value": "列"
+    },
+    {
+      "name": "watch_choose_box",
+      "value": "请选择一个宫"
+    },
+    {
+      "name": "watch_box",
+      "value": "宫"
+    },
+    {
+      "name": "watch_tools",
+      "value": "工具"
+    },
+    {
+      "name": "watch_pause",
+      "value": "暂停"
+    },
+    {
+      "name": "watch_overview",
+      "value": "全盘"
+    },
+    {
+      "name": "watch_notes",
+      "value": "笔记"
+    },
+    {
+      "name": "watch_notes_on",
+      "value": "笔记：开"
+    },
+    {
+      "name": "watch_notes_off",
+      "value": "笔记：关"
+    },
+    {
+      "name": "watch_erase",
+      "value": "擦除此格"
+    },
+    {
+      "name": "watch_undo",
+      "value": "撤销一步"
+    },
+    {
+      "name": "watch_hint",
+      "value": "填一格提示"
+    },
+    {
+      "name": "watch_hint_description",
+      "value": "提示会填入一个正确数字，可撤销。红色表示数字不正确。笔记只可填在空格中。"
+    },
+    {
+      "name": "watch_paused",
+      "value": "已暂停"
+    },
+    {
+      "name": "watch_save_exit",
+      "value": "保存并返回"
+    },
+    {
+      "name": "watch_complete",
+      "value": "完成！"
+    },
+    {
+      "name": "watch_hints_used",
+      "value": "使用提示"
+    },
+    {
+      "name": "watch_home",
+      "value": "返回首页"
+    },
+    {
+      "name": "watch_retry",
+      "value": "重试新题"
+    },
+    {
+      "name": "watch_save_failed",
+      "value": "保存失败，请重试后再退出。"
+    },
+    {
+      "name": "watch_retry_save",
+      "value": "重试保存"
+    },
+    {
+      "name": "watch_generating",
+      "value": "正在生成题目"
+    },
+    {
+      "name": "guide_intro",
+      "value": "先选中棋盘中的空格，再在下方数字键上操作。"
+    },
+    {
+      "name": "guide_action_tap",
+      "value": "点击数字键"
+    },
+    {
+      "name": "guide_action_up",
+      "value": "在数字键上滑"
+    },
+    {
+      "name": "guide_action_right",
+      "value": "在数字键上右滑"
+    },
+    {
+      "name": "guide_action_left",
+      "value": "在数字键上左滑"
+    },
+    {
+      "name": "guide_keyboard_show",
+      "value": "展开键盘快捷键"
+    },
+    {
+      "name": "guide_keyboard_hide",
+      "value": "收起键盘快捷键"
+    },
+    {
+      "name": "a11y_close",
+      "value": "关闭"
+    },
+    {
+      "name": "a11y_copy_seed",
+      "value": "复制种子"
+    },
+    {
+      "name": "a11y_copy_puzzle",
+      "value": "复制题目"
+    },
+    {
+      "name": "a11y_steps",
+      "value": "步数"
+    },
+    {
+      "name": "pause_info_title",
+      "value": "题目信息"
+    },
+    {
+      "name": "pause_info_show",
+      "value": "展开题目信息"
+    },
+    {
+      "name": "pause_info_hide",
+      "value": "收起题目信息"
+    },
+    {
+      "name": "home_tagline",
+      "value": "给日常片刻，一道数独。"
+    },
+    {
+      "name": "home_in_progress",
+      "value": "正在进行"
+    },
+    {
+      "name": "home_resume",
+      "value": "继续这一局"
+    },
+    {
+      "name": "home_progress",
+      "value": "已填写 %s"
+    },
+    {
+      "name": "home_elapsed",
+      "value": "已用时 %s"
+    },
+    {
+      "name": "home_start_heading",
+      "value": "开始一局"
+    },
+    {
+      "name": "home_start_new",
+      "value": "开始新游戏"
+    },
+    {
+      "name": "home_new_game",
+      "value": "新游戏"
+    },
+    {
+      "name": "home_advanced",
+      "value": "高级选项"
+    },
+    {
+      "name": "home_difficulty",
+      "value": "难度"
+    },
+    {
+      "name": "home_variant",
+      "value": "数独类型"
+    },
+    {
+      "name": "home_selected",
+      "value": "已选择"
+    },
+    {
+      "name": "home_expanded",
+      "value": "已展开，点击收起"
+    },
+    {
+      "name": "home_collapsed",
+      "value": "已收起，点击展开"
+    },
+    {
+      "name": "home_import",
+      "value": "导入题目"
+    },
+    {
+      "name": "home_import_help",
+      "value": "粘贴种子编号或题面文本，预览后开始。"
+    },
+    {
+      "name": "home_import_input",
+      "value": "种子编号或题面文本"
+    },
+    {
+      "name": "home_paste",
+      "value": "从剪贴板粘贴"
+    },
+    {
+      "name": "home_clear",
+      "value": "清空"
+    },
+    {
+      "name": "home_start_import",
+      "value": "开始这道题"
+    },
+    {
+      "name": "home_seed_ready",
+      "value": "已识别种子编号"
+    },
+    {
+      "name": "home_previous_puzzle",
+      "value": "上一道导入题目"
+    },
+    {
+      "name": "home_next_puzzle",
+      "value": "下一道导入题目"
+    },
+    {
+      "name": "home_clipboard_empty",
+      "value": "剪贴板里没有文本"
+    },
+    {
+      "name": "home_clipboard_unavailable",
+      "value": "暂时无法读取剪贴板，请手动粘贴"
+    },
+    {
+      "name": "home_privacy",
+      "value": "隐私"
+    },
+    {
+      "name": "home_replace_title",
+      "value": "开始新的一局？"
+    },
+    {
+      "name": "home_replace_message",
+      "value": "新局会成为首页的继续进度；已有解题记录可在“历史”中查看。"
+    },
+    {
+      "name": "home_keep_current",
+      "value": "保留当前局"
+    },
+    {
+      "name": "home_replace_confirm",
+      "value": "开始新局"
+    },
+    {
+      "name": "key_remaining_a11y",
+      "value": "数字 %d，剩余 %d 个"
+    },
+    {
+      "name": "library_back_home",
+      "value": "返回首页"
+    },
+    {
+      "name": "library_back_list",
+      "value": "返回题库"
+    },
+    {
+      "name": "tutorial_title",
+      "value": "试试手势键盘"
+    },
+    {
+      "name": "tutorial_skip",
+      "value": "跳过"
+    },
+    {
+      "name": "tutorial_previous",
+      "value": "上一步"
+    },
+    {
+      "name": "tutorial_next",
+      "value": "下一步"
+    },
+    {
+      "name": "tutorial_finish",
+      "value": "完成体验"
+    },
+    {
+      "name": "tutorial_board_caption",
+      "value": "4 × 4 练习棋盘"
+    },
+    {
+      "name": "tutorial_practice_safe",
+      "value": "这里只是练习，不会改动你的游戏。"
+    },
+    {
+      "name": "tutorial_step_1_title",
+      "value": "点一下，填入数字"
+    },
+    {
+      "name": "tutorial_step_1_body",
+      "value": "第一行还缺一个 1。点下方的 1，填入高亮格。"
+    },
+    {
+      "name": "tutorial_step_2_title",
+      "value": "向上滑，记一个可能"
+    },
+    {
+      "name": "tutorial_step_2_body",
+      "value": "新高亮格还不能确定答案。在 3 键上向上滑，把 3 记成小候选。"
+    },
+    {
+      "name": "tutorial_step_3_title",
+      "value": "一键补全合法候选"
+    },
+    {
+      "name": "tutorial_step_3_body",
+      "value": "点“补全候选”，按同行、同列、同宫已有数字排除，再列出每个空格的可能性。"
+    },
+    {
+      "name": "tutorial_step_4_title",
+      "value": "确定一个，关联候选会清掉"
+    },
+    {
+      "name": "tutorial_step_4_body",
+      "value": "高亮格只剩候选 3。点 3 填入，看看同列下方两格里的小 3 会怎样。"
+    },
+    {
+      "name": "tutorial_try_tap_one",
+      "value": "试试直接点 1，不需要滑动。"
+    },
+    {
+      "name": "tutorial_tap_done",
+      "value": "填好了。大数字表示你已经确定的答案。"
+    },
+    {
+      "name": "tutorial_try_swipe_three",
+      "value": "从 3 键向上滑一小段再松手。"
+    },
+    {
+      "name": "tutorial_note_done",
+      "value": "小 3 记下了。候选表示可能性，不是答案。"
+    },
+    {
+      "name": "tutorial_fill_candidates",
+      "value": "补全候选"
+    },
+    {
+      "name": "tutorial_candidates_setting",
+      "value": "正式游戏：在“设置”开启“自动候选数”，操作区才会出现“候选”按钮。"
+    },
+    {
+      "name": "tutorial_candidates_done",
+      "value": "所有空格都有合法候选了。补全候选不会自动填答案，仍由你判断。"
+    },
+    {
+      "name": "tutorial_try_tap_three",
+      "value": "这次直接点 3，把候选变成确定的数字。"
+    },
+    {
+      "name": "tutorial_clear_done",
+      "value": "填入 3 后，%d 个关联空格里的候选 3 自动清除了；其他候选保留。"
+    },
+    {
+      "name": "tutorial_candidate_change",
+      "value": "示例格的候选从 2、3、4 变成 2、4。"
+    },
+    {
+      "name": "tutorial_note_alternative",
+      "value": "或点此添加候选 3"
+    },
+    {
+      "name": "tutorial_more_controls",
+      "value": "其他手势与键盘快捷键"
+    },
+    {
+      "name": "tutorial_more_gestures",
+      "value": "在数字键上：右滑给候选加删除线，左滑擦除该候选。手势都从按下的数字键开始。"
+    },
+    {
+      "name": "tutorial_cell_notes",
+      "value": "候选 %s"
+    },
+    {
+      "name": "tutorial_cell_empty",
+      "value": "空格"
+    },
+    {
+      "name": "tutorial_cell_label",
+      "value": "第 %d 行，第 %d 列，%s"
+    },
+    {
+      "name": "tutorial_cell_selected",
+      "value": "，当前练习格"
+    },
+    {
+      "name": "home_library_source",
+      "value": "从题库挑选"
+    },
+    {
+      "name": "home_random_source",
+      "value": "随机生成"
+    },
+    {
+      "name": "journal_title",
+      "value": "本局存档"
+    },
+    {
+      "name": "journal_archive_title",
+      "value": "棋局档案"
+    },
+    {
+      "name": "journal_close",
+      "value": "回到棋盘"
+    },
+    {
+      "name": "journal_back_history",
+      "value": "返回历史"
+    },
+    {
+      "name": "journal_start_node",
+      "value": "开始这局"
+    },
+    {
+      "name": "journal_step_number",
+      "value": "第 %d 步"
+    },
+    {
+      "name": "journal_current",
+      "value": "当前"
+    },
+    {
+      "name": "journal_fork_point",
+      "value": "分叉点"
+    },
+    {
+      "name": "journal_named_point",
+      "value": "关键节点"
+    },
+    {
+      "name": "journal_auto_point",
+      "value": "自动记录"
+    },
+    {
+      "name": "journal_auto_group",
+      "value": "%d 步自动记录"
+    },
+    {
+      "name": "journal_collapse_steps",
+      "value": "收起步骤"
+    },
+    {
+      "name": "journal_expand_steps",
+      "value": "展开查看每一步"
+    },
+    {
+      "name": "journal_tree_help",
+      "value": "每一步都会记录。点节点先预览，关键节点可以命名。"
+    },
+    {
+      "name": "journal_back_tree",
+      "value": "返回存档树"
+    },
+    {
+      "name": "journal_preview",
+      "value": "节点预览"
+    },
+    {
+      "name": "journal_preview_note",
+      "value": "这是只读预览，不会改变当前棋盘。"
+    },
+    {
+      "name": "journal_preview_cell",
+      "value": "第 %d 行，第 %d 列，%s"
+    },
+    {
+      "name": "journal_legacy",
+      "value": "仅结果记录"
+    },
+    {
+      "name": "journal_legacy_note",
+      "value": "旧记录只有结果摘要，不能恢复当时的盘面。若下方有棋盘，展示的是原题。"
+    },
+    {
+      "name": "journal_node_metrics",
+      "value": "节点用时 %s · 错误 %d"
+    },
+    {
+      "name": "journal_name_node",
+      "value": "命名这个节点"
+    },
+    {
+      "name": "journal_name_placeholder",
+      "value": "例如：排除 7 之前"
+    },
+    {
+      "name": "journal_name_cancel",
+      "value": "取消"
+    },
+    {
+      "name": "journal_name_save",
+      "value": "保存名称"
+    },
+    {
+      "name": "journal_name_failed",
+      "value": "名称未保存，请重试。"
+    },
+    {
+      "name": "journal_original_time",
+      "value": "原局累计用时 %s"
+    },
+    {
+      "name": "journal_continue",
+      "value": "继续这一局"
+    },
+    {
+      "name": "journal_continue_practice",
+      "value": "继续当前试验"
+    },
+    {
+      "name": "journal_restore_trial",
+      "value": "从此处继续试验"
+    },
+    {
+      "name": "journal_continue_note",
+      "value": "继续当前节点，已有存档都保留。"
+    },
+    {
+      "name": "journal_fork_note",
+      "value": "将创建试验分支，保留原分支，也不改变原成绩。"
+    },
+    {
+      "name": "journal_load_failed",
+      "value": "暂时无法读取存档。"
+    },
+    {
+      "name": "journal_retry",
+      "value": "重试保存"
+    },
+    {
+      "name": "history_title",
+      "value": "历史"
+    },
+    {
+      "name": "history_intro",
+      "value": "按最近活动查看每一局。新记录保留完整步骤，旧记录显示已有结果。"
+    },
+    {
+      "name": "history_unknown_difficulty",
+      "value": "未记录难度"
+    },
+    {
+      "name": "history_status_completed",
+      "value": "已完成"
+    },
+    {
+      "name": "history_status_ended",
+      "value": "已结束"
+    },
+    {
+      "name": "history_status_active",
+      "value": "进行中"
+    },
+    {
+      "name": "history_session_details",
+      "value": "%d × %d · 用时 %s · %d 个记录点"
+    },
+    {
+      "name": "history_empty",
+      "value": "还没有棋局记录"
+    },
+    {
+      "name": "history_empty_detail",
+      "value": "开始一局后，每一步会自动保留在这里。"
+    },
+    {
+      "name": "history_load_more",
+      "value": "加载更早的棋局"
+    },
+    {
+      "name": "journal_old_node",
+      "value": "旧档节点"
+    },
+    {
+      "name": "journal_time_unknown",
+      "value": "未记录时间"
+    },
+    {
+      "name": "journal_partial_history",
+      "value": "旧存档有部分步骤无法校验，当前只展示可验证的节点。"
+    },
+    {
+      "name": "journal_original_branch",
+      "value": "原始挑战"
+    },
+    {
+      "name": "journal_trial_branch",
+      "value": "试验分支"
+    },
+    {
+      "name": "journal_open",
+      "value": "检查点"
+    },
+    {
+      "name": "journal_loading",
+      "value": "正在打开存档…"
+    },
+    {
+      "name": "journal_save_error",
+      "value": "存档记录暂未写入，已保留待重试"
+    },
+    {
+      "name": "journal_reload",
+      "value": "重试"
+    },
+    {
+      "name": "journal_practice_banner",
+      "value": "试验分支 · 不影响原成绩"
+    },
+    {
+      "name": "journal_completed_practice",
+      "value": "这条思路完成了"
+    },
+    {
+      "name": "journal_start_error",
+      "value": "无法打开解题记录，请返回后重试"
+    },
+    {
+      "name": "journal_action_fill",
+      "value": "填入数字"
+    },
+    {
+      "name": "journal_action_note",
+      "value": "记录候选"
+    },
+    {
+      "name": "journal_action_eliminate",
+      "value": "排除候选"
+    },
+    {
+      "name": "journal_action_erase_note",
+      "value": "擦除候选"
+    },
+    {
+      "name": "journal_action_erase",
+      "value": "擦除"
+    },
+    {
+      "name": "journal_action_auto_notes",
+      "value": "补全候选"
+    },
+    {
+      "name": "journal_action_hint",
+      "value": "使用提示"
+    },
+    {
+      "name": "journal_action_multi_notes",
+      "value": "批量候选操作"
+    },
+    {
+      "name": "journal_action_undo",
+      "value": "撤销"
+    },
+    {
+      "name": "journal_action_redo",
+      "value": "重做"
+    },
+    {
+      "name": "journal_action_checkpoint",
+      "value": "保存节点"
+    },
+    {
+      "name": "journal_action_recovered",
+      "value": "恢复记录"
+    },
+    {
+      "name": "journal_action_imported_edit",
+      "value": "旧档步骤"
+    },
+    {
+      "name": "journal_action_import",
+      "value": "导入旧存档"
+    },
+    {
+      "name": "journal_action_start",
+      "value": "开始游戏"
+    },
+    {
+      "name": "journal_action_other",
+      "value": "操作"
+    },
+    {
+      "name": "journal_saved_routes",
+      "value": "已保存路线"
+    },
+    {
+      "name": "journal_original_route",
+      "value": "原路线"
+    },
+    {
+      "name": "journal_solving_route",
+      "value": "解题路线 %d"
+    },
+    {
+      "name": "journal_trial_route",
+      "value": "试验 %d"
+    },
+    {
+      "name": "journal_route_current",
+      "value": "当前路线"
+    },
+    {
+      "name": "journal_route_preview",
+      "value": "点选仅预览"
+    },
+    {
+      "name": "journal_routes_help",
+      "value": "点选路线只预览它的最新节点；确认继续后才会切换。"
+    },
+    {
+      "name": "journal_continue_route",
+      "value": "继续这条路线"
+    },
+    {
+      "name": "journal_continue_route_note",
+      "value": "继续所选路线的最新节点，其他路线完整保留。"
+    },
+    {
+      "name": "journal_node_time",
+      "value": "节点用时 %s"
     }
   ]
 }

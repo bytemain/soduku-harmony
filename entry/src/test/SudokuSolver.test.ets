@@ -1,6 +1,8 @@
 import { describe, it, expect } from '@ohos/hypium'
 import { solve, countSolutions, hasSolution, hasUniqueSolution } from '../main/ets/utils/SudokuSolver'
 import { createEmptyGrid } from '../main/ets/utils/Common'
+import { createKillerConfig, createStandardConfig, KillerCage } from '../main/ets/models/VariantConfig'
+import { applyTopology } from '../main/ets/utils/Topology'
 
 // 一道标准数独题（来自 Norvig 的测试用例之一）
 function getTestPuzzle(): number[][] {
@@ -34,6 +36,21 @@ function getTestSolution(): number[][] {
 }
 
 export default function solverTest() {
+  describe('SudokuSolver.KillerCages', () => {
+    it('small_cages_do_not_require_every_digit_to_appear', 0, () => {
+      const cages: KillerCage[] = [{ cells: [0], sum: 4 }, { cells: [1, 2], sum: 11 }]
+      applyTopology(createKillerConfig(cages))
+      try {
+        const solution = solve(getTestPuzzle())
+        expect(solution !== null).assertTrue()
+        expect(JSON.stringify(solution)).assertEqual(JSON.stringify(getTestSolution()))
+        expect(countSolutions(getTestPuzzle(), 2)).assertEqual(1)
+      } finally {
+        applyTopology(createStandardConfig())
+      }
+    })
+  })
+
   describe('SudokuSolver.solve', () => {
     it('solves_standard_puzzle_correctly', 0, () => {
       const puzzle = getTestPuzzle()

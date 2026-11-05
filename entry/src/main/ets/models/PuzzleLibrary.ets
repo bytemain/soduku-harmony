@@ -6,6 +6,7 @@
  *
  * 参考：Doc 11-内置题库下载与进度追踪方案
  */
+import { GameSaveData } from './GameSaveData'
 import { Difficulty } from '../constants/GameConstants'
 import { PuzzleMetadata } from '../utils/SudokuFormat'
 
@@ -44,6 +45,8 @@ export interface PuzzleProgress {
    * undefined 表示尚未开始或已重置。
    */
   cellStates?: string
+  /** 当前这次游玩的完整局面；完成成绩可独立保留。 */
+  gameSave?: GameSaveData
   /** 完成百分比 (0-100) */
   percentage: number
 }
@@ -210,4 +213,20 @@ export function computeLibraryStats(puzzles: PuzzleEntry[]): LibraryStats {
   const notStarted = total - completed - inProgress
   const overallPercentage = total > 0 ? Math.round((completed / total) * 100) : 0
   return { completed, inProgress, notStarted, total, overallPercentage }
+}
+
+/** 重玩中断不抹掉已取得的完成记录；同等错误数下保留更快成绩。 */
+export function mergePuzzleProgress(previous: PuzzleProgress | null, next: PuzzleProgress): PuzzleProgress {
+  if (!previous || previous.status !== 'completed') return next
+  if (next.status === 'completed' && (next.errorCount < previous.errorCount ||
+    (next.errorCount === previous.errorCount && next.elapsedSeconds < previous.elapsedSeconds))) return next
+  return {
+    status: 'completed',
+    startedAt: previous.startedAt,
+    completedAt: previous.completedAt,
+    elapsedSeconds: previous.elapsedSeconds,
+    errorCount: previous.errorCount,
+    percentage: 100,
+    gameSave: next.gameSave,
+  }
 }

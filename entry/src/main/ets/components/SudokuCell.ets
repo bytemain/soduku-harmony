@@ -1,9 +1,9 @@
 /**
  * SudokuCell.ets — 单元格组件
  *
- * 负责渲染一个 36vp 正方形格子。4 种显示模式：
- *   - 给定数字（黑色 Bold）
- *   - 用户填入（蓝色）
+ * 按父棋盘分配的实际格子大小渲染，短横屏时文字随容器缩小。4 种显示模式：
+ *   - 给定数字（深绿衬线墨印）
+ *   - 用户填入（墨绿衬线）
  *   - 错误数字（红色）
  *   - 笔记（3×3 微型排列）
  *
@@ -13,31 +13,76 @@
  */
 import { CellData, getNoteState, NoteState } from '../models/CellData'
 import { BoardCellDecoration, createEmptyBoardCellDecoration } from '../models/BoardDecoration'
-import { Colors, Sizes, DIGITS, BOX_COLS, BOX_ROWS } from '../constants/GameConstants'
+import { ColorsConfig, getThemeColors, Sizes, DIGITS, BOX_COLS, BOX_ROWS } from '../constants/GameConstants'
 import { PEERS } from '../utils/Topology'
+import { PAPER_DIGIT_FONT_FAMILY, PAPER_DIGIT_GIVEN_WEIGHT, PAPER_DIGIT_USER_WEIGHT } from '../constants/Typography'
 
 @Component
 export struct SudokuCell {
-  @ObjectLink cellData: CellData
+  @StorageProp('isDarkMode') private isDarkMode: boolean = false
+
+  private getPalette(): ColorsConfig {
+    return getThemeColors(this.isDarkMode)
+  }
+
+  @ObjectLink @Watch('onCellDataChanged') cellData: CellData
   /** 选中格的 value（用于同数字高亮判断） */
   @Prop selectedValue: number = 0
+  @Prop showErrors: boolean = true
   /** 是否为当前提示目标格 */
   @Prop isHintTarget: boolean = false
   /** 变种棋盘装饰（如 Killer 笼子边界/角标），由外部策略预计算 */
   @Prop decoration: BoardCellDecoration = createEmptyBoardCellDecoration()
   /** 全部 81 个格子的引用，用于笔记冲突检测 */
-  allCells: CellData[] = []
+  @Prop allCells: CellData[] = []
   onCellClick: () => void = () => {}
   /** 鼠标拖拽多选回调 action: 'start' | 'move' | 'end' */
   onMouseDragSelect: (action: string) => void = () => {}
 
-  // --- 动画状态 ---
-  @State private fillScale: number = 1.0
-  @State private errorShakeX: number = 0
-  /** 上一次渲染的 value，用于检测变化 */
+  // 数字只做很轻的墨色收敛，不改变位置、大小或网格几何。
+  @State private inkOpacity: number = 1
+  private animationReady: boolean = false
+  private boundCell: CellData | null = null
   private lastValue: number = 0
-  /** 上一次的 error 状态 */
-  private lastError: boolean = false
+
+  aboutToAppear(): void {
+    // 初次呈现/存档恢复直接显示，不能让已填数字同时播放入场动画。
+    this.boundCell = this.cellData
+    this.lastValue = this.cellData.value
+    this.animationReady = true
+  }
+
+  aboutToDisappear(): void {
+    this.animationReady = false
+    this.boundCell = null
+    // 无延迟任务或完成回调；节点销毁后不会继续写入组件状态。
+  }
+
+  private onCellDataChanged(): void {
+    const value = this.cellData.value
+    // ForEach 复用格子但换成另一盘数据时，也应直接显示。
+    if (!this.animationReady || this.boundCell !== this.cellData) {
+      this.boundCell = this.cellData
+      this.lastValue = value
+      this.inkOpacity = 1
+      return
+    }
+    // flags/notes/高亮会频繁变化，只有本格 value 变化才响应。
+    if (value === this.lastValue) return
+    this.lastValue = value
+
+    const animateInk = value !== 0 && !this.cellData.isGiven
+    const uiContext = this.getUIContext()
+    // 零时长重置上一笔，不追加定时器；快速覆盖数字也不会排队弹跳。
+    uiContext.animateTo({ duration: 0 }, () => {
+      this.inkOpacity = animateInk ? 0.88 : 1
+    })
+    if (animateInk) {
+      uiContext.animateTo({ duration: 90, curve: Curve.EaseOut }, () => {
+        this.inkOpacity = 1
+      })
+    }
+  }
 
   /**
    * 决定格子背景色（按优先级从高到低）
@@ -52,39 +97,39 @@ export struct SudokuCell {
     }
     // 1. 选中格 → 浅蓝
     if (this.cellData.isSelected) {
-      return Colors.cellSelected
+      return this.getPalette().cellSelected
     }
     // 2. 错误格 → 浅红
-    if (this.cellData.isError) {
-      return Colors.cellError
+    if (this.showErrors && this.cellData.isError) {
+      return this.getPalette().cellError
     }
     // 3. 同数字 → 浅绿（棋盘上所有与 selectedValue 相同数字的格子）
     if (this.cellData.value !== 0
       && this.selectedValue !== 0 && this.cellData.value === this.selectedValue) {
-      return Colors.cellSameNumber
+      return this.getPalette().cellSameNumber
     }
     // 4. 同行列宫 / 变种约束高亮
     if (this.cellData.isHighlighted) {
       if (this.decoration.highlightBackgroundColor.length > 0) {
         return this.decoration.highlightBackgroundColor
       }
-      return Colors.cellHighlight
+      return this.getPalette().cellHighlight
     }
     // 5. 变种底纹（如 Sudoku-X 对角线）
     if (this.decoration.backgroundColor.length > 0) {
       return this.decoration.backgroundColor
     }
     // 6. 默认白色
-    return Colors.cellDefault
+    return this.getPalette().cellDefault
   }
 
   /**
    * 数字的文字颜色
    */
   private getTextColor(): ResourceColor {
-    if (this.cellData.isError) return Colors.textError
-    if (this.cellData.isGiven) return Colors.textGiven
-    return Colors.textUser
+    if (this.showErrors && this.cellData.isError) return this.getPalette().textError
+    if (this.cellData.isGiven) return this.getPalette().textGiven
+    return this.getPalette().textUser
   }
 
   /**
@@ -97,6 +142,10 @@ export struct SudokuCell {
         GridItem() {
           Text(this.getNoteText(n))
             .fontSize(Sizes.noteFont)
+            .minFontSize(1)
+            .maxFontSize(Sizes.noteFont)
+            .maxLines(1)
+            .heightAdaptivePolicy(TextHeightAdaptivePolicy.LAYOUT_CONSTRAINT_FIRST)
             .fontColor(this.getNoteColor(n))
             .textAlign(TextAlign.Center)
             .decoration(this.getNoteDecoration(n))
@@ -111,6 +160,8 @@ export struct SudokuCell {
     .rowsTemplate('1fr '.repeat(BOX_ROWS).trim())
     .width('100%')
     .height('100%')
+    // Killer 角标占据顶部区域，候选数从角标下方开始。
+    .padding({ top: this.decoration.topLeftLabel.length > 0 ? '28%' : 0 })
   }
 
   /**
@@ -135,19 +186,19 @@ export struct SudokuCell {
 
   private getNoteColor(n: number): ResourceColor {
     const state = getNoteState(this.cellData.notes, n)
-    if (state === NoteState.EMPTY) return Colors.textNote
-    if (state === NoteState.ELIMINATED) return Colors.textNoteElim
+    if (state === NoteState.EMPTY) return this.getPalette().textNote
+    if (state === NoteState.ELIMINATED) return this.getPalette().textNoteElim
     // Check if this note conflicts with a peer's filled value
-    if (this.isNoteConflicting(n)) return Colors.textError
+    if (this.showErrors && this.isNoteConflicting(n)) return this.getPalette().textError
     // Highlight note digit matching the selected cell's value
-    if (this.selectedValue !== 0 && n === this.selectedValue) return Colors.textNoteHighlight
-    return Colors.textNote
+    if (this.selectedValue !== 0 && n === this.selectedValue) return this.getPalette().textNoteHighlight
+    return this.getPalette().textNote
   }
 
   private getNoteDecoration(n: number): TextDecorationOptions {
     const state = getNoteState(this.cellData.notes, n)
     if (state === NoteState.ELIMINATED) {
-      return { type: TextDecorationType.LineThrough, color: Colors.textNoteElim }
+      return { type: TextDecorationType.LineThrough, color: this.getPalette().textNoteElim }
     }
     return { type: TextDecorationType.None }
   }
@@ -159,7 +210,7 @@ export struct SudokuCell {
     const state = getNoteState(this.cellData.notes, n)
     // 只有 ACTIVE 笔记才需要背景高亮，ELIMINATED（划线划掉的）不需要
     if (state !== NoteState.ACTIVE) return Color.Transparent
-    if (this.selectedValue !== 0 && n === this.selectedValue) return Colors.noteHighlightBg
+    if (this.selectedValue !== 0 && n === this.selectedValue) return this.getPalette().noteHighlightBg
     return Color.Transparent
   }
 
@@ -177,9 +228,8 @@ export struct SudokuCell {
             right: this.decoration.gridBorder.right < 0 ? Sizes.cellBorderThin : 0,
             bottom: this.decoration.gridBorder.bottom < 0 ? Sizes.cellBorderThin : 0,
           },
-          color: Colors.cellBorderThin,
+          color: this.getPalette().cellBorderThin,
         })
-        .animation({ duration: 150 })
 
       // 装饰边框层：在网格线之上叠加 cage/region 的彩色边框
       if (this.hasKillerBorder()) {
@@ -191,7 +241,7 @@ export struct SudokuCell {
         }
         .width('100%')
         .height('100%')
-        .backgroundColor(Colors.killerCageBorder)
+        .backgroundColor(this.getPalette().killerCageBorder)
         .padding({
           left: this.decoration.border.left,
           top: this.decoration.border.top,
@@ -207,7 +257,7 @@ export struct SudokuCell {
           Column()
             .width(this.getCornerPatchSize())
             .height(this.getCornerPatchSize())
-            .backgroundColor(Colors.killerCageBorder)
+            .backgroundColor(this.getPalette().killerCageBorder)
         }
         .width('100%')
         .height('100%')
@@ -219,7 +269,7 @@ export struct SudokuCell {
           Column()
             .width(this.getCornerPatchSize())
             .height(this.getCornerPatchSize())
-            .backgroundColor(Colors.killerCageBorder)
+            .backgroundColor(this.getPalette().killerCageBorder)
         }
         .width('100%')
         .height('100%')
@@ -231,7 +281,7 @@ export struct SudokuCell {
           Column()
             .width(this.getCornerPatchSize())
             .height(this.getCornerPatchSize())
-            .backgroundColor(Colors.killerCageBorder)
+            .backgroundColor(this.getPalette().killerCageBorder)
         }
         .width('100%')
         .height('100%')
@@ -243,7 +293,7 @@ export struct SudokuCell {
           Column()
             .width(this.getCornerPatchSize())
             .height(this.getCornerPatchSize())
-            .backgroundColor(Colors.killerCageBorder)
+            .backgroundColor(this.getPalette().killerCageBorder)
         }
         .width('100%')
         .height('100%')
@@ -252,41 +302,47 @@ export struct SudokuCell {
       }
 
       if (this.decoration.topLeftLabel.length > 0) {
-        Column() {
-          Row() {
-            Text(this.decoration.topLeftLabel)
-              .fontSize(8)
-              .fontColor(Colors.killerCageLabel)
-              .fontWeight(FontWeight.Medium)
-              .margin({ left: 2, top: 1 })
-              .backgroundColor(Colors.boardBg)
-            Blank()
-          }
-          Blank()
-        }
-        .width('100%')
-        .height('100%')
+        Text(this.decoration.topLeftLabel)
+          .fontSize(8)
+          .minFontSize(1)
+          .maxFontSize(8)
+          .maxLines(1)
+          .heightAdaptivePolicy(TextHeightAdaptivePolicy.LAYOUT_CONSTRAINT_FIRST)
+          .fontColor(this.getPalette().killerCageLabel)
+          .fontWeight(FontWeight.Medium)
+          .textAlign(TextAlign.Start)
+          .width('50%')
+          .height('25%')
+          .position({ x: '5%', y: '3%' })
+          .backgroundColor(this.getPalette().boardBg)
+          .hitTestBehavior(HitTestMode.None)
       }
 
-      if (this.cellData.value !== 0) {
-        // 显示数字
-        Text(this.cellData.value.toString())
-          .fontSize(Sizes.givenFont)
-          .fontColor(this.getTextColor())
-          .fontWeight(this.cellData.isGiven ? FontWeight.Bold : FontWeight.Normal)
-          .textAlign(TextAlign.Center)
-          .scale({ x: this.fillScale, y: this.fillScale })
-          .translate({ x: this.errorShakeX })
-          .onAppear(() => {
-            this.triggerFillAnimation()
-          })
-      } else if (this.cellData.notes !== 0) {
+      // 保持同一个文字节点，首次填入和覆盖已有数字使用相同反馈。
+      Text(this.cellData.value !== 0 ? this.cellData.value.toString() : '')
+        .fontFamily(PAPER_DIGIT_FONT_FAMILY)
+        .fontFeature('"lnum" 1, "tnum" 1')
+        .fontSize(Sizes.givenFont)
+        .minFontSize(1)
+        .maxFontSize(Sizes.givenFont)
+        .maxLines(1)
+        .heightAdaptivePolicy(TextHeightAdaptivePolicy.LAYOUT_CONSTRAINT_FIRST)
+        // 数字尺寸固定，保留格内留白供字形与边框呼吸。
+        .width('86%')
+        .height('86%')
+        .fontColor(this.getTextColor())
+        .fontWeight(this.cellData.isGiven ? PAPER_DIGIT_GIVEN_WEIGHT : PAPER_DIGIT_USER_WEIGHT,
+          { enableVariableFontWeight: true })
+        .textAlign(TextAlign.Center)
+        .opacity(this.inkOpacity)
+      if (this.cellData.value === 0 && this.cellData.notes !== 0) {
         // 显示笔记
         this.NotesGrid()
       }
     }
     .width('100%')
     .height('100%')
+    .clip(true)
     .onClick(() => {
       this.onCellClick()
     })
@@ -300,10 +356,6 @@ export struct SudokuCell {
           this.onMouseDragSelect('end')
         }
       }
-    })
-    .onAppear(() => {
-      this.lastValue = this.cellData.value
-      this.lastError = this.cellData.isError
     })
   }
 
@@ -325,37 +377,4 @@ export struct SudokuCell {
     )
   }
 
-  /**
-   * 填数弹跳动画：先放大再回弹
-   */
-  private triggerFillAnimation(): void {
-    // 只在新填入数字时触发（非初始加载）
-    if (this.cellData.isGiven) return
-
-    this.fillScale = 0.5
-    animateTo({ duration: 200, curve: Curve.EaseOut }, () => {
-      this.fillScale = 1.15
-    })
-    setTimeout(() => {
-      animateTo({ duration: 150, curve: Curve.EaseInOut }, () => {
-        this.fillScale = 1.0
-      })
-    }, 200)
-  }
-
-  /**
-   * 错误抖动动画
-   */
-  triggerErrorShake(): void {
-    const shakeSequence: number[] = [6, -6, 4, -4, 2, -2, 0]
-    let delay = 0
-    for (const offset of shakeSequence) {
-      setTimeout(() => {
-        animateTo({ duration: 50, curve: Curve.Linear }, () => {
-          this.errorShakeX = offset
-        })
-      }, delay)
-      delay += 50
-    }
-  }
 }

@@ -24,6 +24,8 @@ import { VariantConfig, getRegionMap } from '../models/VariantConfig'
 export class VariantTopology {
   /** 所有 units（行 + 列 + 区域 + 对角线 + 笼子） */
   allUnits: number[][]
+  /** 当前实际区域（标准宫或 Jigsaw 不规则宫），不包含行、列和笼子 */
+  regionUnits: number[][]
   /** 每个格子所属的 units 列表 */
   unitsOf: number[][][]
   /** 每个格子的 peers 列表 */
@@ -34,8 +36,9 @@ export class VariantTopology {
   totalCells: number
 
   constructor(allUnits: number[][], unitsOf: number[][][], peers: number[][],
-    gridSize: number, totalCells: number) {
+    gridSize: number, totalCells: number, regionUnits: number[][]) {
     this.allUnits = allUnits
+    this.regionUnits = regionUnits
     this.unitsOf = unitsOf
     this.peers = peers
     this.gridSize = gridSize
@@ -234,7 +237,7 @@ export function buildVariantTopology(config: VariantConfig): VariantTopology {
   const unitsOf = buildUnitsOfFromAllUnits(allUnits, totalCells)
   const peers = buildPeersFromUnitsOf(unitsOf, totalCells)
 
-  return new VariantTopology(allUnits, unitsOf, peers, gridSize, totalCells)
+  return new VariantTopology(allUnits, unitsOf, peers, gridSize, totalCells, regionUnits)
 }
 
 // ============================================================

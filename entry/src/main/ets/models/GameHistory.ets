@@ -11,6 +11,8 @@
  * 参考：Doc 03 任务 2.1
  */
 
+import { CellData, getNoteState, setNoteState, NoteState } from './CellData'
+
 export class CellSnapshot {
   index: number
   oldValue: number
@@ -91,4 +93,23 @@ export class GameHistory {
     this.undoStack = []
     this.redoStack = []
   }
+}
+
+/** 填数造成的同伴候选变化，必须与填数快照一起组成一个撤销批次。 */
+export function clearPeerNotesWithSnapshots(cells: CellData[], filledIndex: number,
+  peers: number[]): CellSnapshot[] {
+  const snapshots: CellSnapshot[] = []
+  const value = cells[filledIndex].value
+  if (value === 0) return snapshots
+  for (const index of peers) {
+    const cell = cells[index]
+    if (cell.value !== 0) continue
+    const state = getNoteState(cell.notes, value)
+    if (state !== NoteState.ACTIVE && state !== NoteState.ELIMINATED) continue
+    const notes = setNoteState(cell.notes, value, NoteState.EMPTY)
+    snapshots.push(new CellSnapshot(index, cell.value, cell.value,
+      cell.notes, notes, cell.flags, cell.flags))
+    cell.notes = notes
+  }
+  return snapshots
 }

@@ -1,0 +1,4 @@
+Source: https://github.com/google/fonts/tree/main/ofl/sourceserif4
+Original unmodified SourceSerif4[opsz,wght].ttf
+License: SIL Open Font License 1.1; see SourceSerif4-OFL.txt
+SHA-256: 97b2d4da6e3cb494b5a1e66ae176914d852ccabef49e0c02c0df25f3e39aca0b

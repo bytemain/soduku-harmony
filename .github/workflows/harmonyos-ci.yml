@@ -1,128 +1,67 @@
-name: HarmonyOS CI/CD Pipeline
+name: HarmonyOS CI
 
 on:
   push:
-    branches:
-      - main
-      - openharmony_master
-    tags:
-      - '*'
+    branches: [main, openharmony_master]
+    tags: ['*']
   pull_request:
-    branches:
-      - main
-      - openharmony_master
+    branches: [main, openharmony_master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   build:
+    name: Build review artifacts
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     container: ghcr.io/bytemain/harmony-next-pipeline-docker/harmonyos-ci-image:v6.0.2.642
-
     steps:
-      # 1. 拉取代码
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      # 2. 安装项目依赖
+      - uses: actions/checkout@v4
+      - name: Check source text for emoji
+        run: |
+          node scripts/check-no-emoji.mjs --self-test
+          node scripts/check-no-emoji.mjs
+          node scripts/check-no-emoji.mjs website/dist
+      - name: Verify result gate
+        run: node --test scripts/verify-hypium-results.test.mjs scripts/run-hypium-tests.test.mjs
       - name: Install dependencies
+        run: ohpm install --all
+      - name: Build debug HAP
         run: |
-          cd $GITHUB_WORKSPACE
-          ohpm install --all
-
-      # 3. 构建 HAP 文件
-      - name: Build HAP
-        run: |
-          cd $GITHUB_WORKSPACE
           hvigorw clean --no-daemon
           hvigorw assembleHap --mode module -p product=default -p buildMode=debug --no-daemon
-
-      # 4. 获取构建输出路径
-      - name: Get build output path
-        id: get_build_output_path
-        run: |
-          cd $GITHUB_WORKSPACE
-          echo "output_path=$(ls -d $PWD/entry/build/default/outputs/default)" >> $GITHUB_OUTPUT
-
-      # 5. 上传构建输出作为 artifact
-      - name: Upload Build Output
+      - name: Save debug HAP for review
         uses: actions/upload-artifact@v4
         with:
-          name: build-output
-          path: ${{ steps.get_build_output_path.outputs.output_path }}
+          name: debug-hap
+          path: entry/build/default/outputs/default/*.hap
+          if-no-files-found: error
+      - name: Build release APP
+        run: hvigorw assembleApp --mode project -p product=default -p buildMode=release --no-daemon
+      - name: Save release APP for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-app
+          path: build/outputs/default/*.app
+          if-no-files-found: error
+      - name: Explain artifact status
+        run: |
+          echo 'Build artifacts are for review. Without configured signing material they are unsigned. No store upload or public GitHub Release was performed.' >> "$GITHUB_STEP_SUMMARY"
 
+  # Job ID stays `test`; update any required status-check names to this explicit label.
   test:
-    needs: build
+    name: Compile native tests (NOT executed)
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     container: ghcr.io/bytemain/harmony-next-pipeline-docker/harmonyos-ci-image:v6.0.2.642
-
+    env:
+      HYPIUM_COMPILE_ONLY: '1'
     steps:
-      # 1. 拉取代码
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      # 2. 安装项目依赖
+      - uses: actions/checkout@v4
       - name: Install dependencies
+        run: ohpm install --all
+      - name: Compile unit tests only
+        run: hvigorw test --mode module -p product=default --no-daemon
+      - name: Explain execution limit
         run: |
-          cd $GITHUB_WORKSPACE
-          ohpm install --all
-
-      # 3. 编译单元测试（CI 环境自动跳过测试执行，仅验证编译，见 entry/hvigorfile.ts）
-      - name: Compile unit tests
-        run: |
-          cd $GITHUB_WORKSPACE
-          hvigorw test --mode module -p product=default --no-daemon
-
-  publish:
-    needs: [build, test]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    container: ghcr.io/bytemain/harmony-next-pipeline-docker/harmonyos-ci-image:v6.0.2.642
-    if: startsWith(github.ref, 'refs/tags/v')
-    steps:
-      # 1. 拉取代码
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      # 2. 下载构建输出 artifact
-      - name: Download Build Output
-        uses: actions/download-artifact@v4
-        with:
-          name: build-output
-          path: $GITHUB_WORKSPACE/entry/build/default/outputs/default
-
-      # 3. 签名 HAP 文件，如果存在签名文件和证书文件还有密钥文件和KEY_PASSWORD和KEYSTORE_PASSWORD
-      - name: Sign HAP
-        id: sign_hap
-        if: env.SIGNING_CERT && env.SIGNING_PROFILE && env.SIGNING_KEY
-        run: |
-          cd $GITHUB_WORKSPACE
-          java -jar /harmonyos-tools/command-line-tools/sdk/default/openharmony/toolchains/lib/hap-sign-tool.jar \
-          sign-app \
-          -keyAlias "ide_demo_app" \
-          -signAlg "SHA256withECDSA" \
-          -mode "localSign" \
-          -appCertFile "${{ env.SIGNING_CERT }}" \
-          -profileFile "${{ env.SIGNING_PROFILE }}" \
-          -inFile "./entry/build/default/outputs/default/entry-default.hap" \
-          -keystoreFile "${{ env.SIGNING_KEY }}" \
-          -outFile "./entry/build/default/outputs/default/entry-default-signed.hap" \
-          -keyPwd "${{ secrets.KEY_PASSWORD }}" \
-          -keystorePwd "${{ secrets.KEYSTORE_PASSWORD }}" \
-          -signCode "1"
-
-      # 4. 创建 GitHub Release 并上传资产
-      - name: Create Release and Upload Assets
-        uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/v')
-        with:
-          name: ${{ github.ref_name }}
-          files: |
-            ${{ steps.sign_hap.outcome == 'success' && '$GITHUB_WORKSPACE/entry/build/default/outputs/default/entry-default-signed.hap' || '$GITHUB_WORKSPACE/entry/build/default/outputs/default/entry-default.hap' }}
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          echo 'Native Hypium cases were NOT executed. This Linux image has no DevEco Previewer. Run the Native unit tests workflow on a configured macOS runner before release.' >> "$GITHUB_STEP_SUMMARY"

@@ -16,8 +16,8 @@
  *
  * 参考：Doc 01 §5-6, Simon Tatham Solo 难度模型
  */
-import { GRID_SIZE, TOTAL_CELLS, BOX_ROWS, BOX_COLS, BOX_COUNT_ROWS, BOX_COUNT_COLS } from '../constants/GameConstants'
-import { PEERS, UNITS_OF, ALL_UNITS, rowOf, colOf, boxOf, indexOf } from './Topology'
+import { GRID_SIZE, TOTAL_CELLS } from '../constants/GameConstants'
+import { PEERS, UNITS_OF, ALL_UNITS, REGION_UNITS, rowOf, colOf, regionOf, indexOf } from './Topology'
 import { KillerCage } from '../models/VariantConfig'
 
 // ============================================================
@@ -226,17 +226,9 @@ function getColUnit(col: number): number[] {
   return unit
 }
 
-/** 宫 unit 索引 (0 .. GRID_SIZE-1) */
-function getBoxUnit(box: number): number[] {
-  const br = Math.floor(box / BOX_COUNT_COLS) * BOX_ROWS
-  const bc = (box % BOX_COUNT_COLS) * BOX_COLS
-  const unit: number[] = []
-  for (let r = br; r < br + BOX_ROWS; r++) {
-    for (let c = bc; c < bc + BOX_COLS; c++) {
-      unit.push(r * GRID_SIZE + c)
-    }
-  }
-  return unit
+/** 当前区域 unit（标准宫或 Jigsaw 不规则宫）。 */
+function getRegionUnit(region: number): number[] {
+  return REGION_UNITS[region]
 }
 
 // ============================================================
@@ -288,6 +280,8 @@ function findNakedSingle(candidates: number[]): SolveStep | null {
  */
 function findHiddenSingle(candidates: number[]): SolveStep | null {
   for (const unit of ALL_UNITS) {
+    // Killer 小笼子只限制不重复，不要求包含每一个数字。
+    if (unit.length !== GRID_SIZE) continue
     for (let d = 1; d <= GRID_SIZE; d++) {
       const bit = bitOf(d)
       let count = 0
@@ -316,7 +310,7 @@ function findHiddenSingle(candidates: number[]): SolveStep | null {
             descParams = [c + 1, d, r + 1]
           } else {
             descKey = 'step_hidden_single_box'
-            descParams = [boxOf(place) + 1, d, r + 1, c + 1]
+            descParams = [regionOf(place) + 1, d, r + 1, c + 1]
           }
           return new SolveStep(
             Technique.HIDDEN_SINGLE,
@@ -541,8 +535,8 @@ function findNakedPair(candidates: number[]): SolveStep | null {
  * → 该行/列的其他宫中消除该数字
  */
 function findPointingPair(candidates: number[]): SolveStep | null {
-  for (let box = 0; box < GRID_SIZE; box++) {
-    const boxCells = getBoxUnit(box)
+  for (let box = 0; box < REGION_UNITS.length; box++) {
+    const boxCells = getRegionUnit(box)
 
     for (let d = 1; d <= GRID_SIZE; d++) {
       const bit = bitOf(d)
@@ -554,7 +548,7 @@ function findPointingPair(candidates: number[]): SolveStep | null {
         }
       }
 
-      if (positions.length < 2 || positions.length > 3) continue
+      if (positions.length < 2) continue
 
       // 检查是否都在同一行
       const rows = new Set<number>()
@@ -570,7 +564,7 @@ function findPointingPair(candidates: number[]): SolveStep | null {
         const eliminations: CandidateElimination[] = []
         for (let c = 0; c < GRID_SIZE; c++) {
           const idx = indexOf(row, c)
-          if (boxOf(idx) !== box && (candidates[idx] & bit) !== 0) {
+          if (regionOf(idx) !== box && (candidates[idx] & bit) !== 0) {
             eliminations.push(new CandidateElimination(idx, d))
           }
         }
@@ -593,7 +587,7 @@ function findPointingPair(candidates: number[]): SolveStep | null {
         const eliminations: CandidateElimination[] = []
         for (let r = 0; r < GRID_SIZE; r++) {
           const idx = indexOf(r, col)
-          if (boxOf(idx) !== box && (candidates[idx] & bit) !== 0) {
+          if (regionOf(idx) !== box && (candidates[idx] & bit) !== 0) {
             eliminations.push(new CandidateElimination(idx, d))
           }
         }
@@ -630,16 +624,16 @@ function findBoxLineReduction(candidates: number[]): SolveStep | null {
           positions.push(idx)
         }
       }
-      if (positions.length < 2 || positions.length > 3) continue
+      if (positions.length < 2) continue
 
       const boxes = new Set<number>()
       for (const idx of positions) {
-        boxes.add(boxOf(idx))
+        boxes.add(regionOf(idx))
       }
 
       if (boxes.size === 1) {
-        const box = boxOf(positions[0])
-        const boxCells = getBoxUnit(box)
+        const box = regionOf(positions[0])
+        const boxCells = getRegionUnit(box)
         const eliminations: CandidateElimination[] = []
         for (const idx of boxCells) {
           if (rowOf(idx) !== row && (candidates[idx] & bit) !== 0) {
@@ -672,16 +666,16 @@ function findBoxLineReduction(candidates: number[]): SolveStep | null {
           positions.push(idx)
         }
       }
-      if (positions.length < 2 || positions.length > 3) continue
+      if (positions.length < 2) continue
 
       const boxes = new Set<number>()
       for (const idx of positions) {
-        boxes.add(boxOf(idx))
+        boxes.add(regionOf(idx))
       }
 
       if (boxes.size === 1) {
-        const box = boxOf(positions[0])
-        const boxCells = getBoxUnit(box)
+        const box = regionOf(positions[0])
+        const boxCells = getRegionUnit(box)
         const eliminations: CandidateElimination[] = []
         for (const idx of boxCells) {
           if (colOf(idx) !== col && (candidates[idx] & bit) !== 0) {

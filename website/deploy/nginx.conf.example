@@ -1,0 +1,36 @@
+# Template only. Install a valid certificate before enabling the HTTPS block.
+# Include this from the nginx http {} context; preserve the global mime.types include.
+server {
+    listen 80;
+    server_name sudoku.oranix.cn;
+    location /.well-known/acme-challenge/ {
+        root /var/www/acme;
+    }
+    location / {
+        return 301 https://sudoku.oranix.cn$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl;
+    server_name sudoku.oranix.cn;
+    root /var/www/oranix-sudoku;
+    index index.html;
+
+    ssl_certificate /etc/letsencrypt/live/sudoku.oranix.cn/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/sudoku.oranix.cn/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    server_tokens off;
+
+    # No website analytics. Verify any upstream CDN/host logs separately.
+    access_log off;
+    error_log /var/log/nginx/sudoku.error.log warn;
+
+    add_header X-Content-Type-Options nosniff always;
+    add_header Referrer-Policy strict-origin-when-cross-origin always;
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; connect-src 'none'; form-action 'none'" always;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+}

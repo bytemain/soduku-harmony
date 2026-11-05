@@ -14,6 +14,25 @@ import { applyTopology } from '../main/ets/utils/Topology'
 const TAG = 'GeneratorTest'
 
 export default function generatorTest() {
+  describe('SudokuGenerator.SeedReplay', () => {
+    it('auto_symmetry_seed_replays_the_exact_original_puzzle', 0, () => {
+      applyTopology(createStandardConfig())
+      for (const difficulty of [Difficulty.EASY, Difficulty.HARD]) {
+        const generated = generatePuzzle(difficulty, undefined, undefined, 1)
+        const replayed = generatePuzzleFromSeed(generated.seed, difficulty, generated.symmetry)
+        expect(JSON.stringify(replayed.puzzle)).assertEqual(JSON.stringify(generated.puzzle))
+        expect(JSON.stringify(replayed.solution)).assertEqual(JSON.stringify(generated.solution))
+      }
+    })
+
+    it('explicit_symmetry_seed_keeps_the_same_replay_contract', 0, () => {
+      applyTopology(createStandardConfig())
+      const generated = generatePuzzle(Difficulty.EASY, Symmetry.MIRROR, undefined, 1)
+      const replayed = generatePuzzleFromSeed(generated.seed, Difficulty.EASY, generated.symmetry)
+      expect(JSON.stringify(replayed.puzzle)).assertEqual(JSON.stringify(generated.puzzle))
+    })
+  })
+
   describe('generateFullBoard', () => {
     it('generates_9x9_board', 0, () => {
       const board = generateFullBoard()

@@ -458,7 +458,8 @@ export function generatePuzzle(
     reportProgress(globalCallback, 'generating_solution', 10, attemptNumber, maxAttempts)
     const solution = generateFullBoard(rng, globalCallback, attemptNumber, maxAttempts)
 
-    const symmetry = preferredSymmetry ?? pickSymmetry(difficulty, rng)
+    // 自动选择对称方式不能推进终盘/挖洞 RNG，否则分享的 seed 无法重播同一题。
+    const symmetry = preferredSymmetry ?? pickSymmetry(difficulty, new SeededRandom(seed))
     reportProgress(globalCallback, 'digging_holes', 25, attemptNumber, maxAttempts)
     const puzzle = digHoles(solution, config.holesToDig, symmetry, rng, globalCallback, attemptNumber, maxAttempts)
 
@@ -492,7 +493,7 @@ export function generatePuzzle(
     const fallbackSeed = randomSeed()
     const fallbackRng = new SeededRandom(fallbackSeed)
     const fallbackSolution = generateFullBoard(fallbackRng, progressCallback, maxAttempts, maxAttempts)
-    const fallbackSymmetry = preferredSymmetry ?? pickSymmetry(difficulty, fallbackRng)
+    const fallbackSymmetry = preferredSymmetry ?? pickSymmetry(difficulty, new SeededRandom(fallbackSeed))
     const fallbackPuzzle = digHoles(fallbackSolution, config.holesToDig, fallbackSymmetry, fallbackRng)
     const fallbackGrade = evaluateDifficulty(fallbackPuzzle)
     bestPuzzle = {

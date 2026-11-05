@@ -12,7 +12,7 @@
  * 参考：Doc 04 §2.3, Doc 07 §四
  */
 import { GRID_SIZE, BOX_ROWS, BOX_COLS, BOX_COUNT_COLS } from '../constants/GameConstants'
-import { VariantConfig, createStandardConfig } from '../models/VariantConfig'
+import { VariantConfig, createStandardConfig, getRegionMap } from '../models/VariantConfig'
 import { buildVariantTopology, VariantTopology } from './VariantTopology'
 
 // ============================================================
@@ -52,6 +52,14 @@ const _standardTopology = buildVariantTopology(createStandardConfig())
 /** 所有 units（标准 9×9 有 27 个） */
 export let ALL_UNITS: number[][] = _standardTopology.allUnits
 
+/** 当前真实区域；Jigsaw 不能使用固定矩形宫的 boxOf()。 */
+export let REGION_UNITS: number[][] = _standardTopology.regionUnits
+let activeRegionMap: number[] = getRegionMap(createStandardConfig())
+
+export function regionOf(index: number): number {
+  return activeRegionMap[index]
+}
+
 /** 每个格子所属的 units 列表 */
 export let UNITS_OF: number[][][] = _standardTopology.unitsOf
 
@@ -65,6 +73,8 @@ export let PEERS: number[][] = _standardTopology.peers
 export function applyTopology(config: VariantConfig): void {
   const topo: VariantTopology = buildVariantTopology(config)
   ALL_UNITS = topo.allUnits
+  REGION_UNITS = topo.regionUnits
+  activeRegionMap = getRegionMap(config)
   UNITS_OF = topo.unitsOf
   PEERS = topo.peers
 }

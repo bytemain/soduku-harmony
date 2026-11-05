@@ -5,11 +5,11 @@
  *
  * 动画设计：
  * - 始终渲染全部行，选中项节点永不销毁，保持连续可见。
- * - 非选中项通过 height 0↔itemHeight + opacity 0↔1 实现展开/折叠。
+ * - 非选中项通过 height 0 与 itemHeight 切换 + opacity 0 与 1 切换 实现展开/折叠。
  * - 展开时从选中项中心向两端扩散（stagger delay）。
  * - 收起时先切高亮（200ms），再折叠（300ms）。
  */
-import { Colors } from '../constants/GameConstants'
+import { ColorsConfig, getThemeColors } from '../constants/GameConstants'
 
 /** 选项数据的通用接口 */
 export interface SelectorOption {
@@ -24,6 +24,12 @@ const DEFAULT_ITEM_HEIGHT = 44
 
 @Component
 export struct CollapsibleSelector {
+  @StorageProp('isDarkMode') private isDarkMode: boolean = false
+
+  private getPalette(): ColorsConfig {
+    return getThemeColors(this.isDarkMode)
+  }
+
   /** 当前选中项的 key */
   @Link selectedKey: string
   /** 全部选项列表 */
@@ -57,27 +63,17 @@ export struct CollapsibleSelector {
             if (this.selectedKey === option.key) {
               Text(this.expanded ? '▲' : '▼')
                 .fontSize(10)
-                .fontColor(Colors.subtitleText)
+                .fontColor(this.getPalette().subtitleText)
                 .margin({ left: 8 })
             }
           }
           .width('100%')
           .padding({ left: 12, right: 16, top: 10, bottom: 10 })
           .alignItems(VerticalAlign.Center)
-          .backgroundColor(this.selectedKey === option.key ? Colors.segmentSelected : 'transparent')
-          .borderRadius(12)
+          .backgroundColor(this.selectedKey === option.key ? this.getPalette().segmentSelected : 'transparent')
+          .borderRadius(6)
           .opacity(option.enabled ? 1.0 : 0.5)
-          .shadow(this.selectedKey === option.key ? {
-            radius: 4,
-            color: Colors.shadowColor,
-            offsetX: 0,
-            offsetY: 1,
-          } : {
-            radius: 0,
-            color: 'transparent',
-            offsetX: 0,
-            offsetY: 0,
-          })
+          .border({ width: 1, color: this.selectedKey === option.key ? this.getPalette().cardBorder : Color.Transparent })
           .animation({ duration: 200, curve: Curve.EaseInOut })
         }
         .width('100%')
@@ -141,8 +137,8 @@ export struct CollapsibleSelector {
       })
     }
     .width('100%')
-    .backgroundColor(Colors.segmentBg)
-    .borderRadius(16)
+    .backgroundColor(this.getPalette().segmentBg)
+    .borderRadius(8)
     .padding(4)
   }
 }

@@ -12,6 +12,7 @@
 /.appanalyzer
 
 data.json
+/test-results/
 
 # ArkUI-X cross-platform build artifacts
 .arkui-x/android/.gradle/

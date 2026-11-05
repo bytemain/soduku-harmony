@@ -1,7 +1,30 @@
 import { describe, it, expect } from '@ohos/hypium'
-import { GameHistory, CellSnapshot } from '../main/ets/models/GameHistory'
+import { GameHistory, CellSnapshot, clearPeerNotesWithSnapshots } from '../main/ets/models/GameHistory'
+
+import { createEmptyBoard, getNoteState, setNoteState, NoteState } from '../main/ets/models/CellData'
 
 export default function gameHistoryTest() {
+  describe('GameHistory.PeerNotesRegression', () => {
+    it('fill_and_peer_note_cleanup_undo_as_one_group', 0, () => {
+      const cells = createEmptyBoard()
+      const history = new GameHistory()
+      cells[1].notes = setNoteState(0, 1, NoteState.ACTIVE)
+      cells[2].notes = setNoteState(0, 1, NoteState.ELIMINATED)
+      const fill = new CellSnapshot(0, 0, 1, 0, 0, 0, 0)
+      cells[0].value = 1
+      history.pushBatch([fill, ...clearPeerNotesWithSnapshots(cells, 0, [1, 2])])
+      expect(history.undoStack.length).assertEqual(1)
+      expect(getNoteState(cells[1].notes, 1)).assertEqual(NoteState.EMPTY)
+      const group = history.popUndo()!
+      for (const snapshot of group) {
+        cells[snapshot.index].value = snapshot.oldValue
+        cells[snapshot.index].notes = snapshot.oldNotes
+      }
+      expect(cells[0].value).assertEqual(0)
+      expect(getNoteState(cells[1].notes, 1)).assertEqual(NoteState.ACTIVE)
+      expect(getNoteState(cells[2].notes, 1)).assertEqual(NoteState.ELIMINATED)
+    })
+  })
   describe('GameHistory.push', () => {
     it('single_push_creates_group_of_one', 0, () => {
       const h = new GameHistory()
